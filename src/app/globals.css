@@ -184,6 +184,13 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @utility custom-scrollbar {
   &::-webkit-scrollbar {
     @apply w-4.5;

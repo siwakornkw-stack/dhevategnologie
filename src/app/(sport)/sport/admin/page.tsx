@@ -41,45 +41,45 @@ export default async function AdminDashboardPage() {
   return (
     <div className="wrapper py-8 space-y-8 max-w-6xl">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="space-y-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">⚙️ Admin Dashboard</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">จัดการสนามและการจอง</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           <Link
             href="/sport/admin/calendar"
-            className="px-4 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+            className="flex-shrink-0 px-3 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
           >
             📅 ปฏิทิน
           </Link>
           <Link
             href="/sport/admin/users"
-            className="px-4 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+            className="flex-shrink-0 px-3 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
           >
             👥 ผู้ใช้
           </Link>
           <Link
             href="/sport/admin/waiting-list"
-            className="px-4 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+            className="flex-shrink-0 px-3 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
           >
             🕐 Waiting List
           </Link>
           <Link
             href="/sport/admin/coupons"
-            className="px-4 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+            className="flex-shrink-0 px-3 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
           >
             🎟️ คูปอง
           </Link>
           <Link
             href="/sport/admin/reports"
-            className="px-4 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+            className="flex-shrink-0 px-3 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
           >
             📊 รีพอร์ต
           </Link>
           <Link
             href="/sport/admin/bookings"
-            className="px-4 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+            className="flex-shrink-0 px-3 py-2 rounded-full bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 transition whitespace-nowrap"
           >
             ดูรายการจองทั้งหมด →
           </Link>
