@@ -3,18 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { stripe } from '@/lib/stripe';
 import { rateLimit, BOOKING_RATE_LIMIT } from '@/lib/rate-limit';
-
-function expandTimeSlot(ts: string): string[] {
-  const [start, end] = ts.split('-');
-  const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
-  const toTime = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
-  const startM = toMin(start);
-  const endM = toMin(end);
-  if (endM - startM <= 60) return [ts];
-  const result: string[] = [];
-  for (let m = startM; m < endM; m += 60) result.push(`${toTime(m)}-${toTime(m + 60)}`);
-  return result;
-}
+import { expandTimeSlot, calculateCouponDiscount, isCouponUsable } from '@/lib/booking';
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -64,7 +53,7 @@ export async function POST(req: NextRequest) {
   let appliedCoupon: { code: string; discountType: string; discountValue: number } | null = null;
   if (couponCode) {
     const coupon = await prisma.coupon.findUnique({ where: { code: couponCode.trim().toUpperCase() } });
-    if (coupon && coupon.isActive && !(coupon.expiresAt && coupon.expiresAt < new Date()) && !(coupon.maxUses !== null && coupon.usedCount >= coupon.maxUses)) {
+    if (coupon && isCouponUsable(coupon)) {
       appliedCoupon = { code: coupon.code, discountType: coupon.discountType, discountValue: coupon.discountValue };
     }
   }
@@ -75,11 +64,7 @@ export async function POST(req: NextRequest) {
   const hours = slotsArray.length;
   const baseAmount = field.pricePerHour * hours;
 
-  const couponDiscount = appliedCoupon
-    ? appliedCoupon.discountType === 'PERCENT'
-      ? Math.round(baseAmount * appliedCoupon.discountValue / 100)
-      : Math.min(appliedCoupon.discountValue, baseAmount)
-    : 0;
+  const couponDiscount = calculateCouponDiscount(appliedCoupon, baseAmount);
 
   // Loyalty points redemption: 100 points = 10 THB
   const userPoints = user?.points ?? 0;
