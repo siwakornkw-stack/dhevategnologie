@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 interface ReceiptData {
   bookingId: string;
@@ -19,6 +20,7 @@ interface ReceiptData {
 }
 
 export function DownloadReceiptButton({ booking }: { booking: ReceiptData }) {
+  const t = useTranslations('common');
   const [loading, setLoading] = useState(false);
 
   function handleDownload() {
@@ -134,7 +136,7 @@ export function DownloadReceiptButton({ booking }: { booking: ReceiptData }) {
       disabled={loading}
       className="text-xs px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition disabled:opacity-50 flex items-center gap-1"
     >
-      {loading ? '⏳' : '🧾'} {loading ? 'กำลังสร้าง...' : 'ใบเสร็จ'}
+      {loading ? '⏳' : '🧾'} {loading ? t('generating') : t('receipt')}
     </button>
   );
 }

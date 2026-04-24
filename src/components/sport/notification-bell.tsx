@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 interface Notif {
   id: string;
@@ -14,6 +15,7 @@ interface Notif {
 
 export function NotificationBell() {
   const router = useRouter();
+  const t = useTranslations('common');
   const [open, setOpen] = useState(false);
   const [unread, setUnread] = useState(0);
   const [notifications, setNotifications] = useState<Notif[]>([]);
@@ -94,7 +96,7 @@ export function NotificationBell() {
       <button
         onClick={handleOpen}
         className="relative w-9 h-9 rounded-full flex items-center justify-center border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
-        aria-label="การแจ้งเตือน"
+        aria-label={t('notifications')}
       >
         <span className="text-lg">🔔</span>
         {unread > 0 && (
@@ -107,10 +109,10 @@ export function NotificationBell() {
       {open && (
         <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-theme-lg z-50 overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-            <span className="font-semibold text-sm text-gray-900 dark:text-white">การแจ้งเตือน</span>
+            <span className="font-semibold text-sm text-gray-900 dark:text-white">{t('notifications')}</span>
           </div>
           {notifications.length === 0 ? (
-            <div className="p-8 text-center text-gray-400 text-sm">ยังไม่มีการแจ้งเตือน</div>
+            <div className="p-8 text-center text-gray-400 text-sm">{t('noNotifications')}</div>
           ) : (
             <div className="max-h-80 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800">
               {notifications.map((n) => (

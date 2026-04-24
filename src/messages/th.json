@@ -14,7 +14,14 @@
     "delete": "ลบ",
     "edit": "แก้ไข",
     "close": "ปิด",
-    "required": "จำเป็น"
+    "required": "จำเป็น",
+    "notifications": "การแจ้งเตือน",
+    "noNotifications": "ยังไม่มีการแจ้งเตือน",
+    "receipt": "ใบเสร็จ",
+    "generating": "กำลังสร้าง...",
+    "error": "เกิดข้อผิดพลาด",
+    "errorHint": "กรุณาลองใหม่อีกครั้ง",
+    "retry": "ลองใหม่"
   },
   "header": {
     "fields": "สนามทั้งหมด",
@@ -157,6 +164,25 @@
       "title": "📋 การจองล่าสุด",
       "viewAll": "ดูทั้งหมด →",
       "empty": "ยังไม่มีการจอง"
+    },
+    "users": {
+      "title": "จัดการผู้ใช้",
+      "total": "ทั้งหมด {count} คน",
+      "colUser": "ผู้ใช้",
+      "colPhone": "เบอร์โทร",
+      "colBookings": "การจอง",
+      "colEmail": "อีเมล",
+      "colJoined": "สมัครเมื่อ",
+      "colManage": "จัดการ",
+      "emailVerified": "ยืนยันแล้ว",
+      "emailUnverified": "ยังไม่ยืนยัน",
+      "noUsers": "ไม่พบผู้ใช้",
+      "page": "หน้า {page} / {total}",
+      "previous": "← ก่อนหน้า",
+      "next": "ถัดไป →"
+    },
+    "coupons": {
+      "title": "จัดการคูปอง"
     }
   },
   "sport": {
@@ -251,5 +277,69 @@
       "recurringPartial": "จอง {booked} สัปดาห์ สำเร็จ (ข้าม {skipped} วัน)",
       "weeks": "{w} สัปดาห์"
     }
+  },
+  "profile": {
+    "title": "โปรไฟล์ของฉัน",
+    "backToHome": "← หน้าหลัก",
+    "loading": "กำลังโหลด...",
+    "noName": "ไม่ระบุชื่อ",
+    "memberSince": "สมัครเมื่อ",
+    "roleUser": "👤 ผู้ใช้",
+    "pointsLabel": "แต้ม",
+    "emailVerified": "✓ ยืนยันอีเมลแล้ว",
+    "emailUnverified": "! ยังไม่ยืนยันอีเมล",
+    "referral": {
+      "title": "🎁 แนะนำเพื่อน",
+      "desc": "แนะนำเพื่อนให้สมัครและจองสนาม รับโบนัส",
+      "bonus": "50 แต้ม",
+      "descSuffix": "ต่อคน",
+      "codeLabel": "รหัสแนะนำ",
+      "copy": "🔗 คัดลอก",
+      "copied": "✓ คัดลอกแล้ว",
+      "friendCount": "เพื่อนที่แนะนำแล้ว: {count} คน"
+    },
+    "edit": {
+      "title": "แก้ไขข้อมูล",
+      "name": "ชื่อ-นามสกุล",
+      "namePlaceholder": "ชื่อของคุณ",
+      "email": "อีเมล",
+      "phone": "เบอร์โทรศัพท์",
+      "changePassword": "เปลี่ยนรหัสผ่าน",
+      "changePasswordHint": "(เว้นว่างถ้าไม่ต้องการเปลี่ยน)",
+      "currentPassword": "รหัสผ่านปัจจุบัน",
+      "newPassword": "รหัสผ่านใหม่",
+      "newPasswordPlaceholder": "อย่างน้อย 6 ตัวอักษร",
+      "save": "บันทึกการเปลี่ยนแปลง",
+      "saving": "กำลังบันทึก...",
+      "saveSuccess": "บันทึกข้อมูลสำเร็จ!",
+      "uploadSuccess": "อัปโหลดรูปโปรไฟล์สำเร็จ",
+      "uploadError": "อัปโหลดไม่สำเร็จ"
+    },
+    "notifSection": {
+      "title": "🔔 การแจ้งเตือน",
+      "email": "📧 อีเมล",
+      "line": "💬 LINE Notify",
+      "inApp": "🔔 In-App & Push",
+      "saveSettings": "บันทึกการตั้งค่าแจ้งเตือน"
+    },
+    "security": {
+      "title": "🛡️ ความปลอดภัย",
+      "twoFa": "ยืนยัน 2 ขั้นตอน (2FA)",
+      "twoFaHint": "เพิ่มความปลอดภัยให้บัญชีด้วย TOTP",
+      "twoFaOn": "เปิดอยู่",
+      "twoFaOff": "ปิดอยู่"
+    }
+  },
+  "payment": {
+    "successTitle": "ชำระเงินสำเร็จ!",
+    "successMeta": "ชำระเงินสำเร็จ",
+    "successMsg": "ระบบได้รับการชำระเงินของคุณแล้ว กรุณารอแอดมินยืนยันการจอง",
+    "successEmail": "คุณจะได้รับอีเมลยืนยันเมื่อการจองได้รับการอนุมัติ",
+    "viewBookings": "ดูการจองของฉัน →",
+    "cancelTitle": "ยกเลิกการชำระเงิน",
+    "cancelMeta": "ยกเลิกการชำระเงิน",
+    "cancelMsg": "การจองถูกยกเลิกแล้ว คุณสามารถกลับไปเลือกสนามและทำการจองใหม่ได้",
+    "backToHome": "กลับหน้าหลัก",
+    "myBookings": "การจองของฉัน"
   }
 }

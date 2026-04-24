@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 
 interface Profile {
   id: string;
@@ -23,6 +24,7 @@ interface Profile {
 
 export default function ProfilePage() {
   const router = useRouter();
+  const t = useTranslations('profile');
   const [profile, setProfile] = useState<Profile | null>(null);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -69,7 +71,7 @@ export default function ProfilePage() {
       formData.append('file', file);
       const res = await fetch('/api/sport/upload', { method: 'POST', body: formData });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'อัปโหลดไม่สำเร็จ');
+      if (!res.ok) throw new Error(data.error ?? t('edit.uploadError'));
       setImageUrl(data.url);
       await fetch('/api/sport/profile', {
         method: 'PUT',
@@ -77,7 +79,7 @@ export default function ProfilePage() {
         body: JSON.stringify({ name, phone, image: data.url }),
       });
       setProfile((p) => p ? { ...p, image: data.url } : p);
-      toast.success('อัปโหลดรูปโปรไฟล์สำเร็จ');
+      toast.success(t('edit.uploadSuccess'));
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -104,7 +106,7 @@ export default function ProfilePage() {
       setProfile((p) => p ? { ...p, name: data.name, phone: data.phone, notifEmail, notifLine, notifInApp } : p);
       setCurrentPassword('');
       setNewPassword('');
-      toast.success('บันทึกข้อมูลสำเร็จ!');
+      toast.success(t('edit.saveSuccess'));
       router.refresh();
     } catch (err) {
       toast.error((err as Error).message);
@@ -125,7 +127,7 @@ export default function ProfilePage() {
   if (!profile) {
     return (
       <div className="wrapper py-20 text-center text-gray-400">
-        <div className="text-4xl mb-3">⏳</div>กำลังโหลด...
+        <div className="text-4xl mb-3">⏳</div>{t('loading')}
       </div>
     );
   }
@@ -133,8 +135,8 @@ export default function ProfilePage() {
   return (
     <div className="wrapper py-8 max-w-2xl space-y-6">
       <div className="flex items-center gap-3">
-        <a href="/sport" className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition">← หน้าหลัก</a>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">👤 โปรไฟล์ของฉัน</h1>
+        <a href="/sport" className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition">{t('backToHome')}</a>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">👤 {t('title')}</h1>
       </div>
 
       {/* Profile Card */}
@@ -153,27 +155,27 @@ export default function ProfilePage() {
           <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
         </label>
         <div className="flex-1">
-          <p className="font-semibold text-gray-900 dark:text-white text-lg">{profile.name ?? 'ไม่ระบุชื่อ'}</p>
+          <p className="font-semibold text-gray-900 dark:text-white text-lg">{profile.name ?? t('noName')}</p>
           <p className="text-sm text-gray-500 dark:text-gray-400">{profile.email}</p>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${profile.role === 'ADMIN' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
-              {profile.role === 'ADMIN' ? '⚙️ Admin' : '👤 ผู้ใช้'}
+              {profile.role === 'ADMIN' ? '⚙️ Admin' : t('roleUser')}
             </span>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-              ⭐ {profile.points} แต้ม
+              ⭐ {profile.points} {t('pointsLabel')}
             </span>
             {profile.twoFactorEnabled && (
               <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">🔐 2FA</span>
             )}
             {profile.emailVerified ? (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">✓ ยืนยันอีเมลแล้ว</span>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">{t('emailVerified')}</span>
             ) : (
-              <a href="/sport/auth/resend-verification" className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 hover:bg-amber-200 transition">! ยังไม่ยืนยันอีเมล</a>
+              <a href="/sport/auth/resend-verification" className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 hover:bg-amber-200 transition">{t('emailUnverified')}</a>
             )}
           </div>
         </div>
         <div className="text-right">
-          <p className="text-xs text-gray-400">สมัครเมื่อ</p>
+          <p className="text-xs text-gray-400">{t('memberSince')}</p>
           <p className="text-sm text-gray-600 dark:text-gray-300">
             {new Date(profile.createdAt).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}
           </p>
@@ -183,11 +185,13 @@ export default function ProfilePage() {
       {/* Referral Section */}
       {referralData && (
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700/50 p-6 space-y-4">
-          <h2 className="font-semibold text-gray-900 dark:text-white">🎁 แนะนำเพื่อน</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">แนะนำเพื่อนให้สมัครและจองสนาม รับโบนัส <strong className="text-primary-600 dark:text-primary-400">50 แต้ม</strong> ต่อคน</p>
+          <h2 className="font-semibold text-gray-900 dark:text-white">{t('referral.title')}</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            {t('referral.desc')} <strong className="text-primary-600 dark:text-primary-400">{t('referral.bonus')}</strong> {t('referral.descSuffix')}
+          </p>
           <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 flex items-center gap-3">
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-gray-400 mb-0.5">รหัสแนะนำ</p>
+              <p className="text-xs text-gray-400 mb-0.5">{t('referral.codeLabel')}</p>
               <p className="font-mono font-bold text-primary-600 dark:text-primary-400 text-lg tracking-widest">{referralData.referralCode}</p>
               <p className="text-xs text-gray-400 truncate mt-0.5">{referralData.referralLink}</p>
             </div>
@@ -195,61 +199,63 @@ export default function ProfilePage() {
               onClick={copyReferralLink}
               className="flex-shrink-0 px-3 py-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold transition"
             >
-              {copied ? '✓ คัดลอกแล้ว' : '🔗 คัดลอก'}
+              {copied ? t('referral.copied') : t('referral.copy')}
             </button>
           </div>
-          <p className="text-xs text-gray-400">เพื่อนที่แนะนำแล้ว: <strong className="text-gray-700 dark:text-gray-300">{referralData.referralCount} คน</strong></p>
+          <p className="text-xs text-gray-400">{t('referral.friendCount', { count: referralData.referralCount })}</p>
         </div>
       )}
 
       {/* Edit Form */}
       <form onSubmit={handleSave} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700/50 p-6 space-y-5">
-        <h2 className="font-semibold text-gray-900 dark:text-white">แก้ไขข้อมูล</h2>
+        <h2 className="font-semibold text-gray-900 dark:text-white">{t('edit.title')}</h2>
 
         <div>
-          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">ชื่อ-นามสกุล</label>
-          <input className={inputCls} placeholder="ชื่อของคุณ" value={name} onChange={(e) => setName(e.target.value)} />
+          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">{t('edit.name')}</label>
+          <input className={inputCls} placeholder={t('edit.namePlaceholder')} value={name} onChange={(e) => setName(e.target.value)} />
         </div>
 
         <div>
-          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">อีเมล</label>
+          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">{t('edit.email')}</label>
           <input className={`${inputCls} opacity-60 cursor-not-allowed`} value={profile.email} disabled />
         </div>
 
         <div>
-          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">เบอร์โทรศัพท์</label>
+          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">{t('edit.phone')}</label>
           <input className={inputCls} placeholder="0812345678" value={phone} onChange={(e) => setPhone(e.target.value)} />
         </div>
 
         <div className="border-t border-gray-100 dark:border-gray-800 pt-5">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">เปลี่ยนรหัสผ่าน <span className="text-xs font-normal text-gray-400">(เว้นว่างถ้าไม่ต้องการเปลี่ยน)</span></h3>
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
+            {t('edit.changePassword')} <span className="text-xs font-normal text-gray-400">{t('edit.changePasswordHint')}</span>
+          </h3>
           <div className="space-y-3">
             <div>
-              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">รหัสผ่านปัจจุบัน</label>
+              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">{t('edit.currentPassword')}</label>
               <input className={inputCls} type="password" placeholder="••••••••" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">รหัสผ่านใหม่</label>
-              <input className={inputCls} type="password" placeholder="อย่างน้อย 6 ตัวอักษร" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">{t('edit.newPassword')}</label>
+              <input className={inputCls} type="password" placeholder={t('edit.newPasswordPlaceholder')} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
             </div>
           </div>
         </div>
 
         <div className="flex justify-end pt-2">
           <button type="submit" disabled={saving} className="gradient-btn px-6 py-2.5 rounded-xl text-white text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed">
-            {saving ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง'}
+            {saving ? t('edit.saving') : t('edit.save')}
           </button>
         </div>
       </form>
 
       {/* Notification Preferences */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700/50 p-6 space-y-4">
-        <h2 className="font-semibold text-gray-900 dark:text-white">🔔 การแจ้งเตือน</h2>
+        <h2 className="font-semibold text-gray-900 dark:text-white">{t('notifSection.title')}</h2>
         <div className="space-y-3">
           {[
-            { key: 'notifEmail', label: '📧 อีเมล', value: notifEmail, set: setNotifEmail },
-            { key: 'notifLine', label: '💬 LINE Notify', value: notifLine, set: setNotifLine },
-            { key: 'notifInApp', label: '🔔 In-App & Push', value: notifInApp, set: setNotifInApp },
+            { key: 'notifEmail', label: t('notifSection.email'), value: notifEmail, set: setNotifEmail },
+            { key: 'notifLine', label: t('notifSection.line'), value: notifLine, set: setNotifLine },
+            { key: 'notifInApp', label: t('notifSection.inApp'), value: notifInApp, set: setNotifInApp },
           ].map(({ key, label, value, set }) => (
             <div key={key} className="flex items-center justify-between">
               <span className="text-sm text-gray-700 dark:text-gray-300">{label}</span>
@@ -268,13 +274,13 @@ export default function ProfilePage() {
           disabled={saving}
           className="w-full py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition disabled:opacity-60"
         >
-          บันทึกการตั้งค่าแจ้งเตือน
+          {t('notifSection.saveSettings')}
         </button>
       </div>
 
       {/* Security */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700/50 p-6 space-y-3">
-        <h2 className="font-semibold text-gray-900 dark:text-white">🛡️ ความปลอดภัย</h2>
+        <h2 className="font-semibold text-gray-900 dark:text-white">{t('security.title')}</h2>
         <a
           href="/sport/profile/2fa"
           className="flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
@@ -282,15 +288,15 @@ export default function ProfilePage() {
           <div className="flex items-center gap-3">
             <span className="text-xl">🔐</span>
             <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">ยืนยัน 2 ขั้นตอน (2FA)</p>
-              <p className="text-xs text-gray-400">เพิ่มความปลอดภัยให้บัญชีด้วย TOTP</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">{t('security.twoFa')}</p>
+              <p className="text-xs text-gray-400">{t('security.twoFaHint')}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {profile.twoFactorEnabled ? (
-              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">เปิดอยู่</span>
+              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">{t('security.twoFaOn')}</span>
             ) : (
-              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">ปิดอยู่</span>
+              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">{t('security.twoFaOff')}</span>
             )}
             <span className="text-gray-400">→</span>
           </div>

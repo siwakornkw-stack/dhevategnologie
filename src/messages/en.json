@@ -14,7 +14,14 @@
     "delete": "Delete",
     "edit": "Edit",
     "close": "Close",
-    "required": "Required"
+    "required": "Required",
+    "notifications": "Notifications",
+    "noNotifications": "No notifications yet",
+    "receipt": "Receipt",
+    "generating": "Generating...",
+    "error": "Something went wrong",
+    "errorHint": "Please try again",
+    "retry": "Try again"
   },
   "header": {
     "fields": "All fields",
@@ -157,6 +164,25 @@
       "title": "📋 Recent bookings",
       "viewAll": "View all →",
       "empty": "No bookings yet"
+    },
+    "users": {
+      "title": "Manage users",
+      "total": "{count} users total",
+      "colUser": "User",
+      "colPhone": "Phone",
+      "colBookings": "Bookings",
+      "colEmail": "Email",
+      "colJoined": "Joined",
+      "colManage": "Manage",
+      "emailVerified": "Verified",
+      "emailUnverified": "Unverified",
+      "noUsers": "No users found",
+      "page": "Page {page} / {total}",
+      "previous": "← Previous",
+      "next": "Next →"
+    },
+    "coupons": {
+      "title": "Manage coupons"
     }
   },
   "sport": {
@@ -251,5 +277,69 @@
       "recurringPartial": "Booked {booked} weeks (skipped {skipped} days)",
       "weeks": "{w} weeks"
     }
+  },
+  "profile": {
+    "title": "My profile",
+    "backToHome": "← Home",
+    "loading": "Loading...",
+    "noName": "No name set",
+    "memberSince": "Joined",
+    "roleUser": "👤 User",
+    "pointsLabel": "pts",
+    "emailVerified": "✓ Email verified",
+    "emailUnverified": "! Email not verified",
+    "referral": {
+      "title": "🎁 Refer friends",
+      "desc": "Refer friends to sign up and book fields, earn",
+      "bonus": "50 pts",
+      "descSuffix": "per referral",
+      "codeLabel": "Referral code",
+      "copy": "🔗 Copy",
+      "copied": "✓ Copied",
+      "friendCount": "Friends referred: {count}"
+    },
+    "edit": {
+      "title": "Edit profile",
+      "name": "Full name",
+      "namePlaceholder": "Your name",
+      "email": "Email",
+      "phone": "Phone",
+      "changePassword": "Change password",
+      "changePasswordHint": "(leave blank to keep current)",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "newPasswordPlaceholder": "At least 6 characters",
+      "save": "Save changes",
+      "saving": "Saving...",
+      "saveSuccess": "Profile saved!",
+      "uploadSuccess": "Profile photo uploaded",
+      "uploadError": "Upload failed"
+    },
+    "notifSection": {
+      "title": "🔔 Notifications",
+      "email": "📧 Email",
+      "line": "💬 LINE Notify",
+      "inApp": "🔔 In-App & Push",
+      "saveSettings": "Save notification settings"
+    },
+    "security": {
+      "title": "🛡️ Security",
+      "twoFa": "Two-factor authentication (2FA)",
+      "twoFaHint": "Secure your account with TOTP",
+      "twoFaOn": "Enabled",
+      "twoFaOff": "Disabled"
+    }
+  },
+  "payment": {
+    "successTitle": "Payment successful!",
+    "successMeta": "Payment successful",
+    "successMsg": "Payment received. Please wait for admin to confirm your booking.",
+    "successEmail": "You'll receive a confirmation email when your booking is approved.",
+    "viewBookings": "View my bookings →",
+    "cancelTitle": "Payment cancelled",
+    "cancelMeta": "Payment cancelled",
+    "cancelMsg": "Your booking was cancelled. You can go back and book again.",
+    "backToHome": "Back to home",
+    "myBookings": "My bookings"
   }
 }

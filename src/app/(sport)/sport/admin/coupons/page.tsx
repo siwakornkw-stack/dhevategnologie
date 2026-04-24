@@ -3,8 +3,12 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import { CouponManager } from './coupon-manager';
+import { getTranslations } from 'next-intl/server';
 
-export const metadata = { title: 'จัดการคูปอง' };
+export async function generateMetadata() {
+  const t = await getTranslations('admin');
+  return { title: t('coupons.title') };
+}
 
 export default async function AdminCouponsPage() {
   const session = await auth();
