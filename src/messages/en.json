@@ -1,0 +1,90 @@
+{
+  "common": {
+    "signin": "Sign in",
+    "signup": "Sign up",
+    "signout": "Sign out",
+    "myProfile": "My profile",
+    "admin": "Admin",
+    "loading": "Loading...",
+    "back": "Back",
+    "save": "Save",
+    "cancel": "Cancel",
+    "send": "Send",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "required": "Required"
+  },
+  "header": {
+    "fields": "All fields",
+    "myBookings": "My bookings",
+    "chat": "Chat",
+    "profile": "Profile",
+    "adminDashboard": "Admin Dashboard",
+    "emailUnverified": "Email not yet verified — please check your inbox",
+    "resendVerification": "Resend",
+    "mobile": {
+      "fields": "🏟️ Fields",
+      "bookings": "📋 Bookings",
+      "chat": "💬 Chat",
+      "profile": "👤 Profile",
+      "admin": "⚙️ Admin"
+    }
+  },
+  "language": {
+    "switcher": "Language",
+    "th": "ไทย",
+    "en": "English"
+  },
+  "chat": {
+    "title": "💬 Chat with admin",
+    "subtitle": "Our team responds within 1–2 hours",
+    "placeholder": "Type a message...",
+    "empty": "Hi! How can our admin help you today?",
+    "emptyAdmin": "No messages yet",
+    "sendFail": "Failed to send message",
+    "rateLimited": "Sending too fast",
+    "labelAdmin": "🛡️ Admin",
+    "labelUser": "Customer",
+    "admin": {
+      "title": "💬 Customer chat",
+      "subtitle": "Answer questions and help users",
+      "rooms": "Conversations",
+      "empty": "No messages from customers yet",
+      "selectRoom": "Select a conversation on the left",
+      "youPrefix": "You: "
+    }
+  },
+  "admin": {
+    "title": "⚙️ Admin Dashboard",
+    "subtitle": "Manage fields and bookings",
+    "tabs": {
+      "calendar": "📅 Calendar",
+      "users": "👥 Users",
+      "waitingList": "🕐 Waiting List",
+      "coupons": "🎟️ Coupons",
+      "reports": "📊 Reports",
+      "chat": "💬 Chat",
+      "allBookings": "View all bookings →"
+    },
+    "stats": {
+      "activeFields": "Active fields",
+      "users": "Users",
+      "totalBookings": "Total bookings",
+      "pending": "Pending approval"
+    },
+    "fields": {
+      "title": "🏟️ Manage fields",
+      "count": "{count} fields total",
+      "empty": "No fields yet. Click \"+ Add field\" to start.",
+      "inactive": "Inactive",
+      "perHour": "฿{price}/hr"
+    },
+    "recentBookings": {
+      "title": "📋 Recent bookings",
+      "viewAll": "View all →",
+      "empty": "No bookings yet"
+    }
+  }
+}

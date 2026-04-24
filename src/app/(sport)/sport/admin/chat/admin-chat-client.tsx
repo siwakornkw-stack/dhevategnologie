@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { ChatWindow } from '@/components/sport/chat-window';
 
 interface ConversationItem {
@@ -13,6 +14,8 @@ interface ConversationItem {
 }
 
 export function AdminChatClient({ currentUserId }: { currentUserId: string }) {
+  const t = useTranslations('chat.admin');
+  const tc = useTranslations('common');
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,7 +54,7 @@ export function AdminChatClient({ currentUserId }: { currentUserId: string }) {
         className={`${showListMobile || !selectedUserId ? 'flex' : 'hidden'} md:flex w-full md:w-80 flex-col bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700/50 overflow-hidden`}
       >
         <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-          <h2 className="font-semibold text-gray-900 dark:text-white text-sm">ห้องสนทนา ({conversations.length})</h2>
+          <h2 className="font-semibold text-gray-900 dark:text-white text-sm">{t('rooms')} ({conversations.length})</h2>
         </div>
         <div className="flex-1 overflow-y-auto">
           {loading ? (
@@ -61,7 +64,7 @@ export function AdminChatClient({ currentUserId }: { currentUserId: string }) {
               ))}
             </div>
           ) : conversations.length === 0 ? (
-            <div className="p-8 text-center text-gray-400 text-sm">ยังไม่มีข้อความจากลูกค้า</div>
+            <div className="p-8 text-center text-gray-400 text-sm">{t('empty')}</div>
           ) : (
             <ul className="divide-y divide-gray-100 dark:divide-gray-800">
               {conversations.map((c) => {
@@ -90,7 +93,7 @@ export function AdminChatClient({ currentUserId }: { currentUserId: string }) {
                         </div>
                         {c.lastMessage && (
                           <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                            {c.lastMessage.senderRole === 'ADMIN' ? 'คุณ: ' : ''}
+                            {c.lastMessage.senderRole === 'ADMIN' ? t('youPrefix') : ''}
                             {c.lastMessage.content}
                           </p>
                         )}
@@ -112,7 +115,7 @@ export function AdminChatClient({ currentUserId }: { currentUserId: string }) {
               onClick={() => setShowListMobile(true)}
               className="md:hidden mb-2 text-sm text-primary-600 font-medium"
             >
-              ← กลับ
+              ← {tc('back')}
             </button>
             <div className="flex-1 min-h-0">
               <ChatWindow
@@ -126,7 +129,7 @@ export function AdminChatClient({ currentUserId }: { currentUserId: string }) {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">เลือกห้องสนทนาจากด้านซ้าย</div>
+          <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">{t('selectRoom')}</div>
         )}
       </div>
     </div>

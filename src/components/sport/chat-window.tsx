@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 
 interface Message {
   id: string;
@@ -22,6 +23,8 @@ interface Props {
 }
 
 export function ChatWindow({ userId, asAdmin, currentUserId, title, subtitle }: Props) {
+  const t = useTranslations('chat');
+  const tc = useTranslations('common');
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
@@ -87,13 +90,13 @@ export function ChatWindow({ userId, asAdmin, currentUserId, title, subtitle }: 
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error ?? 'ส่งข้อความไม่สำเร็จ');
+        throw new Error(err.error ?? t('sendFail'));
       }
       const saved: Message = await res.json();
       seenIds.current.add(saved.id);
       setMessages((prev) => prev.map((m) => (m.id === optimistic.id ? saved : m)));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'ส่งข้อความไม่สำเร็จ');
+      toast.error(e instanceof Error ? e.message : t('sendFail'));
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
       setDraft(content);
     } finally {
@@ -114,7 +117,7 @@ export function ChatWindow({ userId, asAdmin, currentUserId, title, subtitle }: 
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center text-gray-400 py-12">
             <div className="text-5xl mb-2">💬</div>
-            <p className="text-sm">{asAdmin ? 'ยังไม่มีข้อความ' : 'สวัสดีครับ มีอะไรให้แอดมินช่วยเหลือไหม?'}</p>
+            <p className="text-sm">{asAdmin ? t('emptyAdmin') : t('empty')}</p>
           </div>
         ) : (
           messages.map((m) => {
@@ -132,7 +135,7 @@ export function ChatWindow({ userId, asAdmin, currentUserId, title, subtitle }: 
                 >
                   {!isMine && (
                     <div className="text-[10px] font-semibold opacity-70 mb-0.5">
-                      {m.senderRole === 'ADMIN' ? '🛡️ แอดมิน' : 'ลูกค้า'}
+                      {m.senderRole === 'ADMIN' ? t('labelAdmin') : t('labelUser')}
                     </div>
                   )}
                   <div>{m.content}</div>
@@ -152,7 +155,7 @@ export function ChatWindow({ userId, asAdmin, currentUserId, title, subtitle }: 
           type="text"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="พิมพ์ข้อความ..."
+          placeholder={t('placeholder')}
           disabled={sending}
           className="flex-1 h-11 rounded-full border border-gray-200 dark:border-gray-700 px-4 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400"
           maxLength={2000}
@@ -162,7 +165,7 @@ export function ChatWindow({ userId, asAdmin, currentUserId, title, subtitle }: 
           disabled={sending || !draft.trim()}
           className="h-11 px-5 rounded-full gradient-btn text-white font-medium text-sm disabled:opacity-50"
         >
-          ส่ง
+          {tc('send')}
         </button>
       </form>
     </div>

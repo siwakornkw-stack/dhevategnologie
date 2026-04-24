@@ -1,0 +1,90 @@
+{
+  "common": {
+    "signin": "เข้าสู่ระบบ",
+    "signup": "สมัครสมาชิก",
+    "signout": "ออกจากระบบ",
+    "myProfile": "โปรไฟล์ของฉัน",
+    "admin": "Admin",
+    "loading": "กำลังโหลด...",
+    "back": "ย้อนกลับ",
+    "save": "บันทึก",
+    "cancel": "ยกเลิก",
+    "send": "ส่ง",
+    "confirm": "ยืนยัน",
+    "delete": "ลบ",
+    "edit": "แก้ไข",
+    "close": "ปิด",
+    "required": "จำเป็น"
+  },
+  "header": {
+    "fields": "สนามทั้งหมด",
+    "myBookings": "การจองของฉัน",
+    "chat": "แชท",
+    "profile": "โปรไฟล์",
+    "adminDashboard": "Admin Dashboard",
+    "emailUnverified": "อีเมลยังไม่ได้รับการยืนยัน — กรุณาตรวจสอบกล่องจดหมายของคุณ",
+    "resendVerification": "ส่งอีกครั้ง",
+    "mobile": {
+      "fields": "🏟️ สนาม",
+      "bookings": "📋 การจอง",
+      "chat": "💬 แชท",
+      "profile": "👤 โปรไฟล์",
+      "admin": "⚙️ Admin"
+    }
+  },
+  "language": {
+    "switcher": "ภาษา",
+    "th": "ไทย",
+    "en": "English"
+  },
+  "chat": {
+    "title": "💬 แชทกับแอดมิน",
+    "subtitle": "ทีมงานจะตอบกลับภายใน 1-2 ชั่วโมง",
+    "placeholder": "พิมพ์ข้อความ...",
+    "empty": "สวัสดีครับ มีอะไรให้แอดมินช่วยเหลือไหม?",
+    "emptyAdmin": "ยังไม่มีข้อความ",
+    "sendFail": "ส่งข้อความไม่สำเร็จ",
+    "rateLimited": "ส่งข้อความเร็วเกินไป",
+    "labelAdmin": "🛡️ แอดมิน",
+    "labelUser": "ลูกค้า",
+    "admin": {
+      "title": "💬 แชทกับลูกค้า",
+      "subtitle": "ตอบคำถาม/ช่วยเหลือผู้ใช้งาน",
+      "rooms": "ห้องสนทนา",
+      "empty": "ยังไม่มีข้อความจากลูกค้า",
+      "selectRoom": "เลือกห้องสนทนาจากด้านซ้าย",
+      "youPrefix": "คุณ: "
+    }
+  },
+  "admin": {
+    "title": "⚙️ Admin Dashboard",
+    "subtitle": "จัดการสนามและการจอง",
+    "tabs": {
+      "calendar": "📅 ปฏิทิน",
+      "users": "👥 ผู้ใช้",
+      "waitingList": "🕐 Waiting List",
+      "coupons": "🎟️ คูปอง",
+      "reports": "📊 รีพอร์ต",
+      "chat": "💬 แชท",
+      "allBookings": "ดูรายการจองทั้งหมด →"
+    },
+    "stats": {
+      "activeFields": "สนามที่ใช้งาน",
+      "users": "ผู้ใช้งาน",
+      "totalBookings": "การจองทั้งหมด",
+      "pending": "รอการอนุมัติ"
+    },
+    "fields": {
+      "title": "🏟️ จัดการสนามกีฬา",
+      "count": "สนามทั้งหมด {count} แห่ง",
+      "empty": "ยังไม่มีสนาม กดปุ่ม \"+ เพิ่มสนาม\" เพื่อเริ่มต้น",
+      "inactive": "ปิดให้บริการ",
+      "perHour": "฿{price}/ชม."
+    },
+    "recentBookings": {
+      "title": "📋 การจองล่าสุด",
+      "viewAll": "ดูทั้งหมด →",
+      "empty": "ยังไม่มีการจอง"
+    }
+  }
+}

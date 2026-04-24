@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
+import { getTranslations } from 'next-intl/server';
 import { BookingStatusBadge } from '@/components/sport/booking-status-badge';
 import { SPORT_TYPE_EMOJI, SPORT_TYPE_LABELS } from '@/lib/booking';
 import { AddFieldForm } from './fields/add-field-form';
@@ -13,6 +14,8 @@ export const metadata = { title: 'Admin Dashboard' };
 export default async function AdminDashboardPage() {
   const session = await auth();
   if (!session || session.user.role !== 'ADMIN') redirect('/sport');
+
+  const t = await getTranslations('admin');
 
   const [totalFields, totalUsers, totalBookings, pendingBookings, recentBookings, fields] =
     await Promise.all([
@@ -32,10 +35,10 @@ export default async function AdminDashboardPage() {
     ]);
 
   const stats = [
-    { label: 'สนามที่ใช้งาน', value: totalFields, icon: '🏟️', color: 'from-blue-500/20 to-cyan-500/20', textColor: 'text-blue-600 dark:text-blue-400' },
-    { label: 'ผู้ใช้งาน', value: totalUsers, icon: '👤', color: 'from-green-500/20 to-emerald-500/20', textColor: 'text-green-600 dark:text-green-400' },
-    { label: 'การจองทั้งหมด', value: totalBookings, icon: '📋', color: 'from-primary-500/20 to-violet-500/20', textColor: 'text-primary-600 dark:text-primary-400' },
-    { label: 'รอการอนุมัติ', value: pendingBookings, icon: '⏳', color: 'from-yellow-500/20 to-orange-500/20', textColor: 'text-yellow-600 dark:text-yellow-400' },
+    { label: t('stats.activeFields'), value: totalFields, icon: '🏟️', color: 'from-blue-500/20 to-cyan-500/20', textColor: 'text-blue-600 dark:text-blue-400' },
+    { label: t('stats.users'), value: totalUsers, icon: '👤', color: 'from-green-500/20 to-emerald-500/20', textColor: 'text-green-600 dark:text-green-400' },
+    { label: t('stats.totalBookings'), value: totalBookings, icon: '📋', color: 'from-primary-500/20 to-violet-500/20', textColor: 'text-primary-600 dark:text-primary-400' },
+    { label: t('stats.pending'), value: pendingBookings, icon: '⏳', color: 'from-yellow-500/20 to-orange-500/20', textColor: 'text-yellow-600 dark:text-yellow-400' },
   ];
 
   return (
@@ -43,51 +46,51 @@ export default async function AdminDashboardPage() {
       {/* Header */}
       <div className="space-y-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">⚙️ Admin Dashboard</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">จัดการสนามและการจอง</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('title')}</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{t('subtitle')}</p>
         </div>
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           <Link
             href="/sport/admin/calendar"
             className="flex-shrink-0 px-3 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
           >
-            📅 ปฏิทิน
+            {t('tabs.calendar')}
           </Link>
           <Link
             href="/sport/admin/users"
             className="flex-shrink-0 px-3 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
           >
-            👥 ผู้ใช้
+            {t('tabs.users')}
           </Link>
           <Link
             href="/sport/admin/waiting-list"
             className="flex-shrink-0 px-3 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
           >
-            🕐 Waiting List
+            {t('tabs.waitingList')}
           </Link>
           <Link
             href="/sport/admin/coupons"
             className="flex-shrink-0 px-3 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
           >
-            🎟️ คูปอง
+            {t('tabs.coupons')}
           </Link>
           <Link
             href="/sport/admin/reports"
             className="flex-shrink-0 px-3 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
           >
-            📊 รีพอร์ต
+            {t('tabs.reports')}
           </Link>
           <Link
             href="/sport/admin/chat"
             className="flex-shrink-0 px-3 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
           >
-            💬 แชท
+            {t('tabs.chat')}
           </Link>
           <Link
             href="/sport/admin/bookings"
             className="flex-shrink-0 px-3 py-2 rounded-full bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 transition whitespace-nowrap"
           >
-            ดูรายการจองทั้งหมด →
+            {t('tabs.allBookings')}
           </Link>
         </div>
       </div>
@@ -107,8 +110,8 @@ export default async function AdminDashboardPage() {
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700/50 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
           <div>
-            <h2 className="font-semibold text-gray-900 dark:text-white text-lg">🏟️ จัดการสนามกีฬา</h2>
-            <p className="text-xs text-gray-400 mt-0.5">สนามทั้งหมด {fields.length} แห่ง</p>
+            <h2 className="font-semibold text-gray-900 dark:text-white text-lg">{t('fields.title')}</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{t('fields.count', { count: fields.length })}</p>
           </div>
           <AddFieldForm />
         </div>
@@ -116,7 +119,7 @@ export default async function AdminDashboardPage() {
         {fields.length === 0 ? (
           <div className="p-12 text-center">
             <div className="text-5xl mb-3">🏟️</div>
-            <p className="text-gray-400">ยังไม่มีสนาม กดปุ่ม &quot;+ เพิ่มสนาม&quot; เพื่อเริ่มต้น</p>
+            <p className="text-gray-400">{t('fields.empty')}</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -132,7 +135,7 @@ export default async function AdminDashboardPage() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-medium text-gray-900 dark:text-white">{field.name}</p>
                     {!field.isActive && (
-                      <span className="px-2 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-gray-800 text-gray-400">ปิดให้บริการ</span>
+                      <span className="px-2 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-gray-800 text-gray-400">{t('fields.inactive')}</span>
                     )}
                   </div>
                   <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-0.5">
@@ -172,14 +175,14 @@ export default async function AdminDashboardPage() {
       {/* Recent Bookings */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700/50 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
-          <h2 className="font-semibold text-gray-900 dark:text-white text-lg">📋 การจองล่าสุด</h2>
+          <h2 className="font-semibold text-gray-900 dark:text-white text-lg">{t('recentBookings.title')}</h2>
           <Link href="/sport/admin/bookings" className="text-sm text-primary-600 dark:text-primary-400 hover:underline">
-            ดูทั้งหมด →
+            {t('recentBookings.viewAll')}
           </Link>
         </div>
 
         {recentBookings.length === 0 ? (
-          <div className="p-12 text-center text-gray-400">ยังไม่มีการจอง</div>
+          <div className="p-12 text-center text-gray-400">{t('recentBookings.empty')}</div>
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-800">
             {recentBookings.map((booking) => (

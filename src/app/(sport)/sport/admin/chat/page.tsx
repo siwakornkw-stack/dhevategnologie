@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { getTranslations } from 'next-intl/server';
 import { auth } from '@/lib/auth';
 import { AdminChatClient } from './admin-chat-client';
 
@@ -8,11 +9,13 @@ export default async function AdminChatPage() {
   const session = await auth();
   if (!session || session.user.role !== 'ADMIN') redirect('/sport');
 
+  const t = await getTranslations('chat.admin');
+
   return (
     <div className="wrapper py-6 max-w-6xl">
       <div className="mb-4">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">💬 แชทกับลูกค้า</h1>
-        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">ตอบคำถาม/ช่วยเหลือผู้ใช้งาน</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('title')}</h1>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{t('subtitle')}</p>
       </div>
       <div className="h-[calc(100vh-11rem)] min-h-[500px]">
         <AdminChatClient currentUserId={session.user.id} />
