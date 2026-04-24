@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
+import { rateLimit, AUTH_RATE_LIMIT } from '@/lib/rate-limit';
 
 const schema = z.object({
   token: z.string().min(1),
@@ -9,6 +10,10 @@ const schema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for') ?? 'unknown';
+  const rl = rateLimit(`reset:${ip}`, AUTH_RATE_LIMIT);
+  if (!rl.success) return NextResponse.json({ error: 'คุณส่งคำขอมากเกินไป กรุณารอสักครู่' }, { status: 429 });
+
   const body = await req.json();
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });

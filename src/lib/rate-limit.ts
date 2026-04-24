@@ -42,3 +42,5 @@ export function rateLimit(key: string, config: RateLimitConfig): { success: bool
 export const BOOKING_RATE_LIMIT: RateLimitConfig = { limit: 10, windowMs: 60 * 1000 };    // 10/min
 export const AUTH_RATE_LIMIT: RateLimitConfig = { limit: 5, windowMs: 15 * 60 * 1000 };   // 5/15min
 export const UPLOAD_RATE_LIMIT: RateLimitConfig = { limit: 20, windowMs: 60 * 1000 };     // 20/min
+export const REVIEW_RATE_LIMIT: RateLimitConfig = { limit: 5, windowMs: 60 * 1000 };      // 5/min
+export const WAITING_LIST_RATE_LIMIT: RateLimitConfig = { limit: 10, windowMs: 60 * 1000 }; // 10/min

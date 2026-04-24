@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { rateLimit, BOOKING_RATE_LIMIT } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const rl = rateLimit(`recurring:${session.user.id}`, BOOKING_RATE_LIMIT);
+  if (!rl.success) return NextResponse.json({ error: 'คุณจองบ่อยเกินไป กรุณารอสักครู่' }, { status: 429 });
 
   const { fieldId, startDate, timeSlot, weeks, note } = await req.json();
 
