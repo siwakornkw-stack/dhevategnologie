@@ -4,11 +4,13 @@ import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 
 export function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') ?? '/sport';
+  const t = useTranslations('auth');
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,18 +34,18 @@ export function SignInForm() {
 
     if (res?.error === '2FA_REQUIRED') {
       setNeeds2FA(true);
-      toast.info('กรุณากรอกรหัส 2FA จากแอปของคุณ');
+      toast.info(t('error2faRequired'));
       return;
     }
     if (res?.error === '2FA_INVALID') {
-      toast.error('รหัส 2FA ไม่ถูกต้อง');
+      toast.error(t('error2faInvalid'));
       setTotpCode('');
       return;
     }
     if (res?.error) {
-      toast.error('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+      toast.error(t('errorBadCredentials'));
     } else {
-      toast.success('เข้าสู่ระบบสำเร็จ!');
+      toast.success(t('signinSuccess'));
       router.push(callbackUrl);
       router.refresh();
     }
@@ -54,7 +56,7 @@ export function SignInForm() {
       {!needs2FA ? (
         <>
           <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">อีเมล</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">{t('email')}</label>
             <input
               type="email"
               className={inputClass}
@@ -67,12 +69,12 @@ export function SignInForm() {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">รหัสผ่าน</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">{t('password')}</label>
             <div className="relative">
               <input
                 type={showPass ? 'text' : 'password'}
                 className={`${inputClass} pr-12`}
-                placeholder="รหัสผ่าน (อย่างน้อย 6 ตัวอักษร)"
+                placeholder={t('passwordHint')}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -92,8 +94,8 @@ export function SignInForm() {
         <div className="space-y-3">
           <div className="bg-primary-50 dark:bg-primary-900/20 rounded-2xl p-4 text-center">
             <p className="text-2xl mb-2">🔐</p>
-            <p className="font-semibold text-gray-900 dark:text-white">ยืนยัน 2 ขั้นตอน</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">กรอกรหัส 6 หลักจากแอป Authenticator</p>
+            <p className="font-semibold text-gray-900 dark:text-white">{t('twoFaTitle')}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('twoFaHint')}</p>
           </div>
           <input
             type="text"
@@ -110,7 +112,7 @@ export function SignInForm() {
             onClick={() => { setNeeds2FA(false); setTotpCode(''); }}
             className="w-full text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
-            ← กลับ
+            {t('backToSignin')}
           </button>
         </div>
       )}
@@ -120,7 +122,7 @@ export function SignInForm() {
         disabled={loading || (needs2FA && totpCode.length !== 6)}
         className="w-full gradient-btn text-white font-semibold h-12 rounded-full text-sm disabled:opacity-60 disabled:cursor-not-allowed mt-2"
       >
-        {loading ? 'กำลังเข้าสู่ระบบ...' : needs2FA ? 'ยืนยัน' : 'เข้าสู่ระบบ'}
+        {loading ? t('signinLoading') : needs2FA ? t('confirm') : t('signinButton')}
       </button>
 
       {!needs2FA && (
@@ -130,7 +132,7 @@ export function SignInForm() {
               <div className="w-full border-t border-gray-200 dark:border-gray-700" />
             </div>
             <div className="relative flex justify-center text-xs text-gray-400">
-              <span className="bg-white dark:bg-gray-900 px-3">หรือเข้าสู่ระบบด้วย</span>
+              <span className="bg-white dark:bg-gray-900 px-3">{t('orSigninWith')}</span>
             </div>
           </div>
 
@@ -145,7 +147,7 @@ export function SignInForm() {
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
             </svg>
-            เข้าสู่ระบบด้วย Google
+            {t('signinGoogle')}
           </button>
         </>
       )}
