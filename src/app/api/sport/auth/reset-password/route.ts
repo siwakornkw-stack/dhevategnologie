@@ -11,7 +11,7 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for') ?? 'unknown';
-  const rl = rateLimit(`reset:${ip}`, AUTH_RATE_LIMIT);
+  const rl = await rateLimit(`reset:${ip}`, AUTH_RATE_LIMIT);
   if (!rl.success) return NextResponse.json({ error: 'คุณส่งคำขอมากเกินไป กรุณารอสักครู่' }, { status: 429 });
 
   const body = await req.json();

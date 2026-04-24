@@ -6,7 +6,7 @@ import { rateLimit, AUTH_RATE_LIMIT } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for') ?? 'unknown';
-  const rl = rateLimit(`forgot:${ip}`, AUTH_RATE_LIMIT);
+  const rl = await rateLimit(`forgot:${ip}`, AUTH_RATE_LIMIT);
   if (!rl.success) return NextResponse.json({ error: 'คุณส่งคำขอมากเกินไป' }, { status: 429 });
 
   const { email } = await req.json();

@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const rl = rateLimit(`waiting:${session.user.id}`, WAITING_LIST_RATE_LIMIT);
+  const rl = await rateLimit(`waiting:${session.user.id}`, WAITING_LIST_RATE_LIMIT);
   if (!rl.success) return NextResponse.json({ error: 'คุณส่งคำขอบ่อยเกินไป กรุณารอสักครู่' }, { status: 429 });
 
   const { fieldId, date, timeSlot } = await req.json();

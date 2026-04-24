@@ -11,7 +11,7 @@ export async function POST(req: Request) {
   if (session.user.emailVerified) return NextResponse.json({ error: 'อีเมลยืนยันแล้ว' }, { status: 400 });
 
   const ip = (req.headers as Headers).get('x-forwarded-for') ?? 'unknown';
-  const rl = rateLimit(`resend-verify:${ip}`, AUTH_RATE_LIMIT);
+  const rl = await rateLimit(`resend-verify:${ip}`, AUTH_RATE_LIMIT);
   if (!rl.success) return NextResponse.json({ error: 'คุณส่งคำขอมากเกินไป' }, { status: 429 });
 
   const email = session.user.email!;

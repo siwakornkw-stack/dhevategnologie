@@ -9,7 +9,11 @@ import { AddFieldForm } from './fields/add-field-form';
 import { AdminFieldActions } from './fields/admin-field-actions';
 import { EditFieldForm } from './fields/edit-field-form';
 
-export const metadata = { title: 'Admin Dashboard' };
+export async function generateMetadata() {
+  const { getTranslations } = await import('next-intl/server');
+  const t = await getTranslations('admin');
+  return { title: t('title') };
+}
 
 export default async function AdminDashboardPage() {
   const session = await auth();
@@ -108,7 +112,7 @@ export default async function AdminDashboardPage() {
 
       {/* Field Management */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700/50 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
           <div>
             <h2 className="font-semibold text-gray-900 dark:text-white text-lg">{t('fields.title')}</h2>
             <p className="text-xs text-gray-400 mt-0.5">{t('fields.count', { count: fields.length })}</p>
@@ -124,7 +128,7 @@ export default async function AdminDashboardPage() {
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-800">
             {fields.map((field) => (
-              <div key={field.id} className="px-6 py-4 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
+              <div key={field.id} className="px-4 sm:px-6 py-4 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
                 {/* Sport Icon */}
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/20 flex items-center justify-center text-2xl flex-shrink-0">
                   {SPORT_TYPE_EMOJI[field.sportType]}
@@ -174,7 +178,7 @@ export default async function AdminDashboardPage() {
 
       {/* Recent Bookings */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700/50 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
           <h2 className="font-semibold text-gray-900 dark:text-white text-lg">{t('recentBookings.title')}</h2>
           <Link href="/sport/admin/bookings" className="text-sm text-primary-600 dark:text-primary-400 hover:underline">
             {t('recentBookings.viewAll')}
@@ -186,7 +190,7 @@ export default async function AdminDashboardPage() {
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-800">
             {recentBookings.map((booking) => (
-              <div key={booking.id} className="px-6 py-4 flex items-center gap-4">
+              <div key={booking.id} className="px-4 sm:px-6 py-4 flex items-center gap-4">
                 <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xl flex-shrink-0">
                   {SPORT_TYPE_EMOJI[booking.field.sportType]}
                 </div>

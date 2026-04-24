@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const ip = req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? 'unknown';
-  const rl = rateLimit(`booking:${session.user.id}:${ip}`, BOOKING_RATE_LIMIT);
+  const rl = await rateLimit(`booking:${session.user.id}:${ip}`, BOOKING_RATE_LIMIT);
   if (!rl.success) {
     return NextResponse.json({ error: 'คุณส่งคำขอมากเกินไป กรุณารอสักครู่' }, { status: 429 });
   }

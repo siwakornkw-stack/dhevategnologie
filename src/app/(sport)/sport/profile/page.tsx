@@ -88,7 +88,7 @@ export default function ProfilePage() {
     }
   }
 
-  async function handleSave(e: React.FormEvent) {
+  async function handleSave(e: React.SyntheticEvent) {
     e.preventDefault();
     setSaving(true);
     try {
@@ -270,7 +270,7 @@ export default function ProfilePage() {
           ))}
         </div>
         <button
-          onClick={handleSave as unknown as React.MouseEventHandler}
+          onClick={handleSave}
           disabled={saving}
           className="w-full py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition disabled:opacity-60"
         >

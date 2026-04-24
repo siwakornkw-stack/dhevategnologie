@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 
 export default function TwoFAPage() {
   const router = useRouter();
+  const t = useTranslations('twoFa');
   const [loading, setLoading] = useState(true);
   const [enabled, setEnabled] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
@@ -24,8 +26,8 @@ export default function TwoFAPage() {
         }
         setLoading(false);
       })
-      .catch(() => { toast.error('โหลดข้อมูลไม่สำเร็จ'); setLoading(false); });
-  }, []);
+      .catch(() => { toast.error(t('loadError')); setLoading(false); });
+  }, [t]);
 
   async function handleSubmit(action: 'enable' | 'disable') {
     if (code.length !== 6) return;
@@ -38,7 +40,7 @@ export default function TwoFAPage() {
     const data = await res.json();
     setSubmitting(false);
     if (!res.ok) { toast.error(data.error); return; }
-    toast.success(data.enabled ? 'เปิดใช้งาน 2FA สำเร็จ!' : 'ปิดการใช้งาน 2FA แล้ว');
+    toast.success(data.enabled ? t('enableSuccess') : t('disableSuccess'));
     setEnabled(data.enabled);
     setCode('');
     if (!data.enabled) router.push('/sport/profile');
@@ -46,13 +48,13 @@ export default function TwoFAPage() {
 
   const inputCls = 'w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-400 transition text-center tracking-widest text-xl';
 
-  if (loading) return <div className="wrapper py-20 text-center text-gray-400">กำลังโหลด...</div>;
+  if (loading) return <div className="wrapper py-20 text-center text-gray-400">{t('loading')}</div>;
 
   return (
     <div className="wrapper py-8 max-w-md space-y-6">
       <div className="flex items-center gap-3">
-        <a href="/sport/profile" className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition">← โปรไฟล์</a>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">🔐 ยืนยัน 2 ขั้นตอน (2FA)</h1>
+        <a href="/sport/profile" className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition">{t('backToProfile')}</a>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('title')}</h1>
       </div>
 
       {enabled ? (
@@ -61,11 +63,11 @@ export default function TwoFAPage() {
             <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
               <span className="text-3xl">✅</span>
             </div>
-            <p className="font-semibold text-gray-900 dark:text-white">2FA เปิดใช้งานอยู่</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">บัญชีของคุณได้รับการป้องกันด้วยการยืนยัน 2 ขั้นตอน</p>
+            <p className="font-semibold text-gray-900 dark:text-white">{t('enabledTitle')}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('enabledDesc')}</p>
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">กรอกรหัสจาก Authenticator เพื่อปิด 2FA</label>
+            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">{t('disableCodeLabel')}</label>
             <input className={inputCls} placeholder="000000" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} maxLength={6} />
           </div>
           <button
@@ -73,14 +75,14 @@ export default function TwoFAPage() {
             disabled={submitting || code.length !== 6}
             className="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition disabled:opacity-60"
           >
-            {submitting ? 'กำลังปิด...' : 'ปิดการใช้งาน 2FA'}
+            {submitting ? t('disabling') : t('disableBtn')}
           </button>
         </div>
       ) : (
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700/50 p-6 space-y-5">
           <div>
-            <p className="font-semibold text-gray-900 dark:text-white mb-1">ขั้นตอนที่ 1</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">ดาวน์โหลดแอป Authenticator (Google Authenticator, Authy หรืออื่นๆ) แล้วสแกน QR Code</p>
+            <p className="font-semibold text-gray-900 dark:text-white mb-1">{t('step1')}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t('step1Desc')}</p>
           </div>
 
           {qrDataUrl && (
@@ -93,14 +95,14 @@ export default function TwoFAPage() {
 
           {secret && (
             <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 text-center">
-              <p className="text-xs text-gray-400 mb-1">หรือกรอก Secret Key ด้วยตัวเอง</p>
+              <p className="text-xs text-gray-400 mb-1">{t('secretLabel')}</p>
               <code className="text-sm font-mono text-gray-700 dark:text-gray-300 break-all">{secret}</code>
             </div>
           )}
 
           <div>
-            <p className="font-semibold text-gray-900 dark:text-white mb-1">ขั้นตอนที่ 2</p>
-            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">กรอกรหัส 6 หลักจากแอปเพื่อยืนยัน</label>
+            <p className="font-semibold text-gray-900 dark:text-white mb-1">{t('step2')}</p>
+            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">{t('step2CodeLabel')}</label>
             <input className={inputCls} placeholder="000000" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} maxLength={6} />
           </div>
 
@@ -109,7 +111,7 @@ export default function TwoFAPage() {
             disabled={submitting || code.length !== 6}
             className="w-full gradient-btn py-2.5 rounded-xl text-white text-sm font-semibold disabled:opacity-60"
           >
-            {submitting ? 'กำลังเปิดใช้งาน...' : 'เปิดใช้งาน 2FA'}
+            {submitting ? t('enabling') : t('enableBtn')}
           </button>
         </div>
       )}

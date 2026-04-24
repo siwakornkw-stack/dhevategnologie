@@ -24,7 +24,7 @@ function makeReferralCode() {
 export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? 'unknown';
-    const rl = rateLimit(`register:${ip}`, AUTH_RATE_LIMIT);
+    const rl = await rateLimit(`register:${ip}`, AUTH_RATE_LIMIT);
     if (!rl.success) {
       return NextResponse.json({ error: 'คุณส่งคำขอมากเกินไป กรุณารอสักครู่' }, { status: 429 });
     }

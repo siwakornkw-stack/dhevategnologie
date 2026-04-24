@@ -141,7 +141,7 @@
     "tabs": {
       "calendar": "📅 ปฏิทิน",
       "users": "👥 ผู้ใช้",
-      "waitingList": "🕐 Waiting List",
+      "waitingList": "🕐 รายการรอ",
       "coupons": "🎟️ คูปอง",
       "reports": "📊 รีพอร์ต",
       "chat": "💬 แชท",
@@ -183,7 +183,46 @@
     },
     "coupons": {
       "title": "จัดการคูปอง"
+    },
+    "bookings": {
+      "title": "📋 รายการจองทั้งหมด",
+      "metaTitle": "จัดการการจอง",
+      "total": "ทั้งหมด {count} รายการ",
+      "backDashboard": "← Dashboard",
+      "statusAll": "ทั้งหมด",
+      "statusPending": "รอการอนุมัติ",
+      "statusApproved": "อนุมัติแล้ว",
+      "statusRejected": "ปฏิเสธ",
+      "statusCancelled": "ยกเลิก",
+      "history": "ประวัติการจอง ({count})",
+      "empty": "ยังไม่มีรายการ",
+      "previous": "← ก่อนหน้า",
+      "next": "ถัดไป →",
+      "page": "หน้า {page} / {total}",
+      "paid": "💳 ชำระแล้ว",
+      "noPhone": "ไม่มีเบอร์โทร",
+      "bookedOn": "จองเมื่อ"
     }
+  },
+  "twoFa": {
+    "title": "🔐 ยืนยัน 2 ขั้นตอน (2FA)",
+    "backToProfile": "← โปรไฟล์",
+    "loading": "กำลังโหลด...",
+    "loadError": "โหลดข้อมูลไม่สำเร็จ",
+    "enableSuccess": "เปิดใช้งาน 2FA สำเร็จ!",
+    "disableSuccess": "ปิดการใช้งาน 2FA แล้ว",
+    "enabledTitle": "2FA เปิดใช้งานอยู่",
+    "enabledDesc": "บัญชีของคุณได้รับการป้องกันด้วยการยืนยัน 2 ขั้นตอน",
+    "disableCodeLabel": "กรอกรหัสจาก Authenticator เพื่อปิด 2FA",
+    "disabling": "กำลังปิด...",
+    "disableBtn": "ปิดการใช้งาน 2FA",
+    "step1": "ขั้นตอนที่ 1",
+    "step1Desc": "ดาวน์โหลดแอป Authenticator (Google Authenticator, Authy หรืออื่นๆ) แล้วสแกน QR Code",
+    "secretLabel": "หรือกรอก Secret Key ด้วยตัวเอง",
+    "step2": "ขั้นตอนที่ 2",
+    "step2CodeLabel": "กรอกรหัส 6 หลักจากแอปเพื่อยืนยัน",
+    "enabling": "กำลังเปิดใช้งาน...",
+    "enableBtn": "เปิดใช้งาน 2FA"
   },
   "sport": {
     "heroHeading": "ค้นหา & จอง",

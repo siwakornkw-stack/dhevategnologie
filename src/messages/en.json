@@ -183,7 +183,46 @@
     },
     "coupons": {
       "title": "Manage coupons"
+    },
+    "bookings": {
+      "title": "📋 All bookings",
+      "metaTitle": "Manage bookings",
+      "total": "{count} bookings total",
+      "backDashboard": "← Dashboard",
+      "statusAll": "All",
+      "statusPending": "Pending",
+      "statusApproved": "Approved",
+      "statusRejected": "Rejected",
+      "statusCancelled": "Cancelled",
+      "history": "Booking history ({count})",
+      "empty": "No bookings yet",
+      "previous": "← Previous",
+      "next": "Next →",
+      "page": "Page {page} / {total}",
+      "paid": "💳 Paid",
+      "noPhone": "No phone",
+      "bookedOn": "Booked on"
     }
+  },
+  "twoFa": {
+    "title": "🔐 Two-factor authentication (2FA)",
+    "backToProfile": "← Profile",
+    "loading": "Loading...",
+    "loadError": "Failed to load data",
+    "enableSuccess": "2FA enabled successfully!",
+    "disableSuccess": "2FA has been disabled",
+    "enabledTitle": "2FA is enabled",
+    "enabledDesc": "Your account is protected with two-factor authentication",
+    "disableCodeLabel": "Enter your authenticator code to disable 2FA",
+    "disabling": "Disabling...",
+    "disableBtn": "Disable 2FA",
+    "step1": "Step 1",
+    "step1Desc": "Download an authenticator app (Google Authenticator, Authy, etc.) and scan the QR code",
+    "secretLabel": "Or enter the secret key manually",
+    "step2": "Step 2",
+    "step2CodeLabel": "Enter the 6-digit code from the app to verify",
+    "enabling": "Enabling...",
+    "enableBtn": "Enable 2FA"
   },
   "sport": {
     "heroHeading": "Search & Book",

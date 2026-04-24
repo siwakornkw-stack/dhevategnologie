@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   }
 
   const ip = req.headers.get('x-forwarded-for') ?? 'unknown';
-  const rl = rateLimit(`upload:${ip}`, UPLOAD_RATE_LIMIT);
+  const rl = await rateLimit(`upload:${ip}`, UPLOAD_RATE_LIMIT);
   if (!rl.success) return NextResponse.json({ error: 'คุณอัปโหลดมากเกินไป' }, { status: 429 });
 
   const formData = await req.formData();

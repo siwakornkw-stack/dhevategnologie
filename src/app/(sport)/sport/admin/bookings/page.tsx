@@ -8,8 +8,12 @@ import { BookingSearch } from './booking-search';
 import { PendingBookingsSection } from './bulk-approve';
 import Link from 'next/link';
 import { Suspense } from 'react';
+import { getTranslations } from 'next-intl/server';
 
-export const metadata = { title: 'จัดการการจอง' };
+export async function generateMetadata() {
+  const t = await getTranslations('admin');
+  return { title: t('bookings.metaTitle') };
+}
 
 const PAGE_SIZE = 20;
 
@@ -20,6 +24,8 @@ interface PageProps {
 export default async function AdminBookingsPage({ searchParams }: PageProps) {
   const session = await auth();
   if (!session || session.user.role !== 'ADMIN') redirect('/sport');
+
+  const t = await getTranslations('admin');
 
   const { page: pageStr, status: statusFilter, q } = await searchParams;
   const page = Math.max(1, parseInt(pageStr ?? '1', 10));
@@ -59,25 +65,29 @@ export default async function AdminBookingsPage({ searchParams }: PageProps) {
   const others = bookings.filter((b) => b.status !== 'PENDING');
 
   const statusOptions = [
-    { value: 'ALL', label: 'ทั้งหมด' },
-    { value: 'PENDING', label: 'รอการอนุมัติ' },
-    { value: 'APPROVED', label: 'อนุมัติแล้ว' },
-    { value: 'REJECTED', label: 'ปฏิเสธ' },
-    { value: 'CANCELLED', label: 'ยกเลิก' },
+    { value: 'ALL', label: t('bookings.statusAll') },
+    { value: 'PENDING', label: t('bookings.statusPending') },
+    { value: 'APPROVED', label: t('bookings.statusApproved') },
+    { value: 'REJECTED', label: t('bookings.statusRejected') },
+    { value: 'CANCELLED', label: t('bookings.statusCancelled') },
   ];
+
+  const paidLabel = t('bookings.paid');
+  const noPhoneLabel = t('bookings.noPhone');
+  const bookedOnLabel = t('bookings.bookedOn');
 
   return (
     <div className="wrapper py-8 max-w-5xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <a href="/sport/admin" className="text-sm text-gray-400 hover:text-gray-600">← Dashboard</a>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">📋 รายการจองทั้งหมด</h1>
+          <a href="/sport/admin" className="text-sm text-gray-400 hover:text-gray-600">{t('bookings.backDashboard')}</a>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('bookings.title')}</h1>
         </div>
         <div className="flex items-center gap-3">
           <Suspense>
             <BookingSearch />
           </Suspense>
-          <span className="text-sm text-gray-400">ทั้งหมด {total} รายการ</span>
+          <span className="text-sm text-gray-400">{t('bookings.total', { count: total })}</span>
         </div>
       </div>
 
@@ -101,15 +111,15 @@ export default async function AdminBookingsPage({ searchParams }: PageProps) {
       <PendingBookingsSection bookings={pending} />
 
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700/50 overflow-hidden">
-        <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-800">
-          <span className="font-semibold text-sm text-gray-700 dark:text-gray-300">ประวัติการจอง ({others.length})</span>
+        <div className="px-4 sm:px-5 py-3 border-b border-gray-100 dark:border-gray-800">
+          <span className="font-semibold text-sm text-gray-700 dark:text-gray-300">{t('bookings.history', { count: others.length })}</span>
         </div>
         {others.length === 0 ? (
-          <div className="p-10 text-center text-gray-400">ยังไม่มีรายการ</div>
+          <div className="p-10 text-center text-gray-400">{t('bookings.empty')}</div>
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-800">
             {others.map((booking) => (
-              <BookingRow key={booking.id} booking={booking} showActions={false} />
+              <BookingRow key={booking.id} booking={booking} showActions={false} paidLabel={paidLabel} noPhoneLabel={noPhoneLabel} bookedOnLabel={bookedOnLabel} />
             ))}
           </div>
         )}
@@ -121,14 +131,14 @@ export default async function AdminBookingsPage({ searchParams }: PageProps) {
           {page > 1 && (
             <Link href={`/sport/admin/bookings?status=${statusFilter ?? 'ALL'}&page=${page - 1}`}
               className="px-4 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
-              ← ก่อนหน้า
+              {t('bookings.previous')}
             </Link>
           )}
-          <span className="text-sm text-gray-500 px-3">หน้า {page} / {totalPages}</span>
+          <span className="text-sm text-gray-500 px-3">{t('bookings.page', { page, total: totalPages })}</span>
           {page < totalPages && (
             <Link href={`/sport/admin/bookings?status=${statusFilter ?? 'ALL'}&page=${page + 1}`}
               className="px-4 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
-              ถัดไป →
+              {t('bookings.next')}
             </Link>
           )}
         </div>
@@ -137,7 +147,7 @@ export default async function AdminBookingsPage({ searchParams }: PageProps) {
   );
 }
 
-function BookingRow({ booking, showActions }: {
+function BookingRow({ booking, showActions, paidLabel, noPhoneLabel, bookedOnLabel }: {
   booking: {
     id: string;
     date: Date;
@@ -150,9 +160,12 @@ function BookingRow({ booking, showActions }: {
     field: { name: string; sportType: string };
   };
   showActions: boolean;
+  paidLabel: string;
+  noPhoneLabel: string;
+  bookedOnLabel: string;
 }) {
   return (
-    <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-start gap-4">
+    <div className="px-4 sm:px-5 py-4 flex flex-col sm:flex-row sm:items-start gap-4">
       <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xl flex-shrink-0 mt-0.5">
         {SPORT_TYPE_EMOJI[booking.field.sportType]}
       </div>
@@ -165,7 +178,7 @@ function BookingRow({ booking, showActions }: {
           </p>
           <p className="text-xs font-medium text-primary-600 dark:text-primary-400">⏰ {booking.timeSlot} น.</p>
           {booking.paidAt && (
-            <span className="text-xs text-green-600 dark:text-green-400 font-medium">💳 ชำระแล้ว</span>
+            <span className="text-xs text-green-600 dark:text-green-400 font-medium">{paidLabel}</span>
           )}
         </div>
 
@@ -177,7 +190,7 @@ function BookingRow({ booking, showActions }: {
               📱 {booking.user.phone}
             </a>
           ) : (
-            <span className="text-xs text-gray-300 dark:text-gray-600 mt-1 block">ไม่มีเบอร์โทร</span>
+            <span className="text-xs text-gray-300 dark:text-gray-600 mt-1 block">{noPhoneLabel}</span>
           )}
         </div>
 
@@ -187,7 +200,7 @@ function BookingRow({ booking, showActions }: {
               💬 {booking.note}
             </p>
           )}
-          <p className="text-xs text-gray-400 mt-1">จองเมื่อ {new Date(booking.createdAt).toLocaleDateString('th-TH')}</p>
+          <p className="text-xs text-gray-400 mt-1">{bookedOnLabel} {new Date(booking.createdAt).toLocaleDateString('th-TH')}</p>
         </div>
       </div>
 
