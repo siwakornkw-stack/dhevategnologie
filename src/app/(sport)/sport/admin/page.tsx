@@ -78,6 +78,12 @@ export default async function AdminDashboardPage() {
             📊 รีพอร์ต
           </Link>
           <Link
+            href="/sport/admin/chat"
+            className="flex-shrink-0 px-3 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+          >
+            💬 แชท
+          </Link>
+          <Link
             href="/sport/admin/bookings"
             className="flex-shrink-0 px-3 py-2 rounded-full bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 transition whitespace-nowrap"
           >

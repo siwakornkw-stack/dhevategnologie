@@ -31,6 +31,9 @@ export function SportHeader() {
               <Link href="/sport/bookings" className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium">
                 การจองของฉัน
               </Link>
+              <Link href="/sport/chat" className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium">
+                แชท
+              </Link>
               <Link href="/sport/profile" className="text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium">
                 โปรไฟล์
               </Link>
@@ -129,6 +132,9 @@ export function SportHeader() {
           </Link>
           <Link href="/sport/bookings" className="flex-1 text-center py-2 text-xs text-gray-600 dark:text-gray-400">
             📋 การจอง
+          </Link>
+          <Link href="/sport/chat" className="flex-1 text-center py-2 text-xs text-gray-600 dark:text-gray-400">
+            💬 แชท
           </Link>
           <Link href="/sport/profile" className="flex-1 text-center py-2 text-xs text-gray-600 dark:text-gray-400">
             👤 โปรไฟล์
