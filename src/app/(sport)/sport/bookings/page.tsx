@@ -6,12 +6,17 @@ import { SPORT_TYPE_EMOJI, SPORT_TYPE_LABELS } from '@/lib/booking';
 import { CancelBookingButton } from './cancel-booking-button';
 import { DownloadReceiptButton } from '@/components/sport/download-receipt-button';
 import { ReviewBookingButton } from '@/components/sport/review-booking-button';
+import { getTranslations } from 'next-intl/server';
 
-export const metadata = { title: 'การจองของฉัน' };
+export async function generateMetadata() {
+  const t = await getTranslations('booking');
+  return { title: t('title') };
+}
 
 export default async function MyBookingsPage() {
   const session = await auth();
   if (!session) redirect('/sport/auth/signin');
+  const t = await getTranslations('booking');
 
   const [bookings, waitingList, reviews] = await Promise.all([
     prisma.booking.findMany({
@@ -41,17 +46,17 @@ export default async function MyBookingsPage() {
   return (
     <div className="wrapper py-8 max-w-3xl space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">📋 การจองของฉัน</h1>
-        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">ติดตามสถานะการจองสนามของคุณ</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">📋 {t('title')}</h1>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{t('subtitle')}</p>
       </div>
 
       {bookings.length === 0 ? (
         <div className="text-center py-20 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700/50">
           <div className="text-6xl mb-4">🏟️</div>
-          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">ยังไม่มีการจอง</h3>
-          <p className="mt-2 text-gray-400 text-sm">ไปดูสนามกีฬาและทำการจองกันเลย!</p>
+          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">{t('empty')}</h3>
+          <p className="mt-2 text-gray-400 text-sm">{t('emptyHint')}</p>
           <a href="/sport" className="mt-4 inline-block gradient-btn text-white text-sm font-medium px-6 py-2.5 rounded-full">
-            ดูสนามทั้งหมด
+            {t('viewAllFields')}
           </a>
         </div>
       ) : (
@@ -59,7 +64,7 @@ export default async function MyBookingsPage() {
           {active.length > 0 && (
             <section className="space-y-3">
               <h2 className="text-base font-semibold text-gray-700 dark:text-gray-300">
-                การจองที่ใช้งานอยู่ ({active.length})
+                {t('activeSection', { count: active.length })}
               </h2>
               {active.map((booking) => (
                 <BookingCard
@@ -70,6 +75,8 @@ export default async function MyBookingsPage() {
                   existingReview={reviewMap.get(booking.field.id)}
                   userName={session.user.name ?? ''}
                   userEmail={session.user.email ?? ''}
+                  bookedOnLabel={t('bookedOn')}
+                  discountLabel={t('discount')}
                 />
               ))}
             </section>
@@ -78,7 +85,7 @@ export default async function MyBookingsPage() {
           {waitingList.length > 0 && (
             <section className="space-y-3">
               <h2 className="text-base font-semibold text-gray-700 dark:text-gray-300">
-                🕐 Waiting List ของฉัน ({waitingList.length})
+                {t('waitingSection', { count: waitingList.length })}
               </h2>
               <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700/50 divide-y divide-gray-100 dark:divide-gray-800">
                 {waitingList.map((entry) => (
@@ -91,7 +98,7 @@ export default async function MyBookingsPage() {
                       </p>
                     </div>
                     <span className="text-xs px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-medium flex-shrink-0">
-                      รออยู่ในคิว
+                      {t('inQueue')}
                     </span>
                   </div>
                 ))}
@@ -102,7 +109,7 @@ export default async function MyBookingsPage() {
           {past.length > 0 && (
             <section className="space-y-3">
               <h2 className="text-base font-semibold text-gray-500 dark:text-gray-500">
-                ประวัติการจอง ({past.length})
+                {t('historySection', { count: past.length })}
               </h2>
               {past.map((booking) => (
                 <BookingCard
@@ -113,6 +120,8 @@ export default async function MyBookingsPage() {
                   existingReview={undefined}
                   userName={session.user.name ?? ''}
                   userEmail={session.user.email ?? ''}
+                  bookedOnLabel={t('bookedOn')}
+                  discountLabel={t('discount')}
                 />
               ))}
             </section>
@@ -123,7 +132,7 @@ export default async function MyBookingsPage() {
   );
 }
 
-function BookingCard({ booking, canCancel, canReview, existingReview, userName, userEmail }: {
+function BookingCard({ booking, canCancel, canReview, existingReview, userName, userEmail, bookedOnLabel, discountLabel }: {
   booking: {
     id: string;
     date: Date;
@@ -140,6 +149,8 @@ function BookingCard({ booking, canCancel, canReview, existingReview, userName, 
   existingReview?: { rating: number; comment: string | null } | null;
   userName: string;
   userEmail: string;
+  bookedOnLabel: string;
+  discountLabel: string;
 }) {
   const emoji = SPORT_TYPE_EMOJI[booking.field.sportType] ?? '🏟️';
 
@@ -179,8 +190,8 @@ function BookingCard({ booking, canCancel, canReview, existingReview, userName, 
 
         <div className="mt-3 flex items-center justify-between gap-2 flex-wrap">
           <span className="text-xs text-gray-400">
-            จองเมื่อ {new Date(booking.createdAt).toLocaleDateString('th-TH')}
-            {booking.discountAmount ? ` · ส่วนลด ฿${booking.discountAmount}` : ''}
+            {bookedOnLabel} {new Date(booking.createdAt).toLocaleDateString('th-TH')}
+            {booking.discountAmount ? ` · ${discountLabel} ฿${booking.discountAmount}` : ''}
           </span>
           <div className="flex items-center gap-2 flex-wrap">
             {booking.status === 'APPROVED' && (

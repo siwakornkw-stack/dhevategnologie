@@ -5,6 +5,7 @@ import { FieldCardSkeleton } from '@/components/sport/skeleton';
 import { SPORT_TYPE_LABELS, SPORT_TYPE_EMOJI } from '@/lib/booking';
 import { SportType } from '@prisma/client';
 import { ViewToggle } from '@/components/sport/view-toggle';
+import { getTranslations } from 'next-intl/server';
 
 interface PageProps {
   searchParams: Promise<{ sport?: string; search?: string; minPrice?: string; maxPrice?: string }>;
@@ -41,6 +42,7 @@ async function FieldsList({ searchParams }: { searchParams: Awaited<PageProps['s
 
 export default async function SportHomePage({ searchParams }: PageProps) {
   const params = await searchParams;
+  const t = await getTranslations('sport');
   const totalFields = await prisma.field.count({ where: { isActive: true } });
   const sportCounts = await prisma.field.groupBy({
     by: ['sportType'],
@@ -54,18 +56,18 @@ export default async function SportHomePage({ searchParams }: PageProps) {
       <div className="text-center py-10 relative">
         <div className="absolute inset-0 hero-glow-bg opacity-30 pointer-events-none" />
         <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white">
-          ค้นหา & จอง
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-primary-700"> สนามกีฬา</span>
+          {t('heroHeading')}
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-primary-700">{t('heroHighlight')}</span>
         </h1>
         <p className="mt-3 text-gray-500 dark:text-gray-400 text-lg max-w-xl mx-auto">
-          สนามกีฬาคุณภาพดีภูเก็ต จองง่าย จ่ายสะดวก
+          {t('heroSubtitle')}
         </p>
 
         {/* Stats */}
         <div className="mt-6 flex justify-center gap-6">
           <div className="text-center">
             <div className="text-2xl font-bold text-primary-600 dark:text-primary-400">{totalFields}</div>
-            <div className="text-xs text-gray-400">สนามทั้งหมด</div>
+            <div className="text-xs text-gray-400">{t('totalFields')}</div>
           </div>
           {sportCounts.slice(0, 3).map((s) => (
             <div key={s.sportType} className="text-center">

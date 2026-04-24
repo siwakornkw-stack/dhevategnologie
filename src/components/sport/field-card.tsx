@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 import { SPORT_TYPE_LABELS, SPORT_TYPE_EMOJI } from '@/lib/booking';
 
 interface Field {
@@ -23,6 +24,7 @@ interface FieldCardProps {
 }
 
 export function FieldCard({ field, className, rating }: FieldCardProps) {
+  const t = useTranslations('fieldCard');
   const emoji = SPORT_TYPE_EMOJI[field.sportType] ?? '🏟️';
   const label = SPORT_TYPE_LABELS[field.sportType] ?? field.sportType;
 
@@ -90,10 +92,10 @@ export function FieldCard({ field, className, rating }: FieldCardProps) {
               <span className="text-2xl font-bold text-primary-600 dark:text-primary-400">
                 ฿{field.pricePerHour.toLocaleString()}
               </span>
-              <span className="text-sm text-gray-400 dark:text-gray-500 ml-1">/ชั่วโมง</span>
+              <span className="text-sm text-gray-400 dark:text-gray-500 ml-1">{t('perHour')}</span>
             </div>
             <span className="px-3 py-1.5 rounded-full text-xs font-medium bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 group-hover:bg-primary-100 dark:group-hover:bg-primary-900/40 transition-colors">
-              จองเลย →
+              {t('bookNow')}
             </span>
           </div>
         </div>

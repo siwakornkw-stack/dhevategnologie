@@ -158,5 +158,98 @@
       "viewAll": "ดูทั้งหมด →",
       "empty": "ยังไม่มีการจอง"
     }
+  },
+  "sport": {
+    "heroHeading": "ค้นหา & จอง",
+    "heroHighlight": " สนามกีฬา",
+    "heroSubtitle": "สนามกีฬาคุณภาพดีภูเก็ต จองง่าย จ่ายสะดวก",
+    "totalFields": "สนามทั้งหมด",
+    "metaTitle": "ระบบจองสนามกีฬา",
+    "metaDescription": "ระบบจองสนามกีฬาออนไลน์ ค้นหาและจองสนามได้ง่ายๆ",
+    "footerText": "ระบบจองสนามกีฬาออนไลน์",
+    "search": {
+      "placeholder": "ค้นหาสนาม หรือ สถานที่...",
+      "allSports": "ทุกประเภทกีฬา",
+      "allPrices": "ทุกช่วงราคา",
+      "priceUnder200": "ไม่เกิน ฿200/ชม.",
+      "price200to500": "฿200 – ฿500/ชม.",
+      "price500to1000": "฿500 – ฿1,000/ชม.",
+      "priceOver1000": "มากกว่า ฿1,000/ชม."
+    }
+  },
+  "fieldCard": {
+    "bookNow": "จองเลย →",
+    "perHour": "/ชั่วโมง"
+  },
+  "field": {
+    "backToHome": "← กลับหน้าหลัก",
+    "price": "ราคา",
+    "openHours": "เวลาเปิด-ปิด",
+    "facilities": "สิ่งอำนวยความสะดวก",
+    "viewMap": "ดูแผนที่ →",
+    "fallbackTitle": "สนามกีฬา"
+  },
+  "booking": {
+    "title": "การจองของฉัน",
+    "subtitle": "ติดตามสถานะการจองสนามของคุณ",
+    "empty": "ยังไม่มีการจอง",
+    "emptyHint": "ไปดูสนามกีฬาและทำการจองกันเลย!",
+    "viewAllFields": "ดูสนามทั้งหมด",
+    "activeSection": "การจองที่ใช้งานอยู่ ({count})",
+    "waitingSection": "🕐 Waiting List ของฉัน ({count})",
+    "inQueue": "รออยู่ในคิว",
+    "historySection": "ประวัติการจอง ({count})",
+    "bookedOn": "จองเมื่อ",
+    "discount": "ส่วนลด",
+    "selectDate": "📅 เลือกวันที่ (จองล่วงหน้าได้ 7 วัน)",
+    "selectTime": "⏰ เลือกช่วงเวลา",
+    "selectTimeHint": "คลิกหลายช่องต่อเนื่องกันเพื่อจองหลายชั่วโมง",
+    "legendAvailable": "ว่าง",
+    "legendPending": "รอตรวจสอบ",
+    "legendBooked": "จองแล้ว",
+    "slotAvailable": "● ว่าง",
+    "slotBooked": "● ถูกจองแล้ว",
+    "slotPending": "◌ รอตรวจสอบ",
+    "joinWaiting": "+ รอคิว",
+    "inWaiting": "🔔 รอคิวอยู่",
+    "waitingJoined": "เข้าร่วม waiting list แล้ว!",
+    "waitingLeft": "ออกจาก waiting list แล้ว",
+    "cancel": {
+      "sure": "แน่ใจหรือ?",
+      "no": "ไม่ใช่",
+      "cancelling": "กำลังยกเลิก...",
+      "button": "ยกเลิกการจอง",
+      "success": "ยกเลิกการจองแล้ว",
+      "error": "ไม่สามารถยกเลิกได้",
+      "apiError": "เกิดข้อผิดพลาด"
+    },
+    "summary": {
+      "title": "📋 สรุปการจอง",
+      "fieldLabel": "สนาม",
+      "dateLabel": "วันที่",
+      "timeLabel": "เวลา",
+      "hours": "{count} ชม.",
+      "serviceFee": "ค่าบริการ",
+      "total": "รวมทั้งหมด",
+      "couponPlaceholder": "รหัสคูปอง",
+      "apply": "ใช้",
+      "couponApplied": "ใช้คูปอง {code} สำเร็จ!",
+      "note": "หมายเหตุ (ถ้ามี)",
+      "notePlaceholder": "เช่น จำนวนผู้เล่น, ความต้องการพิเศษ...",
+      "recurring": "🔁 จองซ้ำทุกสัปดาห์",
+      "points": "⭐ ใช้แต้ม ({points} แต้ม = ส่วนลด ฿{discount})",
+      "selectFirst": "เลือกช่วงเวลาที่ต้องการด้านบน",
+      "selectFirstHint": "สามารถเลือกหลายช่องต่อเนื่องกันได้",
+      "loading": "กำลังโหลด...",
+      "bookRecurring": "🔁 จองซ้ำ",
+      "bookAndPay": "💳 จองและชำระเงิน",
+      "loginToBook": "🔐 เข้าสู่ระบบเพื่อจอง",
+      "successApproval": "จองสำเร็จ! กรุณารอการอนุมัติจากแอดมิน",
+      "errorServer": "เซิร์ฟเวอร์ไม่ตอบสนอง กรุณาลองใหม่อีกครั้ง",
+      "errorGeneric": "เกิดข้อผิดพลาด",
+      "recurringSuccess": "จองซ้ำ {count} สัปดาห์ สำเร็จ! 🎉",
+      "recurringPartial": "จอง {booked} สัปดาห์ สำเร็จ (ข้าม {skipped} วัน)",
+      "weeks": "{w} สัปดาห์"
+    }
   }
 }

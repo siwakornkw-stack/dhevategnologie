@@ -1,14 +1,19 @@
 import { SessionProvider } from 'next-auth/react';
 import { auth } from '@/lib/auth';
 import { SportHeader } from '@/components/sport/sport-header';
+import { getTranslations } from 'next-intl/server';
 
-export const metadata = {
-  title: { default: '88ARENA - ระบบจองสนามกีฬา', template: '%s | 88ARENA' },
-  description: 'ระบบจองสนามกีฬาออนไลน์ ค้นหาและจองสนามได้ง่ายๆ',
-};
+export async function generateMetadata() {
+  const t = await getTranslations('sport');
+  return {
+    title: { default: `88ARENA - ${t('metaTitle')}`, template: '%s | 88ARENA' },
+    description: t('metaDescription'),
+  };
+}
 
 export default async function SportLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
+  const t = await getTranslations('sport');
 
   return (
     <SessionProvider session={session}>
@@ -16,7 +21,7 @@ export default async function SportLayout({ children }: { children: React.ReactN
         <SportHeader />
         <main className="flex-1">{children}</main>
         <footer className="border-t border-gray-200 dark:border-gray-800 py-6 text-center text-sm text-gray-400">
-          © {new Date().getFullYear()} 88ARENA — ระบบจองสนามกีฬาออนไลน์
+          © {new Date().getFullYear()} 88ARENA — {t('footerText')}
         </footer>
       </div>
     </SessionProvider>

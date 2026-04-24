@@ -158,5 +158,98 @@
       "viewAll": "View all →",
       "empty": "No bookings yet"
     }
+  },
+  "sport": {
+    "heroHeading": "Search & Book",
+    "heroHighlight": " Sports Fields",
+    "heroSubtitle": "Quality sports fields in Phuket. Easy booking, easy payment.",
+    "totalFields": "Total fields",
+    "metaTitle": "Sports field booking",
+    "metaDescription": "Online sports field booking. Find and book fields easily.",
+    "footerText": "Online sports field booking",
+    "search": {
+      "placeholder": "Search field or location...",
+      "allSports": "All sports",
+      "allPrices": "All prices",
+      "priceUnder200": "Under ฿200/hr",
+      "price200to500": "฿200 – ฿500/hr",
+      "price500to1000": "฿500 – ฿1,000/hr",
+      "priceOver1000": "Over ฿1,000/hr"
+    }
+  },
+  "fieldCard": {
+    "bookNow": "Book now →",
+    "perHour": "/hr"
+  },
+  "field": {
+    "backToHome": "← Back to home",
+    "price": "Price",
+    "openHours": "Opening hours",
+    "facilities": "Facilities",
+    "viewMap": "View map →",
+    "fallbackTitle": "Sports field"
+  },
+  "booking": {
+    "title": "My bookings",
+    "subtitle": "Track your field booking status",
+    "empty": "No bookings yet",
+    "emptyHint": "Browse fields and make your first booking!",
+    "viewAllFields": "View all fields",
+    "activeSection": "Active bookings ({count})",
+    "waitingSection": "🕐 My waiting list ({count})",
+    "inQueue": "In queue",
+    "historySection": "Booking history ({count})",
+    "bookedOn": "Booked on",
+    "discount": "Discount",
+    "selectDate": "📅 Select date (up to 7 days ahead)",
+    "selectTime": "⏰ Select time slot",
+    "selectTimeHint": "Click multiple consecutive slots to book multiple hours",
+    "legendAvailable": "Available",
+    "legendPending": "Pending",
+    "legendBooked": "Booked",
+    "slotAvailable": "● Available",
+    "slotBooked": "● Booked",
+    "slotPending": "◌ Pending",
+    "joinWaiting": "+ Join queue",
+    "inWaiting": "🔔 In queue",
+    "waitingJoined": "Added to waiting list!",
+    "waitingLeft": "Removed from waiting list",
+    "cancel": {
+      "sure": "Are you sure?",
+      "no": "No",
+      "cancelling": "Cancelling...",
+      "button": "Cancel booking",
+      "success": "Booking cancelled",
+      "error": "Could not cancel",
+      "apiError": "Something went wrong"
+    },
+    "summary": {
+      "title": "📋 Booking summary",
+      "fieldLabel": "Field",
+      "dateLabel": "Date",
+      "timeLabel": "Time",
+      "hours": "{count} hr",
+      "serviceFee": "Service fee",
+      "total": "Total",
+      "couponPlaceholder": "Coupon code",
+      "apply": "Apply",
+      "couponApplied": "Coupon {code} applied!",
+      "note": "Note (optional)",
+      "notePlaceholder": "e.g. number of players, special requests...",
+      "recurring": "🔁 Repeat every week",
+      "points": "⭐ Redeem points ({points} pts = ฿{discount} off)",
+      "selectFirst": "Select a time slot above",
+      "selectFirstHint": "You can select multiple consecutive slots",
+      "loading": "Loading...",
+      "bookRecurring": "🔁 Book recurring",
+      "bookAndPay": "💳 Book & pay",
+      "loginToBook": "🔐 Sign in to book",
+      "successApproval": "Booked! Awaiting admin approval.",
+      "errorServer": "Server not responding. Please try again.",
+      "errorGeneric": "Something went wrong",
+      "recurringSuccess": "Booked {count} weeks successfully! 🎉",
+      "recurringPartial": "Booked {booked} weeks (skipped {skipped} days)",
+      "weeks": "{w} weeks"
+    }
   }
 }

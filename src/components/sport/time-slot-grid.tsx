@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
 interface TimeSlotGridProps {
   slots: string[];
@@ -13,6 +14,7 @@ interface TimeSlotGridProps {
 }
 
 export function TimeSlotGrid({ slots, bookedSlots, selectedSlots, onSelect, onWaitingList, waitingSlots = [], disabled }: TimeSlotGridProps) {
+  const t = useTranslations('booking');
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
       {slots.map((slot) => {
@@ -39,10 +41,10 @@ export function TimeSlotGrid({ slots, bookedSlots, selectedSlots, onSelect, onWa
               <div className="font-semibold">{slot}</div>
               {isBooked ? (
                 <div className={cn('text-xs mt-0.5 font-normal', isApproved ? 'text-red-400' : 'text-yellow-400')}>
-                  {isApproved ? '● ถูกจองแล้ว' : '◌ รอตรวจสอบ'}
+                  {isApproved ? t('slotBooked') : t('slotPending')}
                 </div>
               ) : (
-                <div className="text-xs mt-0.5 font-normal text-green-500">● ว่าง</div>
+                <div className="text-xs mt-0.5 font-normal text-green-500">{t('slotAvailable')}</div>
               )}
             </button>
 
@@ -56,7 +58,7 @@ export function TimeSlotGrid({ slots, bookedSlots, selectedSlots, onSelect, onWa
                     : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                 )}
               >
-                {isWaiting ? '🔔 รอคิวอยู่' : '+ รอคิว'}
+                {isWaiting ? t('inWaiting') : t('joinWaiting')}
               </button>
             )}
           </div>
