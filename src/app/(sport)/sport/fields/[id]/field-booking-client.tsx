@@ -286,7 +286,7 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
                     onChange={(e) => setRecurringWeeks(Number(e.target.value))}
                     className="ml-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2 py-1 text-sm text-gray-700 dark:text-gray-300"
                   >
-                    {[2,3,4,5,6,7,8].map((w) => <option key={w} value={w}>{t('summary.weeks', { w })}</option>)}
+                    {[2,4,8,12,16,24,36,52].map((w) => <option key={w} value={w}>{t('summary.weeks', { w })}</option>)}
                   </select>
                 )}
               </div>

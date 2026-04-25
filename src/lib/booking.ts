@@ -11,17 +11,6 @@ export function generateTimeSlots(openTime: string, closeTime: string): string[]
   return slots;
 }
 
-export function getNext7Days(): Date[] {
-  const days: Date[] = [];
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
-    days.push(d);
-  }
-  return days;
-}
 
 export function formatDate(date: Date): string {
   return date.toLocaleDateString('th-TH', {

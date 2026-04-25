@@ -266,7 +266,7 @@
     "historySection": "Booking history ({count})",
     "bookedOn": "Booked on",
     "discount": "Discount",
-    "selectDate": "📅 Select date (up to 7 days ahead)",
+    "selectDate": "📅 Select date (up to 1 year ahead)",
     "selectTime": "⏰ Select time slot",
     "selectTimeHint": "Click multiple consecutive slots to book multiple hours",
     "legendAvailable": "Available",

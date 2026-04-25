@@ -53,10 +53,10 @@ export async function POST(req: NextRequest) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const maxDate = new Date(today);
-  maxDate.setDate(today.getDate() + 7);
+  maxDate.setFullYear(today.getFullYear() + 1);
 
   if (bookingDate < today || bookingDate > maxDate) {
-    return NextResponse.json({ error: 'สามารถจองได้ล่วงหน้าสูงสุด 7 วัน' }, { status: 400 });
+    return NextResponse.json({ error: 'สามารถจองได้ล่วงหน้าสูงสุด 1 ปี' }, { status: 400 });
   }
 
   const existing = await prisma.booking.findFirst({

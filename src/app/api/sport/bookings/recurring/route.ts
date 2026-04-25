@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
-  const numWeeks = Math.min(Math.max(parseInt(weeks, 10), 1), 8);
+  const numWeeks = Math.min(Math.max(parseInt(weeks, 10), 1), 52);
   const groupId = `rec-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
   const bookings = [];
