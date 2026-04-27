@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { SPORT_TYPE_LABELS, SPORT_TYPE_EMOJI, STATUS_LABELS, STATUS_COLORS } from '@/lib/booking';
 import { ReportCharts } from '@/components/sport/report-charts';
-import jsPDF from 'jspdf';
 
 type BookingStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
 type SportType = 'FOOTBALL' | 'BASKETBALL' | 'BADMINTON' | 'TENNIS' | 'VOLLEYBALL' | 'SWIMMING' | 'OTHER';
@@ -85,54 +84,89 @@ export default function ReportsPage() {
 
   function exportPDF() {
     if (!data) return;
-    const doc = new jsPDF();
-    let y = 20;
 
-    doc.setFontSize(18);
-    doc.text('88ARENA - Monthly Report', 14, y);
-    y += 8;
+    const rows = data.bookings.map(b => `
+      <tr>
+        <td>${b.field.name}</td>
+        <td>${new Date(b.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })} ${b.timeSlot} น.</td>
+        <td>${b.user.name ?? b.user.email}${b.user.phone ? `<br/><small>${b.user.phone}</small>` : ''}</td>
+        <td>฿${b.field.pricePerHour.toLocaleString()}</td>
+        <td>${STATUS_LABELS[b.status]}</td>
+        <td>${b.note ?? '-'}</td>
+      </tr>`).join('');
 
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(`Period: ${from} to ${to}`, 14, y);
-    y += 12;
+    const sportRows = data.bySportType.map(s => `
+      <tr>
+        <td>${SPORT_TYPE_LABELS[s.sportType] ?? s.sportType}</td>
+        <td>${s.count}</td>
+        <td>฿${s.revenue.toLocaleString()}</td>
+      </tr>`).join('');
 
-    doc.setFontSize(12);
-    doc.setTextColor(0);
-    doc.text('Summary', 14, y);
-    y += 7;
-
-    doc.setFontSize(10);
-    doc.text(`Total Bookings: ${data.summary.total}`, 14, y); y += 5;
-    doc.text(`Revenue (Approved): ${data.summary.totalRevenue.toLocaleString()} THB`, 14, y); y += 5;
-    doc.text(`Pending: ${data.summary.byStatus.PENDING}  Approved: ${data.summary.byStatus.APPROVED}  Rejected: ${data.summary.byStatus.REJECTED}  Cancelled: ${data.summary.byStatus.CANCELLED}`, 14, y);
-    y += 12;
-
-    doc.setFontSize(12);
-    doc.text('Bookings', 14, y);
-    y += 7;
-
-    doc.setFontSize(9);
-    const headers = ['Field', 'Date', 'Time', 'Customer', 'Status'];
-    const colX = [14, 64, 94, 114, 164];
-    headers.forEach((h, i) => { doc.setFont('helvetica', 'bold'); doc.text(h, colX[i], y); });
-    doc.setFont('helvetica', 'normal');
-    y += 5;
-
-    for (const b of data.bookings.slice(0, 60)) {
-      if (y > 270) { doc.addPage(); y = 20; }
-      const row = [
-        b.field.name.slice(0, 18),
-        new Date(b.date).toLocaleDateString('en-GB'),
-        b.timeSlot,
-        (b.user.name ?? b.user.email).slice(0, 18),
-        STATUS_LABELS[b.status],
-      ];
-      row.forEach((cell, i) => doc.text(cell, colX[i], y));
-      y += 5;
+    const html = `<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8"/>
+  <title>88ARENA Report ${from} - ${to}</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Sarabun','Tahoma',sans-serif; padding:24px; color:#1e1e1e; font-size:12px; }
+    h1 { font-size:20px; font-weight:700; margin-bottom:4px; }
+    .meta { color:#6b7280; margin-bottom:16px; font-size:11px; }
+    .summary { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+    .card { border:1px solid #e5e7eb; border-radius:8px; padding:12px; }
+    .card .num { font-size:20px; font-weight:700; color:#4f46e5; }
+    .card .lbl { font-size:11px; color:#6b7280; margin-top:2px; }
+    h2 { font-size:13px; font-weight:600; margin:16px 0 6px; }
+    table { width:100%; border-collapse:collapse; font-size:11px; margin-bottom:20px; }
+    th { background:#f3f4f6; text-align:left; padding:6px 8px; border:1px solid #e5e7eb; font-weight:600; }
+    td { padding:5px 8px; border:1px solid #e5e7eb; vertical-align:top; }
+    tr:nth-child(even) td { background:#f9fafb; }
+    small { color:#6b7280; }
+    @media print {
+      body { padding:0; }
+      @page { margin:1cm; size:A4 landscape; }
     }
+  </style>
+</head>
+<body>
+  <h1>88ARENA - รีพอร์ต</h1>
+  <p class="meta">ช่วงเวลา: ${from} ถึง ${to} &nbsp;|&nbsp; สร้างเมื่อ: ${new Date().toLocaleString('th-TH')}</p>
 
-    doc.save(`88arena-report-${from}-${to}.pdf`);
+  <div class="summary">
+    <div class="card"><div class="num">${data.summary.total}</div><div class="lbl">การจองทั้งหมด</div></div>
+    <div class="card"><div class="num">฿${data.summary.totalRevenue.toLocaleString()}</div><div class="lbl">รายได้ (อนุมัติแล้ว)</div></div>
+    <div class="card"><div class="num">${data.summary.byStatus.PENDING}</div><div class="lbl">รอการอนุมัติ</div></div>
+    <div class="card"><div class="num">${data.summary.byStatus.APPROVED}</div><div class="lbl">อนุมัติแล้ว</div></div>
+  </div>
+
+  <h2>สรุปตามประเภทกีฬา</h2>
+  <table>
+    <thead><tr><th>ประเภทกีฬา</th><th>จำนวนจอง</th><th>รายได้</th></tr></thead>
+    <tbody>${sportRows}</tbody>
+  </table>
+
+  <h2>รายการจองทั้งหมด (${data.bookings.length} รายการ)</h2>
+  <table>
+    <thead>
+      <tr><th>สนาม</th><th>วันที่ / เวลา</th><th>ลูกค้า</th><th>ราคา/ชม.</th><th>สถานะ</th><th>หมายเหตุ</th></tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>
+</body>
+</html>`;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1200px;height:900px;border:0;';
+    document.body.appendChild(iframe);
+    const iframeDoc = iframe.contentDocument ?? iframe.contentWindow?.document;
+    if (!iframeDoc) return;
+    iframeDoc.open();
+    iframeDoc.write(html);
+    iframeDoc.close();
+    setTimeout(() => {
+      iframe.contentWindow?.print();
+      setTimeout(() => document.body.removeChild(iframe), 1000);
+    }, 500);
   }
 
   return (
