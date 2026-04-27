@@ -59,18 +59,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'สามารถจองได้ล่วงหน้าสูงสุด 1 ปี' }, { status: 400 });
   }
 
-  const existing = await prisma.booking.findFirst({
-    where: {
-      userId: session.user.id,
-      date: bookingDate,
-      status: { in: ['PENDING', 'APPROVED'] },
-    },
-  });
-
-  if (existing) {
-    return NextResponse.json({ error: 'คุณมีการจองในวันนี้แล้ว กรุณายกเลิกก่อนจองใหม่' }, { status: 400 });
-  }
-
   try {
     const booking = await prisma.booking.create({
       data: {
