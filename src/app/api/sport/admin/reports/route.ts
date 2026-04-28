@@ -6,10 +6,11 @@ import { auth } from '@/lib/auth';
 function parseTimeSlot(timeSlot: string): { startHour: number; hours: number } {
   const parts = timeSlot.split('-');
   if (parts.length !== 2) return { startHour: 0, hours: 1 };
-  const [startH] = parts[0].split(':').map(Number);
-  const [endH] = parts[1].split(':').map(Number);
-  const hours = Math.max(1, endH - startH);
-  return { startHour: isNaN(startH) ? 0 : startH, hours: isNaN(hours) ? 1 : hours };
+  const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + (m || 0); };
+  const startMin = toMin(parts[0]);
+  const endMin = toMin(parts[1]);
+  const hours = Math.max(0.5, (endMin - startMin) / 60);
+  return { startHour: Math.floor(startMin / 60), hours: isNaN(hours) ? 1 : hours };
 }
 
 const DAY_NAMES = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'];
@@ -70,7 +71,7 @@ export async function GET(req: NextRequest) {
     byStatus[b.status as keyof typeof byStatus]++;
 
     const { startHour, hours } = parseTimeSlot(b.timeSlot);
-    const revenue = b.field.pricePerHour * hours;
+    const revenue = Math.max(0, b.field.pricePerHour * hours - (b.discountAmount ?? 0));
 
     if (b.status === 'APPROVED') totalRevenue += revenue;
 
@@ -125,7 +126,7 @@ export async function GET(req: NextRequest) {
     if (b.status !== 'APPROVED' || !topFieldIds.includes(b.fieldId)) continue;
     const day = b.date.toISOString().split('T')[0];
     const { hours } = parseTimeSlot(b.timeSlot);
-    const rev = b.field.pricePerHour * hours;
+    const rev = Math.max(0, b.field.pricePerHour * hours - (b.discountAmount ?? 0));
     if (!fieldDailyMap[b.fieldId]) fieldDailyMap[b.fieldId] = {};
     fieldDailyMap[b.fieldId][day] = (fieldDailyMap[b.fieldId][day] ?? 0) + rev;
   }

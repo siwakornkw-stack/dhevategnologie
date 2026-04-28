@@ -39,17 +39,6 @@ export async function POST(req: NextRequest) {
   ]);
   if (!field) return NextResponse.json({ error: 'ไม่พบสนาม' }, { status: 404 });
 
-  // Check slot conflicts — expand both existing and incoming slots to hourly blocks
-  const existingBookings = await prisma.booking.findMany({
-    where: { fieldId, date: bookingDate, status: { in: ['PENDING', 'APPROVED'] } },
-    select: { timeSlot: true },
-  });
-  const takenSlots = new Set(existingBookings.flatMap((b) => expandTimeSlot(b.timeSlot)));
-  const incomingSlots = slotsArray.flatMap((s) => expandTimeSlot(s));
-  if (incomingSlots.some((s) => takenSlots.has(s))) {
-    return NextResponse.json({ error: 'ช่วงเวลานี้ถูกจองแล้ว' }, { status: 409 });
-  }
-
   // Validate coupon
   let appliedCoupon: { code: string; discountType: string; discountValue: number } | null = null;
   if (couponCode) {
@@ -78,33 +67,47 @@ export async function POST(req: NextRequest) {
   const discountAmount = couponDiscount + pointsDiscount;
   const totalAmount = Math.max(0, baseAmount - discountAmount);
 
-  // Create booking
+  // Conflict check + booking create inside a transaction to prevent race conditions
   let booking;
   try {
-    booking = await prisma.booking.create({
-      data: {
-        userId: session.user.id, fieldId, date: bookingDate, timeSlot: timeSlotRange, note,
-        ...(appliedCoupon ? { couponCode: appliedCoupon.code, discountAmount } : { discountAmount: discountAmount || undefined }),
-        ...(pointsToRedeem > 0 ? { pointsRedeemed: pointsToRedeem } : {}),
-      },
+    booking = await prisma.$transaction(async (tx) => {
+      const existingBookings = await tx.booking.findMany({
+        where: { fieldId, date: bookingDate, status: { in: ['PENDING', 'APPROVED'] } },
+        select: { timeSlot: true },
+      });
+      const takenSlots = new Set(existingBookings.flatMap((b) => expandTimeSlot(b.timeSlot)));
+      const incomingSlots = slotsArray.flatMap((s) => expandTimeSlot(s));
+      if (incomingSlots.some((s) => takenSlots.has(s))) {
+        throw Object.assign(new Error('CONFLICT'), { isConflict: true });
+      }
+      return tx.booking.create({
+        data: {
+          userId: session.user.id, fieldId, date: bookingDate, timeSlot: timeSlotRange, note,
+          ...(appliedCoupon ? { couponCode: appliedCoupon.code, discountAmount } : { discountAmount: discountAmount || undefined }),
+          ...(pointsToRedeem > 0 ? { pointsRedeemed: pointsToRedeem } : {}),
+        },
+      });
     });
-  } catch {
+  } catch (err) {
     return NextResponse.json({ error: 'ช่วงเวลานี้ถูกจองแล้ว' }, { status: 409 });
   }
 
-  // Deduct redeemed points immediately
+  // Deduct redeemed points and increment coupon usage after booking is confirmed
+  const sideEffects: Promise<unknown>[] = [];
   if (pointsToRedeem > 0) {
-    await Promise.all([
+    sideEffects.push(
       prisma.user.update({ where: { id: session.user.id }, data: { points: { decrement: pointsToRedeem } } }),
       prisma.pointTransaction.create({
         data: { userId: session.user.id, points: -pointsToRedeem, type: 'REDEEM', bookingId: booking.id, note: `แลกแต้มสำหรับการจอง ${timeSlotRange}` },
       }),
-    ]);
+    );
   }
-
   if (appliedCoupon) {
-    await prisma.coupon.update({ where: { code: appliedCoupon.code }, data: { usedCount: { increment: 1 } } });
+    sideEffects.push(
+      prisma.coupon.update({ where: { code: appliedCoupon.code }, data: { usedCount: { increment: 1 } } }),
+    );
   }
+  if (sideEffects.length > 0) await Promise.all(sideEffects);
 
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   const stripeEnabled = stripeKey && !stripeKey.startsWith('sk_test_your');
@@ -141,7 +144,24 @@ export async function POST(req: NextRequest) {
     await prisma.booking.update({ where: { id: booking.id }, data: { stripeSessionId: checkoutSession.id } });
     return NextResponse.json({ url: checkoutSession.url });
   } catch (err) {
-    await prisma.booking.update({ where: { id: booking.id }, data: { status: 'CANCELLED' } });
+    // Rollback booking, restore points, and undo coupon usage
+    const rollback: Promise<unknown>[] = [
+      prisma.booking.update({ where: { id: booking.id }, data: { status: 'CANCELLED' } }),
+    ];
+    if (pointsToRedeem > 0) {
+      rollback.push(
+        prisma.user.update({ where: { id: session.user.id }, data: { points: { increment: pointsToRedeem } } }),
+        prisma.pointTransaction.create({
+          data: { userId: session.user.id, points: pointsToRedeem, type: 'EARN', bookingId: booking.id, note: 'คืนแต้มเนื่องจากการชำระเงินล้มเหลว' },
+        }),
+      );
+    }
+    if (appliedCoupon) {
+      rollback.push(
+        prisma.coupon.update({ where: { code: appliedCoupon.code }, data: { usedCount: { decrement: 1 } } }),
+      );
+    }
+    await Promise.allSettled(rollback);
     const message = err instanceof Error ? err.message : 'Stripe error';
     return NextResponse.json({ error: `ระบบชำระเงินมีปัญหา: ${message}` }, { status: 502 });
   }

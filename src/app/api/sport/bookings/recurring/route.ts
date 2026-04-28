@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { rateLimit, BOOKING_RATE_LIMIT } from '@/lib/rate-limit';
+import { expandTimeSlot } from '@/lib/booking';
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -22,11 +23,23 @@ export async function POST(req: NextRequest) {
   const bookings = [];
   const errors = [];
 
+  const incomingSlots = expandTimeSlot(timeSlot);
+
   for (let i = 0; i < numWeeks; i++) {
     const d = new Date(startDate);
     d.setDate(d.getDate() + i * 7);
 
     try {
+      const existing = await prisma.booking.findMany({
+        where: { fieldId, date: d, status: { in: ['PENDING', 'APPROVED'] } },
+        select: { timeSlot: true },
+      });
+      const takenSlots = new Set(existing.flatMap((b) => expandTimeSlot(b.timeSlot)));
+      if (incomingSlots.some((s) => takenSlots.has(s))) {
+        errors.push(d.toLocaleDateString('th-TH'));
+        continue;
+      }
+
       const booking = await prisma.booking.create({
         data: {
           userId: session.user.id,
