@@ -18,25 +18,36 @@ interface TimeSlotGridProps {
   waitingSlots?: string[];
   disabled?: boolean;
   duration?: 1 | 1.5;
+  quantity?: number;
 }
 
-export function TimeSlotGrid({ slots, bookedSlots, selectedSlots, onSelect, onWaitingList, waitingSlots = [], disabled, duration = 1 }: TimeSlotGridProps) {
+export function TimeSlotGrid({ slots, bookedSlots, selectedSlots, onSelect, onWaitingList, waitingSlots = [], disabled, duration = 1, quantity = 1 }: TimeSlotGridProps) {
   const t = useTranslations('booking');
+
+  // How many consecutive hourly slots a booking of duration*quantity needs
+  const slotsNeeded = Math.ceil(duration * quantity * 60 / 60);
+
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
       {slots.map((slot, idx) => {
-        const status = bookedSlots[slot];
-        const isBooked = !!status;
-        const isApproved = status === 'APPROVED';
+        const slotStatus = bookedSlots[slot];
+        const isThisBooked = !!slotStatus;
+        const isApproved = slotStatus === 'APPROVED';
         const isSelected = selectedSlots.includes(slot);
         const isWaiting = waitingSlots.includes(slot);
 
         const slotStart = slot.split('-')[0];
         const slotEnd = addMin(slotStart, duration * 60);
 
-        const nextSlot = slots[idx + 1];
-        const isBlockedFor15 = duration === 1.5 && (!nextSlot || !!bookedSlots[nextSlot]);
-        const isDisabled = isBooked || isBlockedFor15;
+        // Check if this slot can be a valid start for duration*quantity
+        let isInvalidStart = false;
+        for (let i = 0; i < slotsNeeded; i++) {
+          const s = slots[idx + i];
+          if (!s || bookedSlots[s]) { isInvalidStart = true; break; }
+        }
+
+        // Already-selected slots stay clickable (to allow deselect)
+        const isDisabled = !isSelected && isInvalidStart;
 
         return (
           <div key={slot} className="flex flex-col gap-1">
@@ -45,22 +56,22 @@ export function TimeSlotGrid({ slots, bookedSlots, selectedSlots, onSelect, onWa
               disabled={isDisabled || disabled}
               className={cn(
                 'relative rounded-xl px-3 py-3 text-sm font-medium transition-all duration-200 border-2 text-center w-full',
-                isSelected && !isDisabled
+                isSelected
                   ? 'bg-primary-600 border-primary-600 text-white shadow-lg scale-105'
-                  : isBooked
+                  : isThisBooked
                   ? 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 cursor-not-allowed'
-                  : isBlockedFor15
+                  : isInvalidStart
                   ? 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-400 cursor-not-allowed opacity-60'
                   : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 cursor-pointer'
               )}
             >
               <div className="font-semibold">{slotStart}</div>
               <div className="text-xs font-normal opacity-60">–{slotEnd}</div>
-              {isBooked ? (
+              {isThisBooked ? (
                 <div className={cn('text-xs mt-0.5 font-normal', isApproved ? 'text-red-400' : 'text-yellow-400')}>
                   {isApproved ? t('slotBooked') : t('slotPending')}
                 </div>
-              ) : isBlockedFor15 ? (
+              ) : isInvalidStart && !isSelected ? (
                 <div className="text-xs mt-0.5 font-normal text-gray-400">{t('slotUnavailable')}</div>
               ) : (
                 <div className="text-xs mt-0.5 font-normal text-green-500">{t('slotAvailable')}</div>

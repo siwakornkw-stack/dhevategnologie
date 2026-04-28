@@ -271,6 +271,7 @@
     "selectTimeHint": "Choose a duration then click your preferred start time",
     "duration1hr": "1 hr",
     "duration15hr": "1.5 hr",
+    "quantityLabel": "Total",
     "legendAvailable": "Available",
     "legendPending": "Pending",
     "legendBooked": "Booked",

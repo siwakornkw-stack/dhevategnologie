@@ -271,6 +271,7 @@
     "selectTimeHint": "เลือกระยะเวลาที่ต้องการ แล้วคลิกช่วงเวลาเริ่มต้น",
     "duration1hr": "1 ชม.",
     "duration15hr": "1.30 ชม.",
+    "quantityLabel": "รวม",
     "legendAvailable": "ว่าง",
     "legendPending": "รอตรวจสอบ",
     "legendBooked": "จองแล้ว",

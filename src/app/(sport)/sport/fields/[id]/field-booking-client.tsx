@@ -19,10 +19,20 @@ interface FieldBookingClientProps {
   isLoggedIn: boolean;
 }
 
+function toMin(t: string): number {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
 function addMinutesToTime(time: string, minutes: number): string {
-  const [h, m] = time.split(':').map(Number);
-  const total = h * 60 + m + minutes;
+  const total = toMin(time) + minutes;
   return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
+function formatDuration(hours: number): string {
+  const whole = Math.floor(hours);
+  if (hours % 1 === 0) return `${whole} ชม.`;
+  return `${whole > 0 ? `${whole}.` : ''}30 ชม.`;
 }
 
 export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime, closeTime, isLoggedIn }: FieldBookingClientProps) {
@@ -32,6 +42,7 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
   const [selectedDate, setSelectedDate] = useState(today);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [duration, setDuration] = useState<1 | 1.5>(1);
+  const [quantity, setQuantity] = useState(1);
   const [bookedSlots, setBookedSlots] = useState<Record<string, string>>({});
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [booking, setBooking] = useState(false);
@@ -46,11 +57,38 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
   const [redeemPoints, setRedeemPoints] = useState(false);
 
   const slots = generateTimeSlots(openTime, closeTime);
+  const totalHours = duration * quantity;
 
-  // Full booked slot range derived from selected start + chosen duration
+  // Full booking range: start to start + totalHours
   const fullSlot = selectedSlot
-    ? `${selectedSlot.split('-')[0]}-${addMinutesToTime(selectedSlot.split('-')[0], duration * 60)}`
+    ? `${selectedSlot.split('-')[0]}-${addMinutesToTime(selectedSlot.split('-')[0], totalHours * 60)}`
     : null;
+
+  // Hourly grid slots that fall within the booking range (for highlighting)
+  const highlightedSlots = fullSlot
+    ? slots.filter(s => {
+        const sStart = toMin(s.split('-')[0]);
+        const bookStart = toMin(fullSlot.split('-')[0]);
+        const bookEnd = toMin(fullSlot.split('-')[1]);
+        return sStart >= bookStart && sStart < bookEnd;
+      })
+    : [];
+
+  // Max bookable quantity from the selected start slot
+  let maxQuantity = 1;
+  if (selectedSlot) {
+    const startIdx = slots.indexOf(selectedSlot);
+    for (let q = 2; q <= 12; q++) {
+      const needed = Math.ceil((duration * q * 60) / 60);
+      let valid = true;
+      for (let i = 0; i < needed; i++) {
+        const s = slots[startIdx + i];
+        if (!s || bookedSlots[s]) { valid = false; break; }
+      }
+      if (valid) maxQuantity = q;
+      else break;
+    }
+  }
 
   async function handleApplyCoupon() {
     if (!couponCode.trim()) return;
@@ -77,6 +115,7 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
 
   useEffect(() => {
     setSelectedSlot(null);
+    setQuantity(1);
     setCoupon(null);
     setCouponCode('');
     setRedeemPoints(false);
@@ -89,7 +128,13 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
   }, [fieldId, selectedDate]);
 
   function handleSlotSelect(slot: string) {
-    setSelectedSlot((prev) => (prev === slot ? null : slot));
+    if (highlightedSlots.includes(slot)) {
+      setSelectedSlot(null);
+      setQuantity(1);
+    } else {
+      setSelectedSlot(slot);
+      setQuantity(1);
+    }
   }
 
   async function handleWaitingList(slot: string) {
@@ -132,6 +177,7 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
           : t('summary.recurringSuccess', { count: data.bookings.length });
         toast.success(msg);
         setSelectedSlot(null);
+        setQuantity(1);
         router.push('/sport/bookings');
       } else {
         const res = await fetch('/api/sport/bookings/checkout', {
@@ -152,6 +198,7 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
         if (data.skipPayment) {
           toast.success(t('summary.successApproval'));
           setSelectedSlot(null);
+          setQuantity(1);
           router.push('/sport/bookings');
         } else if (data.url) {
           window.location.href = data.url;
@@ -165,7 +212,7 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
 
   const [startTime, endTime] = fullSlot ? fullSlot.split('-') : [null, null];
   const timeRange = fullSlot ? `${startTime}–${endTime}` : null;
-  const basePrice = pricePerHour * duration;
+  const basePrice = pricePerHour * totalHours;
   const couponDiscount = coupon
     ? coupon.discountType === 'PERCENT'
       ? Math.round(basePrice * coupon.discountValue / 100)
@@ -208,7 +255,7 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
           {([1, 1.5] as const).map((d) => (
             <button
               key={d}
-              onClick={() => { setDuration(d); setSelectedSlot(null); }}
+              onClick={() => { setDuration(d); setSelectedSlot(null); setQuantity(1); }}
               className={cn(
                 'px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all',
                 duration === d
@@ -227,12 +274,35 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
           <TimeSlotGrid
             slots={slots}
             bookedSlots={bookedSlots}
-            selectedSlots={selectedSlot ? [selectedSlot] : []}
+            selectedSlots={highlightedSlots}
             onSelect={handleSlotSelect}
             onWaitingList={handleWaitingList}
             waitingSlots={waitingSlots}
             duration={duration}
+            quantity={quantity}
           />
+        )}
+
+        {/* Quantity +/- control */}
+        {hasSelection && (
+          <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+            <span className="text-sm text-gray-500 dark:text-gray-400">{t('quantityLabel')}</span>
+            <div className="flex items-center gap-2 ml-auto">
+              <button
+                onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                disabled={quantity <= 1}
+                className="w-8 h-8 rounded-lg border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold text-lg flex items-center justify-center hover:border-primary-400 transition disabled:opacity-30 disabled:cursor-not-allowed"
+              >−</button>
+              <span className="text-sm font-semibold min-w-[70px] text-center text-gray-800 dark:text-gray-200">
+                {formatDuration(totalHours)}
+              </span>
+              <button
+                onClick={() => setQuantity(q => Math.min(maxQuantity, q + 1))}
+                disabled={quantity >= maxQuantity}
+                className="w-8 h-8 rounded-lg border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold text-lg flex items-center justify-center hover:border-primary-400 transition disabled:opacity-30 disabled:cursor-not-allowed"
+              >+</button>
+            </div>
+          </div>
         )}
       </div>
 
@@ -260,13 +330,13 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">{t('summary.timeLabel')}</span>
               <span className="font-semibold text-primary-600 dark:text-primary-400">
-                {timeRange} น. ({duration === 1 ? t('duration1hr') : t('duration15hr')})
+                {timeRange} น. ({formatDuration(totalHours)})
               </span>
             </div>
             <div className="border-t border-gray-100 dark:border-gray-800 pt-3 space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">
-                  {t('summary.serviceFee')} <span className="text-xs">({duration === 1 ? '1' : '1.5'} × ฿{pricePerHour.toLocaleString()})</span>
+                  {t('summary.serviceFee')} <span className="text-xs">({formatDuration(totalHours)} × ฿{pricePerHour.toLocaleString()})</span>
                 </span>
                 <span className="font-medium text-gray-700 dark:text-gray-300">฿{basePrice.toLocaleString()}</span>
               </div>
