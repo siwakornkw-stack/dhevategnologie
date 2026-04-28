@@ -19,12 +19,19 @@ interface FieldBookingClientProps {
   isLoggedIn: boolean;
 }
 
+function addMinutesToTime(time: string, minutes: number): string {
+  const [h, m] = time.split(':').map(Number);
+  const total = h * 60 + m + minutes;
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
 export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime, closeTime, isLoggedIn }: FieldBookingClientProps) {
   const router = useRouter();
   const t = useTranslations('booking');
   const today = formatDateISO(new Date());
   const [selectedDate, setSelectedDate] = useState(today);
-  const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [duration, setDuration] = useState<1 | 1.5>(1);
   const [bookedSlots, setBookedSlots] = useState<Record<string, string>>({});
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [booking, setBooking] = useState(false);
@@ -39,6 +46,11 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
   const [redeemPoints, setRedeemPoints] = useState(false);
 
   const slots = generateTimeSlots(openTime, closeTime);
+
+  // Full booked slot range derived from selected start + chosen duration
+  const fullSlot = selectedSlot
+    ? `${selectedSlot.split('-')[0]}-${addMinutesToTime(selectedSlot.split('-')[0], duration * 60)}`
+    : null;
 
   async function handleApplyCoupon() {
     if (!couponCode.trim()) return;
@@ -64,7 +76,7 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
   }, [isLoggedIn]);
 
   useEffect(() => {
-    setSelectedSlots([]);
+    setSelectedSlot(null);
     setCoupon(null);
     setCouponCode('');
     setRedeemPoints(false);
@@ -77,21 +89,7 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
   }, [fieldId, selectedDate]);
 
   function handleSlotSelect(slot: string) {
-    setSelectedSlots((prev) => {
-      if (prev.length === 0) return [slot];
-
-      const idx = slots.indexOf(slot);
-      const firstIdx = slots.indexOf(prev[0]);
-      const lastIdx = slots.indexOf(prev[prev.length - 1]);
-
-      if (slot === prev[0]) return prev.slice(1);
-      if (slot === prev[prev.length - 1]) return prev.slice(0, -1);
-
-      if (idx === firstIdx - 1 && !bookedSlots[slot]) return [slot, ...prev];
-      if (idx === lastIdx + 1 && !bookedSlots[slot]) return [...prev, slot];
-
-      return [slot];
-    });
+    setSelectedSlot((prev) => (prev === slot ? null : slot));
   }
 
   async function handleWaitingList(slot: string) {
@@ -118,14 +116,14 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
       router.push('/sport/auth/signin');
       return;
     }
-    if (selectedSlots.length === 0) return;
+    if (!fullSlot) return;
     setBooking(true);
     try {
       if (isRecurring) {
         const res = await fetch('/api/sport/bookings/recurring', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fieldId, startDate: selectedDate, timeSlot: selectedSlots[0], weeks: recurringWeeks, note }),
+          body: JSON.stringify({ fieldId, startDate: selectedDate, timeSlot: fullSlot, weeks: recurringWeeks, note }),
         });
         const data = await res.json();
         if (!res.ok && data.bookings?.length === 0) throw new Error(data.errors?.join(', ') ?? t('summary.errorGeneric'));
@@ -133,13 +131,13 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
           ? t('summary.recurringPartial', { booked: data.bookings.length, skipped: data.errors.length })
           : t('summary.recurringSuccess', { count: data.bookings.length });
         toast.success(msg);
-        setSelectedSlots([]);
+        setSelectedSlot(null);
         router.push('/sport/bookings');
       } else {
         const res = await fetch('/api/sport/bookings/checkout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fieldId, date: selectedDate, timeSlots: selectedSlots, note, couponCode: coupon?.code, redeemPoints }),
+          body: JSON.stringify({ fieldId, date: selectedDate, timeSlots: [fullSlot], note, couponCode: coupon?.code, redeemPoints }),
         });
 
         let data: { url?: string; error?: string; skipPayment?: boolean } = {};
@@ -153,7 +151,7 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
 
         if (data.skipPayment) {
           toast.success(t('summary.successApproval'));
-          setSelectedSlots([]);
+          setSelectedSlot(null);
           router.push('/sport/bookings');
         } else if (data.url) {
           window.location.href = data.url;
@@ -165,10 +163,9 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
     }
   }
 
-  const timeRange = selectedSlots.length > 0
-    ? `${selectedSlots[0].split('-')[0]}–${selectedSlots[selectedSlots.length - 1].split('-')[1]}`
-    : null;
-  const basePrice = pricePerHour * selectedSlots.length;
+  const [startTime, endTime] = fullSlot ? fullSlot.split('-') : [null, null];
+  const timeRange = fullSlot ? `${startTime}–${endTime}` : null;
+  const basePrice = pricePerHour * duration;
   const couponDiscount = coupon
     ? coupon.discountType === 'PERCENT'
       ? Math.round(basePrice * coupon.discountValue / 100)
@@ -180,7 +177,7 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
     : 0;
   const discountAmount = couponDiscount + pointsDiscount;
   const totalPrice = basePrice - discountAmount;
-  const hasSelection = selectedSlots.length > 0;
+  const hasSelection = !!selectedSlot;
 
   return (
     <div className="space-y-5">
@@ -205,16 +202,36 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400 inline-block" /> {t('legendBooked')}</span>
           </div>
         </div>
+
+        {/* Duration selector */}
+        <div className="flex gap-2 mb-4">
+          {([1, 1.5] as const).map((d) => (
+            <button
+              key={d}
+              onClick={() => { setDuration(d); setSelectedSlot(null); }}
+              className={cn(
+                'px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all',
+                duration === d
+                  ? 'bg-primary-600 border-primary-600 text-white'
+                  : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-primary-400'
+              )}
+            >
+              {d === 1 ? t('duration1hr') : t('duration15hr')}
+            </button>
+          ))}
+        </div>
+
         {loadingSlots ? (
           <TimeSlotSkeleton />
         ) : (
           <TimeSlotGrid
             slots={slots}
             bookedSlots={bookedSlots}
-            selectedSlots={selectedSlots}
+            selectedSlots={selectedSlot ? [selectedSlot] : []}
             onSelect={handleSlotSelect}
             onWaitingList={handleWaitingList}
             waitingSlots={waitingSlots}
+            duration={duration}
           />
         )}
       </div>
@@ -243,13 +260,13 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">{t('summary.timeLabel')}</span>
               <span className="font-semibold text-primary-600 dark:text-primary-400">
-                {timeRange} น. ({t('summary.hours', { count: selectedSlots.length })})
+                {timeRange} น. ({duration === 1 ? t('duration1hr') : t('duration15hr')})
               </span>
             </div>
             <div className="border-t border-gray-100 dark:border-gray-800 pt-3 space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">
-                  {t('summary.serviceFee')} {selectedSlots.length > 1 && <span className="text-xs">({selectedSlots.length} × ฿{pricePerHour.toLocaleString()})</span>}
+                  {t('summary.serviceFee')} <span className="text-xs">({duration === 1 ? '1' : '1.5'} × ฿{pricePerHour.toLocaleString()})</span>
                 </span>
                 <span className="font-medium text-gray-700 dark:text-gray-300">฿{basePrice.toLocaleString()}</span>
               </div>
@@ -268,29 +285,27 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
               </div>
             </div>
 
-            {/* Recurring option — only for single slot */}
-            {selectedSlots.length === 1 && (
-              <div className="flex items-center gap-3 py-2 border-t border-gray-100 dark:border-gray-800">
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={isRecurring}
-                    onChange={(e) => setIsRecurring(e.target.checked)}
-                    className="w-4 h-4 rounded accent-primary-600"
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{t('summary.recurring')}</span>
-                </label>
-                {isRecurring && (
-                  <select
-                    value={recurringWeeks}
-                    onChange={(e) => setRecurringWeeks(Number(e.target.value))}
-                    className="ml-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2 py-1 text-sm text-gray-700 dark:text-gray-300"
-                  >
-                    {[2,4,8,12,16,24,36,52].map((w) => <option key={w} value={w}>{t('summary.weeks', { w })}</option>)}
-                  </select>
-                )}
-              </div>
-            )}
+            {/* Recurring option */}
+            <div className="flex items-center gap-3 py-2 border-t border-gray-100 dark:border-gray-800">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={isRecurring}
+                  onChange={(e) => setIsRecurring(e.target.checked)}
+                  className="w-4 h-4 rounded accent-primary-600"
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">{t('summary.recurring')}</span>
+              </label>
+              {isRecurring && (
+                <select
+                  value={recurringWeeks}
+                  onChange={(e) => setRecurringWeeks(Number(e.target.value))}
+                  className="ml-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2 py-1 text-sm text-gray-700 dark:text-gray-300"
+                >
+                  {[2,4,8,12,16,24,36,52].map((w) => <option key={w} value={w}>{t('summary.weeks', { w })}</option>)}
+                </select>
+              )}
+            </div>
 
             {/* Loyalty points */}
             {isLoggedIn && userPoints >= 100 && (

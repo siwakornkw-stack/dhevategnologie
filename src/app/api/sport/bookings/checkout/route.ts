@@ -39,13 +39,14 @@ export async function POST(req: NextRequest) {
   ]);
   if (!field) return NextResponse.json({ error: 'ไม่พบสนาม' }, { status: 404 });
 
-  // Check slot conflicts
+  // Check slot conflicts — expand both existing and incoming slots to hourly blocks
   const existingBookings = await prisma.booking.findMany({
     where: { fieldId, date: bookingDate, status: { in: ['PENDING', 'APPROVED'] } },
     select: { timeSlot: true },
   });
   const takenSlots = new Set(existingBookings.flatMap((b) => expandTimeSlot(b.timeSlot)));
-  if (slotsArray.some((s) => takenSlots.has(s))) {
+  const incomingSlots = slotsArray.flatMap((s) => expandTimeSlot(s));
+  if (incomingSlots.some((s) => takenSlots.has(s))) {
     return NextResponse.json({ error: 'ช่วงเวลานี้ถูกจองแล้ว' }, { status: 409 });
   }
 
@@ -61,7 +62,8 @@ export async function POST(req: NextRequest) {
   const startTime = slotsArray[0].split('-')[0];
   const endTime = slotsArray[slotsArray.length - 1].split('-')[1];
   const timeSlotRange = slotsArray.length === 1 ? slotsArray[0] : `${startTime}-${endTime}`;
-  const hours = slotsArray.length;
+  const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+  const hours = (toMin(endTime) - toMin(startTime)) / 60;
   const baseAmount = field.pricePerHour * hours;
 
   const couponDiscount = calculateCouponDiscount(appliedCoupon, baseAmount);
