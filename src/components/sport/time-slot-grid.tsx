@@ -3,6 +3,12 @@
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 
+function addMin(time: string, mins: number): string {
+  const [h, m] = time.split(':').map(Number);
+  const total = h * 60 + m + mins;
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
 interface TimeSlotGridProps {
   slots: string[];
   bookedSlots: Record<string, string>;
@@ -25,6 +31,9 @@ export function TimeSlotGrid({ slots, bookedSlots, selectedSlots, onSelect, onWa
         const isSelected = selectedSlots.includes(slot);
         const isWaiting = waitingSlots.includes(slot);
 
+        const slotStart = slot.split('-')[0];
+        const slotEnd = addMin(slotStart, duration * 60);
+
         const nextSlot = slots[idx + 1];
         const isBlockedFor15 = duration === 1.5 && (!nextSlot || !!bookedSlots[nextSlot]);
         const isDisabled = isBooked || isBlockedFor15;
@@ -45,7 +54,8 @@ export function TimeSlotGrid({ slots, bookedSlots, selectedSlots, onSelect, onWa
                   : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 cursor-pointer'
               )}
             >
-              <div className="font-semibold">{slot.split('-')[0]}</div>
+              <div className="font-semibold">{slotStart}</div>
+              <div className="text-xs font-normal opacity-60">–{slotEnd}</div>
               {isBooked ? (
                 <div className={cn('text-xs mt-0.5 font-normal', isApproved ? 'text-red-400' : 'text-yellow-400')}>
                   {isApproved ? t('slotBooked') : t('slotPending')}
