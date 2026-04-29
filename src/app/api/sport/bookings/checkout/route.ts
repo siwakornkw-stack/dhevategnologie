@@ -49,11 +49,19 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  const slotFmt = /^\d{2}:\d{2}-\d{2}:\d{2}$/;
+  if (slotsArray.some((s) => !slotFmt.test(s))) {
+    return NextResponse.json({ error: 'รูปแบบช่วงเวลาไม่ถูกต้อง' }, { status: 400 });
+  }
+
   const startTime = slotsArray[0].split('-')[0];
   const endTime = slotsArray[slotsArray.length - 1].split('-')[1];
   const timeSlotRange = slotsArray.length === 1 ? slotsArray[0] : `${startTime}-${endTime}`;
   const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
   const hours = (toMin(endTime) - toMin(startTime)) / 60;
+  if (hours <= 0 || isNaN(hours)) {
+    return NextResponse.json({ error: 'ช่วงเวลาไม่ถูกต้อง' }, { status: 400 });
+  }
   const baseAmount = field.pricePerHour * hours;
 
   const couponDiscount = calculateCouponDiscount(appliedCoupon, baseAmount);
