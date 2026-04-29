@@ -86,18 +86,26 @@ export async function POST(req: NextRequest) {
     if (bookingId) {
       const booking = await prisma.booking.findUnique({
         where: { id: bookingId },
-        select: { couponCode: true, status: true },
+        select: { couponCode: true, status: true, pointsRedeemed: true, userId: true },
       });
-      // updateMany won't throw if booking was already cleaned up
       await prisma.booking.updateMany({
         where: { id: bookingId, status: 'PENDING' },
         data: { status: 'CANCELLED' },
       });
-      if (booking?.status === 'PENDING' && booking.couponCode) {
-        await prisma.coupon.update({
-          where: { code: booking.couponCode },
-          data: { usedCount: { decrement: 1 } },
-        }).catch(() => {});
+      if (booking?.status === 'PENDING') {
+        const tasks: Promise<unknown>[] = [];
+        if (booking.couponCode) {
+          tasks.push(prisma.coupon.update({ where: { code: booking.couponCode }, data: { usedCount: { decrement: 1 } } }).catch(() => {}));
+        }
+        if (booking.pointsRedeemed && booking.pointsRedeemed > 0) {
+          tasks.push(
+            prisma.user.update({ where: { id: booking.userId }, data: { points: { increment: booking.pointsRedeemed } } }),
+            prisma.pointTransaction.create({
+              data: { userId: booking.userId, points: booking.pointsRedeemed, type: 'EARN', bookingId, note: 'คืนแต้มเนื่องจาก session หมดอายุ' },
+            }),
+          );
+        }
+        if (tasks.length > 0) await Promise.allSettled(tasks);
       }
     }
   }

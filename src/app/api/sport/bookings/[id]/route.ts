@@ -166,6 +166,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         }),
       );
     }
+    // Deduct points earned on approval (if rejecting a previously approved booking)
+    if (booking.pointsEarned && booking.pointsEarned > 0) {
+      tasks.push(
+        prisma.user.update({ where: { id: booking.userId }, data: { points: { decrement: booking.pointsEarned } } }),
+        prisma.pointTransaction.create({
+          data: { userId: booking.userId, points: -booking.pointsEarned, type: 'REDEEM', bookingId: booking.id, note: 'หักแต้มเนื่องจากการจองถูกปฏิเสธ' },
+        }),
+      );
+    }
     if (booking.couponCode) {
       tasks.push(
         prisma.coupon.update({ where: { code: booking.couponCode }, data: { usedCount: { decrement: 1 } } }).catch(() => {}),
@@ -193,6 +202,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (booking.couponCode) {
       cancelTasks.push(
         prisma.coupon.update({ where: { code: booking.couponCode }, data: { usedCount: { decrement: 1 } } }).catch(() => {}),
+      );
+    }
+    // Deduct points earned on approval
+    if (booking.pointsEarned && booking.pointsEarned > 0) {
+      cancelTasks.push(
+        prisma.user.update({ where: { id: booking.userId }, data: { points: { decrement: booking.pointsEarned } } }),
+        prisma.pointTransaction.create({
+          data: { userId: booking.userId, points: -booking.pointsEarned, type: 'REDEEM', bookingId: booking.id, note: 'หักแต้มเนื่องจากการยกเลิกการจอง' },
+        }),
       );
     }
     if (cancelTasks.length > 0) await Promise.allSettled(cancelTasks);
