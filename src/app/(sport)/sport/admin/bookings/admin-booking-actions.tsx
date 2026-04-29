@@ -4,6 +4,15 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
+async function callUpdateStatus(bookingId: string, status: string) {
+  const res = await fetch(`/api/sport/bookings/${bookingId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) throw new Error();
+}
+
 export function AdminBookingActions({ bookingId }: { bookingId: string }) {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
@@ -11,12 +20,7 @@ export function AdminBookingActions({ bookingId }: { bookingId: string }) {
   async function updateStatus(status: 'APPROVED' | 'REJECTED') {
     setLoading(status);
     try {
-      const res = await fetch(`/api/sport/bookings/${bookingId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-      });
-      if (!res.ok) throw new Error();
+      await callUpdateStatus(bookingId, status);
       toast.success(status === 'APPROVED' ? 'อนุมัติการจองแล้ว ✓' : 'ปฏิเสธการจองแล้ว');
       router.refresh();
     } catch {
@@ -43,5 +47,41 @@ export function AdminBookingActions({ bookingId }: { bookingId: string }) {
         {loading === 'REJECTED' ? '...' : '✗ ปฏิเสธ'}
       </button>
     </div>
+  );
+}
+
+export function AdminCancelAction({ bookingId }: { bookingId: string }) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [confirm, setConfirm] = useState(false);
+
+  async function handleCancel() {
+    if (!confirm) { setConfirm(true); return; }
+    setLoading(true);
+    try {
+      await callUpdateStatus(bookingId, 'CANCELLED');
+      toast.success('ยกเลิกการจองแล้ว');
+      router.refresh();
+    } catch {
+      toast.error('เกิดข้อผิดพลาด');
+    } finally {
+      setLoading(false);
+      setConfirm(false);
+    }
+  }
+
+  return (
+    <button
+      onClick={handleCancel}
+      onBlur={() => setConfirm(false)}
+      disabled={loading}
+      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition disabled:opacity-50 ${
+        confirm
+          ? 'bg-red-600 text-white hover:bg-red-700'
+          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400'
+      }`}
+    >
+      {loading ? '...' : confirm ? 'ยืนยันยกเลิก?' : '✕ ยกเลิก'}
+    </button>
   );
 }

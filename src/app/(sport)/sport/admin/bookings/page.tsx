@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { BookingStatusBadge } from '@/components/sport/booking-status-badge';
 import { SPORT_TYPE_EMOJI } from '@/lib/booking';
-import { AdminBookingActions } from './admin-booking-actions';
+import { AdminBookingActions, AdminCancelAction } from './admin-booking-actions';
 import { BookingSearch } from './booking-search';
 import { PendingBookingsSection } from './bulk-approve';
 import Link from 'next/link';
@@ -119,7 +119,7 @@ export default async function AdminBookingsPage({ searchParams }: PageProps) {
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-800">
             {others.map((booking) => (
-              <BookingRow key={booking.id} booking={booking} showActions={false} paidLabel={paidLabel} noPhoneLabel={noPhoneLabel} bookedOnLabel={bookedOnLabel} />
+              <BookingRow key={booking.id} booking={booking} showActions={booking.status === 'APPROVED'} paidLabel={paidLabel} noPhoneLabel={noPhoneLabel} bookedOnLabel={bookedOnLabel} />
             ))}
           </div>
         )}
@@ -206,7 +206,7 @@ function BookingRow({ booking, showActions, paidLabel, noPhoneLabel, bookedOnLab
 
       <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 flex-shrink-0">
         <BookingStatusBadge status={booking.status} />
-        {showActions && <AdminBookingActions bookingId={booking.id} />}
+        {showActions && <AdminCancelAction bookingId={booking.id} />}
       </div>
     </div>
   );

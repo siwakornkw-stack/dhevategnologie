@@ -60,6 +60,7 @@ export async function GET(req: NextRequest) {
 
   const byStatus = { PENDING: 0, APPROVED: 0, REJECTED: 0, CANCELLED: 0 };
   let totalRevenue = 0;
+  let cancelledRevenue = 0;
 
   const bySportTypeMap: Record<string, { count: number; revenue: number }> = {};
   const byFieldMap: Record<string, { name: string; sportType: string; count: number; revenue: number; approved: number }> = {};
@@ -74,6 +75,7 @@ export async function GET(req: NextRequest) {
     const revenue = Math.max(0, b.field.pricePerHour * hours - (b.discountAmount ?? 0));
 
     if (b.status === 'APPROVED') totalRevenue += revenue;
+    if (b.status === 'CANCELLED') cancelledRevenue += revenue;
 
     const st = b.field.sportType;
     if (!bySportTypeMap[st]) bySportTypeMap[st] = { count: 0, revenue: 0 };
@@ -182,7 +184,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     bookings,
-    summary: { total: bookings.length, byStatus, totalRevenue },
+    summary: { total: bookings.length, byStatus, totalRevenue, cancelledRevenue, netRevenue: totalRevenue - cancelledRevenue },
     bySportType: Object.entries(bySportTypeMap).map(([type, v]) => ({ sportType: type, ...v })),
     byField: Object.values(byFieldMap).sort((a, b) => b.count - a.count),
     byHour,

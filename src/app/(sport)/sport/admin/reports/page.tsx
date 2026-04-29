@@ -25,6 +25,8 @@ interface ReportData {
     total: number;
     byStatus: Record<BookingStatus, number>;
     totalRevenue: number;
+    cancelledRevenue: number;
+    netRevenue: number;
   };
   bySportType: { sportType: string; count: number; revenue: number }[];
   byField: { name: string; sportType: string; count: number; revenue: number; approved: number }[];
@@ -134,8 +136,8 @@ export default function ReportsPage() {
 
   <div class="summary">
     <div class="card"><div class="num">${data.summary.total}</div><div class="lbl">การจองทั้งหมด</div></div>
-    <div class="card"><div class="num">฿${data.summary.totalRevenue.toLocaleString()}</div><div class="lbl">รายได้ (อนุมัติแล้ว)</div></div>
-    <div class="card"><div class="num">${data.summary.byStatus.PENDING}</div><div class="lbl">รอการอนุมัติ</div></div>
+    <div class="card"><div class="num">฿${data.summary.netRevenue.toLocaleString()}</div><div class="lbl">รายได้สุทธิ</div></div>
+    <div class="card"><div class="num" style="color:#dc2626">-฿${data.summary.cancelledRevenue.toLocaleString()}</div><div class="lbl">ยกเลิก/คืนเงิน</div></div>
     <div class="card"><div class="num">${data.summary.byStatus.APPROVED}</div><div class="lbl">อนุมัติแล้ว</div></div>
   </div>
 
@@ -263,8 +265,8 @@ export default function ReportsPage() {
           {/* Summary Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <SummaryCard icon="📋" label="การจองทั้งหมด" value={data.summary.total} color="from-blue-500/20 to-cyan-500/20" textColor="text-blue-600 dark:text-blue-400" />
-            <SummaryCard icon="💰" label="รายได้ (อนุมัติแล้ว)" value={`฿${data.summary.totalRevenue.toLocaleString()}`} color="from-green-500/20 to-emerald-500/20" textColor="text-green-600 dark:text-green-400" />
-            <SummaryCard icon="⏳" label="รอการอนุมัติ" value={data.summary.byStatus.PENDING} color="from-yellow-500/20 to-orange-500/20" textColor="text-yellow-600 dark:text-yellow-400" />
+            <SummaryCard icon="💰" label="รายได้สุทธิ" value={`฿${data.summary.netRevenue.toLocaleString()}`} color="from-green-500/20 to-emerald-500/20" textColor="text-green-600 dark:text-green-400" />
+            <SummaryCard icon="↩️" label="ยกเลิก/คืนเงิน" value={`-฿${data.summary.cancelledRevenue.toLocaleString()}`} color="from-red-500/20 to-rose-500/20" textColor="text-red-600 dark:text-red-400" />
             <SummaryCard icon="✅" label="อนุมัติแล้ว" value={data.summary.byStatus.APPROVED} color="from-primary-500/20 to-violet-500/20" textColor="text-primary-600 dark:text-primary-400" />
           </div>
 
