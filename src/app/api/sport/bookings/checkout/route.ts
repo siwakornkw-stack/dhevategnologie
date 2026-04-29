@@ -90,11 +90,15 @@ export async function POST(req: NextRequest) {
         throw Object.assign(new Error('CONFLICT'), { isConflict: true });
       }
       if (appliedCoupon) {
-        const freshCoupon = await tx.coupon.findUnique({ where: { code: appliedCoupon.code } });
-        if (!freshCoupon || !isCouponUsable(freshCoupon)) {
+        const updated = await tx.$executeRaw`
+          UPDATE "Coupon" SET "usedCount" = "usedCount" + 1
+          WHERE code = ${appliedCoupon.code} AND "isActive" = true
+          AND ("maxUses" IS NULL OR "usedCount" < "maxUses")
+          AND ("expiresAt" IS NULL OR "expiresAt" > NOW())
+        `;
+        if (updated === 0) {
           throw Object.assign(new Error('COUPON_INVALID'), { isCouponInvalid: true });
         }
-        await tx.coupon.update({ where: { code: appliedCoupon.code }, data: { usedCount: { increment: 1 } } });
       }
       return tx.booking.create({
         data: {
