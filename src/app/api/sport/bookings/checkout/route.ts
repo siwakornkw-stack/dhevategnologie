@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
         },
       });
     });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'ช่วงเวลานี้ถูกจองแล้ว' }, { status: 409 });
   }
 
