@@ -366,6 +366,11 @@
       "inApp": "🔔 In-App & Push",
       "saveSettings": "Save notification settings"
     },
+    "points": {
+      "title": "⭐ Points history",
+      "earned": "Points earned",
+      "redeemed": "Points redeemed"
+    },
     "security": {
       "title": "🛡️ Security",
       "twoFa": "Two-factor authentication (2FA)",

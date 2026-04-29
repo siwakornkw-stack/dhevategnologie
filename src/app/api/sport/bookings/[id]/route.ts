@@ -138,7 +138,27 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       if (stripeEnabled) tasks.push(stripe.refunds.create({ payment_intent: booking.stripePaymentIntentId }).catch(() => {}));
     }
 
+    // Restore redeemed points
+    if (booking.pointsRedeemed && booking.pointsRedeemed > 0) {
+      tasks.push(
+        prisma.user.update({ where: { id: booking.userId }, data: { points: { increment: booking.pointsRedeemed } } }),
+        prisma.pointTransaction.create({
+          data: { userId: booking.userId, points: booking.pointsRedeemed, type: 'EARN', bookingId: booking.id, note: 'คืนแต้มเนื่องจากการจองถูกปฏิเสธ' },
+        }),
+      );
+    }
+
     await Promise.allSettled(tasks);
+  } else if (status === 'CANCELLED') {
+    // Restore redeemed points when user cancels
+    if (booking.pointsRedeemed && booking.pointsRedeemed > 0) {
+      await Promise.allSettled([
+        prisma.user.update({ where: { id: booking.userId }, data: { points: { increment: booking.pointsRedeemed } } }),
+        prisma.pointTransaction.create({
+          data: { userId: booking.userId, points: booking.pointsRedeemed, type: 'EARN', bookingId: booking.id, note: 'คืนแต้มเนื่องจากการยกเลิกการจอง' },
+        }),
+      ]);
+    }
   }
 
   if (status === 'CANCELLED' || status === 'REJECTED') {

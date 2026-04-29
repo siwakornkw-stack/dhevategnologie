@@ -1,13 +1,26 @@
+'use client';
+
+import { useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { getTranslations } from 'next-intl/server';
+import { useTranslations } from 'next-intl';
 
-export async function generateMetadata() {
-  const t = await getTranslations('payment');
-  return { title: t('cancelMeta') };
-}
+export default function PaymentCancelPage() {
+  const t = useTranslations('payment');
+  const searchParams = useSearchParams();
+  const bookingId = searchParams.get('bookingId');
+  const cancelled = useRef(false);
 
-export default async function PaymentCancelPage() {
-  const t = await getTranslations('payment');
+  useEffect(() => {
+    if (!bookingId || cancelled.current) return;
+    cancelled.current = true;
+    fetch(`/api/sport/bookings/${bookingId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'CANCELLED' }),
+    }).catch(() => {});
+  }, [bookingId]);
+
   return (
     <div className="wrapper py-20 flex flex-col items-center justify-center text-center max-w-md mx-auto">
       <div className="text-6xl mb-6">❌</div>

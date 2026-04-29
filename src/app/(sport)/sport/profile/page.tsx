@@ -4,6 +4,15 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
+import { cn } from '@/lib/utils';
+
+interface PointTransaction {
+  id: string;
+  points: number;
+  type: string;
+  note: string | null;
+  createdAt: string;
+}
 
 interface Profile {
   id: string;
@@ -38,6 +47,8 @@ export default function ProfilePage() {
   const [notifInApp, setNotifInApp] = useState(true);
   const [referralData, setReferralData] = useState<{ referralCode: string; referralLink: string; referralCount: number } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [pointsTxns, setPointsTxns] = useState<PointTransaction[]>([]);
+  const [pointsBalance, setPointsBalance] = useState<number | null>(null);
 
   useEffect(() => {
     fetch('/api/sport/profile')
@@ -59,6 +70,11 @@ export default function ProfilePage() {
     fetch('/api/sport/referral')
       .then((r) => r.ok ? r.json() : null)
       .then((d) => { if (d) setReferralData(d); })
+      .catch(() => {});
+
+    fetch('/api/sport/points')
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d) { setPointsBalance(d.points); setPointsTxns(d.transactions ?? []); } })
       .catch(() => {});
   }, [router]);
 
@@ -277,6 +293,42 @@ export default function ProfilePage() {
           {t('notifSection.saveSettings')}
         </button>
       </div>
+
+      {/* Points History */}
+      {pointsTxns.length > 0 && (
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700/50 p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-gray-900 dark:text-white">{t('points.title')}</h2>
+            <span className="px-3 py-1 rounded-full text-sm font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+              {pointsBalance ?? profile.points} {t('pointsLabel')}
+            </span>
+          </div>
+          <div className="divide-y divide-gray-100 dark:divide-gray-800">
+            {pointsTxns.map((tx) => (
+              <div key={tx.id} className="flex items-center justify-between py-2.5">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    'w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0',
+                    tx.points > 0 ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/30 text-red-500 dark:text-red-400'
+                  )}>
+                    {tx.points > 0 ? '+' : '-'}
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">{tx.note ?? (tx.type === 'EARN' ? t('points.earned') : t('points.redeemed'))}</p>
+                    <p className="text-xs text-gray-400">{new Date(tx.createdAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                  </div>
+                </div>
+                <span className={cn(
+                  'text-sm font-semibold',
+                  tx.points > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'
+                )}>
+                  {tx.points > 0 ? '+' : ''}{tx.points} {t('pointsLabel')}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Security */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700/50 p-6 space-y-3">
