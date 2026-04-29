@@ -47,7 +47,10 @@ export async function POST(req: NextRequest) {
     let referredById: string | undefined;
     if (referralCode) {
       const referrer = await prisma.user.findUnique({ where: { referralCode: referralCode.toUpperCase() } });
-      if (referrer) referredById = referrer.id;
+      if (!referrer) {
+        return NextResponse.json({ error: 'รหัสแนะนำเพื่อนไม่ถูกต้อง' }, { status: 400 });
+      }
+      referredById = referrer.id;
     }
 
     // Generate unique referral code for new user

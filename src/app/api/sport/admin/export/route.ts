@@ -44,35 +44,53 @@ export async function GET(req: NextRequest) {
     },
   });
 
+  const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + (m || 0); };
+
   const csvHeaders = [
     'ID',
     'ชื่อสนาม',
     'ประเภทกีฬา',
     'วันที่จอง',
     'ช่วงเวลา',
+    'จำนวนชม.',
     'ชื่อลูกค้า',
     'อีเมล',
     'เบอร์โทร',
     'สถานะ',
-    'ราคา/ชม. (บาท)',
+    'ราคาเต็ม (บาท)',
+    'ส่วนลด (บาท)',
+    'แต้มที่ใช้',
+    'ยอดสุทธิ (บาท)',
     'หมายเหตุ',
     'วันที่สร้างรายการ',
   ];
 
-  const csvRows = bookings.map((b) => [
-    b.id,
-    b.field.name,
-    SPORT_TYPE_LABELS[b.field.sportType] ?? b.field.sportType,
-    new Date(b.date).toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' }),
-    b.timeSlot,
-    b.user.name ?? '',
-    b.user.email,
-    b.user.phone ?? '',
-    STATUS_LABELS[b.status] ?? b.status,
-    b.field.pricePerHour.toFixed(2),
-    b.note ?? '',
-    new Date(b.createdAt).toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' }),
-  ]);
+  const csvRows = bookings.map((b) => {
+    const [s, e] = b.timeSlot.split('-');
+    const hours = s && e ? Math.max(0.5, (toMin(e) - toMin(s)) / 60) : 1;
+    const fullPrice = b.field.pricePerHour * hours;
+    const discount = b.discountAmount ?? 0;
+    const netAmount = Math.max(0, fullPrice - discount);
+
+    return [
+      b.id,
+      b.field.name,
+      SPORT_TYPE_LABELS[b.field.sportType] ?? b.field.sportType,
+      new Date(b.date).toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+      b.timeSlot,
+      hours.toFixed(1),
+      b.user.name ?? '',
+      b.user.email,
+      b.user.phone ?? '',
+      STATUS_LABELS[b.status] ?? b.status,
+      fullPrice.toFixed(2),
+      discount.toFixed(2),
+      b.pointsRedeemed ?? 0,
+      netAmount.toFixed(2),
+      b.note ?? '',
+      new Date(b.createdAt).toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+    ];
+  });
 
   const escape = (val: string) => `"${val.replace(/"/g, '""')}"`;
   const csvContent = [csvHeaders, ...csvRows]

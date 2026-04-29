@@ -158,6 +158,15 @@ export async function POST(req: NextRequest) {
           tasks.push(stripe.refunds.create({ payment_intent: booking.stripePaymentIntentId }).catch(() => {}));
         }
 
+        if (booking.pointsRedeemed && booking.pointsRedeemed > 0) {
+          tasks.push(
+            prisma.user.update({ where: { id: booking.userId }, data: { points: { increment: booking.pointsRedeemed } } }),
+            prisma.pointTransaction.create({
+              data: { userId: booking.userId, points: booking.pointsRedeemed, type: 'EARN', bookingId: booking.id, note: 'คืนแต้มเนื่องจากการจองถูกปฏิเสธ' },
+            }),
+          );
+        }
+
         await Promise.allSettled(tasks);
       })
     );
