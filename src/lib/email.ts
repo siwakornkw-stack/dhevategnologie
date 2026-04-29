@@ -116,6 +116,25 @@ export async function sendBookingApprovedEmail(to: string, data: BookingEmailDat
   });
 }
 
+export async function sendBookingCancelledEmail(to: string, data: BookingEmailData) {
+  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith('re_your')) return;
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `🚫 ยกเลิกการจอง: ${data.fieldName}`,
+    html: emailTemplate({
+      title: 'ยกเลิกการจองแล้ว',
+      emoji: '🚫',
+      body: `
+        <p>สวัสดีคุณ <strong>${data.userName}</strong></p>
+        <p>การจองของคุณถูก<strong style="color:#dc2626;">ยกเลิก</strong>แล้ว</p>
+        ${bookingDetails(data)}
+        <p style="color:#6b7280;font-size:14px;">หากต้องการจองใหม่ กรุณาเข้าสู่ระบบที่เว็บไซต์ของเรา</p>
+      `,
+    }),
+  });
+}
+
 export async function sendBookingRejectedEmail(to: string, data: BookingEmailData) {
   if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith('re_your')) return;
   await resend.emails.send({

@@ -18,6 +18,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const body = await req.json();
 
+  // Validate times if both provided
+  if (body.openTime && body.closeTime && body.openTime >= body.closeTime) {
+    return NextResponse.json({ error: 'เวลาเปิดต้องน้อยกว่าเวลาปิด' }, { status: 400 });
+  }
+
   // If deactivating, check for active bookings
   if (body.isActive === false) {
     const activeCount = await prisma.booking.count({

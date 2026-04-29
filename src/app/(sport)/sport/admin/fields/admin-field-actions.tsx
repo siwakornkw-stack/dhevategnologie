@@ -13,11 +13,14 @@ export function AdminFieldActions({ fieldId, fieldName }: { fieldId: string; fie
     setLoading(true);
     try {
       const res = await fetch(`/api/sport/fields/${fieldId}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? 'ลบสนามไม่สำเร็จ');
+      }
       toast.success(`ลบสนาม "${fieldName}" แล้ว`);
       router.refresh();
-    } catch {
-      toast.error('ลบสนามไม่สำเร็จ');
+    } catch (err) {
+      toast.error((err as Error).message);
     } finally {
       setLoading(false);
       setConfirmDelete(false);

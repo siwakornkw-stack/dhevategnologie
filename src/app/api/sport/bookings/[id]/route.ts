@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { BookingStatus } from '@prisma/client';
-import { sendBookingApprovedEmail, sendBookingRejectedEmail } from '@/lib/email';
+import { sendBookingApprovedEmail, sendBookingCancelledEmail, sendBookingRejectedEmail } from '@/lib/email';
 import { notifyLineBookingStatus } from '@/lib/line-notify';
 import { stripe } from '@/lib/stripe';
 import { notifyWaitingList } from '@/lib/waiting-list-notify';
@@ -150,15 +150,19 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     await Promise.allSettled(tasks);
   } else if (status === 'CANCELLED') {
-    // Restore redeemed points when user cancels
+    const cancelTasks: Promise<unknown>[] = [];
+    if (updated.user.notifEmail) {
+      cancelTasks.push(sendBookingCancelledEmail(updated.user.email, emailData).catch(() => {}));
+    }
     if (booking.pointsRedeemed && booking.pointsRedeemed > 0) {
-      await Promise.allSettled([
+      cancelTasks.push(
         prisma.user.update({ where: { id: booking.userId }, data: { points: { increment: booking.pointsRedeemed } } }),
         prisma.pointTransaction.create({
           data: { userId: booking.userId, points: booking.pointsRedeemed, type: 'EARN', bookingId: booking.id, note: 'คืนแต้มเนื่องจากการยกเลิกการจอง' },
         }),
-      ]);
+      );
     }
+    if (cancelTasks.length > 0) await Promise.allSettled(cancelTasks);
   }
 
   if (status === 'CANCELLED' || status === 'REJECTED') {

@@ -28,12 +28,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
+  const parsedValue = Number(discountValue);
+  if (isNaN(parsedValue) || parsedValue <= 0) {
+    return NextResponse.json({ error: 'ส่วนลดต้องมากกว่า 0' }, { status: 400 });
+  }
+  if (discountType === 'PERCENTAGE' && parsedValue > 100) {
+    return NextResponse.json({ error: 'ส่วนลดเปอร์เซ็นต์ต้องไม่เกิน 100' }, { status: 400 });
+  }
+  if (maxUses !== undefined && maxUses !== null && Number(maxUses) < 1) {
+    return NextResponse.json({ error: 'จำนวนครั้งที่ใช้ได้ต้องมากกว่า 0' }, { status: 400 });
+  }
+  if (expiresAt && new Date(expiresAt) <= new Date()) {
+    return NextResponse.json({ error: 'วันหมดอายุต้องเป็นวันในอนาคต' }, { status: 400 });
+  }
+
   try {
     const coupon = await prisma.coupon.create({
       data: {
         code: code.trim().toUpperCase(),
         discountType,
-        discountValue: Number(discountValue),
+        discountValue: parsedValue,
         maxUses: maxUses ? Number(maxUses) : null,
         expiresAt: expiresAt ? new Date(expiresAt) : null,
       },
