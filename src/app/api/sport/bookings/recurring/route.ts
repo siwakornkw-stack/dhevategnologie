@@ -57,6 +57,15 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Auto-approve when Stripe is not configured (dev/test mode)
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  if (bookings.length > 0 && (!stripeKey || stripeKey.startsWith('sk_test_your'))) {
+    await prisma.booking.updateMany({
+      where: { id: { in: bookings.map((b) => b.id) } },
+      data: { status: 'APPROVED' },
+    });
+  }
+
   return NextResponse.json(
     { bookings, errors, groupId },
     { status: bookings.length > 0 ? 201 : 409 },

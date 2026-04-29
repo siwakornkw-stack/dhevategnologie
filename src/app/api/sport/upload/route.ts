@@ -32,7 +32,8 @@ export async function POST(req: NextRequest) {
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
   const ext = file.name.split('.').pop() ?? 'jpg';
-  const baseName = `field-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const prefix = session.user.role === 'ADMIN' ? 'field' : 'profile';
+  const baseName = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
   if (isCloudinaryEnabled()) {
     try {

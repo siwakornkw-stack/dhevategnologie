@@ -22,17 +22,23 @@ export async function POST(req: NextRequest) {
     const bookingId = session.metadata?.bookingId;
     if (!bookingId) return NextResponse.json({ ok: true });
 
-    const booking = await prisma.booking.update({
-      where: { id: bookingId },
-      data: {
-        stripePaymentIntentId: typeof session.payment_intent === 'string' ? session.payment_intent : null,
-        paidAt: new Date(),
-      },
-      include: {
-        user: { select: { name: true, email: true, notifEmail: true, notifInApp: true } },
-        field: { select: { name: true, pricePerHour: true } },
-      },
-    });
+    let booking;
+    try {
+      booking = await prisma.booking.update({
+        where: { id: bookingId },
+        data: {
+          stripePaymentIntentId: typeof session.payment_intent === 'string' ? session.payment_intent : null,
+          paidAt: new Date(),
+        },
+        include: {
+          user: { select: { name: true, email: true, notifEmail: true, notifInApp: true } },
+          field: { select: { name: true, pricePerHour: true } },
+        },
+      });
+    } catch {
+      // Booking already cancelled (e.g. by cron cleanup) — acknowledge webhook to stop retries
+      return NextResponse.json({ ok: true });
+    }
 
     const amountPaid = session.amount_total ? session.amount_total / 100 : null;
     const discountAmount = booking.discountAmount ?? 0;
@@ -63,8 +69,6 @@ export async function POST(req: NextRequest) {
             link: '/sport/bookings',
           },
         }).catch(() => {}),
-      );
-      promises.push(
         sendPushToUser(booking.userId, {
           title: '💳 ชำระเงินสำเร็จ',
           message: `จอง ${booking.field.name} สำเร็จ รอการอนุมัติ`,
@@ -80,8 +84,9 @@ export async function POST(req: NextRequest) {
     const session = event.data.object;
     const bookingId = session.metadata?.bookingId;
     if (bookingId) {
-      await prisma.booking.update({
-        where: { id: bookingId },
+      // updateMany won't throw if booking was already cleaned up
+      await prisma.booking.updateMany({
+        where: { id: bookingId, status: 'PENDING' },
         data: { status: 'CANCELLED' },
       });
     }

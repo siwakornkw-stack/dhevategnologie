@@ -18,6 +18,19 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const body = await req.json();
 
+  // If deactivating, check for active bookings
+  if (body.isActive === false) {
+    const activeCount = await prisma.booking.count({
+      where: { fieldId: id, status: { in: ['PENDING', 'APPROVED'] } },
+    });
+    if (activeCount > 0) {
+      return NextResponse.json(
+        { error: `ไม่สามารถปิดสนามได้ มีการจองที่ยังใช้งานอยู่ ${activeCount} รายการ` },
+        { status: 409 },
+      );
+    }
+  }
+
   const field = await prisma.field.update({
     where: { id },
     data: {
@@ -46,6 +59,17 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
   }
 
   const { id } = await params;
+
+  const activeCount = await prisma.booking.count({
+    where: { fieldId: id, status: { in: ['PENDING', 'APPROVED'] } },
+  });
+  if (activeCount > 0) {
+    return NextResponse.json(
+      { error: `ไม่สามารถลบสนามได้ มีการจองที่ยังใช้งานอยู่ ${activeCount} รายการ` },
+      { status: 409 },
+    );
+  }
+
   await prisma.field.delete({ where: { id } });
   return NextResponse.json({ success: true });
 }
