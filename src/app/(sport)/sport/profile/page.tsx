@@ -109,7 +109,7 @@ export default function ProfilePage() {
     setSaving(true);
     try {
       const body: Record<string, unknown> = { name, phone, notifEmail, notifLine, notifInApp };
-      if (newPassword) { body.currentPassword = currentPassword; body.newPassword = newPassword; }
+      if (currentPassword && newPassword) { body.currentPassword = currentPassword; body.newPassword = newPassword; }
 
       const res = await fetch('/api/sport/profile', {
         method: 'PUT',

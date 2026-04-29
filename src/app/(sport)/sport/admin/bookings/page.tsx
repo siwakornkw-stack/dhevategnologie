@@ -129,14 +129,14 @@ export default async function AdminBookingsPage({ searchParams }: PageProps) {
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">
           {page > 1 && (
-            <Link href={`/sport/admin/bookings?status=${statusFilter ?? 'ALL'}&page=${page - 1}`}
+            <Link href={`/sport/admin/bookings?status=${statusFilter ?? 'ALL'}&page=${page - 1}${q ? `&q=${encodeURIComponent(q)}` : ''}`}
               className="px-4 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
               {t('bookings.previous')}
             </Link>
           )}
           <span className="text-sm text-gray-500 px-3">{t('bookings.page', { page, total: totalPages })}</span>
           {page < totalPages && (
-            <Link href={`/sport/admin/bookings?status=${statusFilter ?? 'ALL'}&page=${page + 1}`}
+            <Link href={`/sport/admin/bookings?status=${statusFilter ?? 'ALL'}&page=${page + 1}${q ? `&q=${encodeURIComponent(q)}` : ''}`}
               className="px-4 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
               {t('bookings.next')}
             </Link>

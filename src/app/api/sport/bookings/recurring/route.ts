@@ -17,6 +17,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
+  const fieldExists = await prisma.field.findUnique({ where: { id: fieldId, isActive: true }, select: { id: true } });
+  if (!fieldExists) return NextResponse.json({ error: 'ไม่พบสนามหรือสนามปิดให้บริการ' }, { status: 404 });
+
   const numWeeks = Math.min(Math.max(parseInt(weeks, 10), 1), 52);
   const groupId = `rec-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 

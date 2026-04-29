@@ -17,17 +17,19 @@ export async function GET() {
     },
   });
 
-  const header = 'ID,ชื่อ,อีเมล,เบอร์โทร,Role,ยืนยันอีเมล,การจอง,สมัครเมื่อ';
+  const escape = (val: unknown) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+
+  const header = ['ID', 'ชื่อ', 'อีเมล', 'เบอร์โทร', 'Role', 'ยืนยันอีเมล', 'การจอง', 'สมัครเมื่อ'].map(escape).join(',');
   const rows = users.map((u) => [
     u.id,
-    `"${u.name ?? ''}"`,
+    u.name ?? '',
     u.email,
     u.phone ?? '',
     u.role,
     u.emailVerified ? 'ยืนยันแล้ว' : 'ยังไม่ยืนยัน',
     u._count.bookings,
     new Date(u.createdAt).toLocaleDateString('th-TH'),
-  ].join(','));
+  ].map(escape).join(','));
 
   const csv = '﻿' + [header, ...rows].join('\n');
 

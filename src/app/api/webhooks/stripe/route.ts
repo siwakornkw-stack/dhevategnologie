@@ -84,11 +84,21 @@ export async function POST(req: NextRequest) {
     const session = event.data.object;
     const bookingId = session.metadata?.bookingId;
     if (bookingId) {
+      const booking = await prisma.booking.findUnique({
+        where: { id: bookingId },
+        select: { couponCode: true, status: true },
+      });
       // updateMany won't throw if booking was already cleaned up
       await prisma.booking.updateMany({
         where: { id: bookingId, status: 'PENDING' },
         data: { status: 'CANCELLED' },
       });
+      if (booking?.status === 'PENDING' && booking.couponCode) {
+        await prisma.coupon.update({
+          where: { code: booking.couponCode },
+          data: { usedCount: { decrement: 1 } },
+        }).catch(() => {});
+      }
     }
   }
 

@@ -1,11 +1,15 @@
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { rateLimit } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   const session = await auth();
   if (!session) return new Response('Unauthorized', { status: 401 });
+
+  const rl = await rateLimit(`sse-chat:${session.user.id}`, { limit: 10, windowMs: 60 * 1000 });
+  if (!rl.success) return new Response('Too Many Requests', { status: 429 });
 
   const url = new URL(req.url);
   const targetUserId = url.searchParams.get('userId');

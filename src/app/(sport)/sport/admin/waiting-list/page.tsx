@@ -1,8 +1,13 @@
+import { redirect } from 'next/navigation';
+import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export const metadata = { title: 'Waiting List - Admin' };
 
 export default async function AdminWaitingListPage() {
+  const session = await auth();
+  if (!session || session.user.role !== 'ADMIN') redirect('/sport');
+
   const entries = await prisma.waitingList.findMany({
     orderBy: [{ date: 'asc' }, { timeSlot: 'asc' }, { createdAt: 'asc' }],
     include: {

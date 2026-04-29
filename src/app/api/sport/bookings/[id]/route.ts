@@ -10,6 +10,25 @@ import { sendPushToUser } from '@/lib/web-push';
 
 const REFERRAL_BONUS = 50; // points awarded to referrer
 
+export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { id } = await params;
+  const booking = await prisma.booking.findUnique({
+    where: { id },
+    include: { field: { select: { id: true, name: true, sportType: true, imageUrl: true, location: true } } },
+  });
+
+  if (!booking) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  const isAdmin = session.user.role === 'ADMIN';
+  const isOwner = booking.userId === session.user.id;
+  if (!isAdmin && !isOwner) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  return NextResponse.json(booking);
+}
+
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -147,6 +166,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         }),
       );
     }
+    if (booking.couponCode) {
+      tasks.push(
+        prisma.coupon.update({ where: { code: booking.couponCode }, data: { usedCount: { decrement: 1 } } }).catch(() => {}),
+      );
+    }
 
     await Promise.allSettled(tasks);
   } else if (status === 'CANCELLED') {
@@ -154,12 +178,21 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (updated.user.notifEmail) {
       cancelTasks.push(sendBookingCancelledEmail(updated.user.email, emailData).catch(() => {}));
     }
+    if (booking.paidAt && booking.stripePaymentIntentId) {
+      const stripeEnabled = process.env.STRIPE_SECRET_KEY && !process.env.STRIPE_SECRET_KEY.startsWith('sk_test_your');
+      if (stripeEnabled) cancelTasks.push(stripe.refunds.create({ payment_intent: booking.stripePaymentIntentId }).catch(() => {}));
+    }
     if (booking.pointsRedeemed && booking.pointsRedeemed > 0) {
       cancelTasks.push(
         prisma.user.update({ where: { id: booking.userId }, data: { points: { increment: booking.pointsRedeemed } } }),
         prisma.pointTransaction.create({
           data: { userId: booking.userId, points: booking.pointsRedeemed, type: 'EARN', bookingId: booking.id, note: 'คืนแต้มเนื่องจากการยกเลิกการจอง' },
         }),
+      );
+    }
+    if (booking.couponCode) {
+      cancelTasks.push(
+        prisma.coupon.update({ where: { code: booking.couponCode }, data: { usedCount: { decrement: 1 } } }).catch(() => {}),
       );
     }
     if (cancelTasks.length > 0) await Promise.allSettled(cancelTasks);

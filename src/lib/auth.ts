@@ -61,4 +61,29 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
     }),
   ],
+  callbacks: {
+    ...authConfig.callbacks,
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.role = (user as { role?: string }).role;
+        token.emailVerified = (user as { emailVerified?: Date | null }).emailVerified ?? null;
+        token.refreshedAt = Date.now();
+        return token;
+      }
+      // Refresh role and emailVerified from DB once per hour to pick up permission changes
+      if (token.id && Date.now() - ((token.refreshedAt as number) ?? 0) > 60 * 60 * 1000) {
+        const fresh = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { role: true, emailVerified: true },
+        });
+        if (fresh) {
+          token.role = fresh.role;
+          token.emailVerified = fresh.emailVerified;
+        }
+        token.refreshedAt = Date.now();
+      }
+      return token;
+    },
+  },
 });

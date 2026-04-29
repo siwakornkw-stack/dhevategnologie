@@ -114,6 +114,8 @@ model PointTransaction {
 
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   booking Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
 }
 
 model Notification {
@@ -127,6 +129,8 @@ model Notification {
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 model Account {
@@ -213,6 +217,9 @@ model Booking {
   pointTransactions PointTransaction[]
 
   @@unique([fieldId, date, timeSlot])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model Coupon {

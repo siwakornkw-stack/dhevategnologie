@@ -34,10 +34,10 @@ export async function POST(req: NextRequest) {
   }
 
   const [field, user] = await Promise.all([
-    prisma.field.findUnique({ where: { id: fieldId } }),
+    prisma.field.findUnique({ where: { id: fieldId, isActive: true } }),
     prisma.user.findUnique({ where: { id: session.user.id }, select: { points: true } }),
   ]);
-  if (!field) return NextResponse.json({ error: 'ไม่พบสนาม' }, { status: 404 });
+  if (!field) return NextResponse.json({ error: 'ไม่พบสนามหรือสนามปิดให้บริการ' }, { status: 404 });
 
   // Validate coupon
   let appliedCoupon: { code: string; discountType: string; discountValue: number } | null = null;

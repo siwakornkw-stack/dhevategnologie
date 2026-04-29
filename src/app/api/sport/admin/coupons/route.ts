@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   if (isNaN(parsedValue) || parsedValue <= 0) {
     return NextResponse.json({ error: 'ส่วนลดต้องมากกว่า 0' }, { status: 400 });
   }
-  if (discountType === 'PERCENTAGE' && parsedValue > 100) {
+  if (discountType === 'PERCENT' && parsedValue > 100) {
     return NextResponse.json({ error: 'ส่วนลดเปอร์เซ็นต์ต้องไม่เกิน 100' }, { status: 400 });
   }
   if (maxUses !== undefined && maxUses !== null && Number(maxUses) < 1) {

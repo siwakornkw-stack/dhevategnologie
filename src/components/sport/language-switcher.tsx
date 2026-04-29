@@ -14,6 +14,7 @@ export function LanguageSwitcher() {
   const options: { code: Locale; label: string; flag: string }[] = [
     { code: 'th', label: t('th'), flag: '🇹🇭' },
     { code: 'en', label: t('en'), flag: '🇬🇧' },
+    { code: 'my', label: t('my'), flag: '🇲🇲' },
   ];
 
   const current = options.find((o) => o.code === locale) ?? options[0];

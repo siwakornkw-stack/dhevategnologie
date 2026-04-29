@@ -166,6 +166,11 @@ export async function POST(req: NextRequest) {
             }),
           );
         }
+        if (booking.couponCode) {
+          tasks.push(
+            prisma.coupon.update({ where: { code: booking.couponCode }, data: { usedCount: { decrement: 1 } } }).catch(() => {}),
+          );
+        }
 
         await Promise.allSettled(tasks);
       })

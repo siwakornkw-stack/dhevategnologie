@@ -1,30 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-
-function toMinutes(t: string) {
-  const [h, m] = t.split(':').map(Number);
-  return h * 60 + m;
-}
-
-function toTime(minutes: number) {
-  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
-}
-
-// Expands a stored timeSlot (single "09:00-10:00" or range "09:00-11:00") into hourly slot keys
-function expandTimeSlot(ts: string): string[] {
-  const [start, end] = ts.split('-');
-  const startM = toMinutes(start);
-  const endM = toMinutes(end);
-  const duration = endM - startM;
-
-  if (duration <= 60) return [ts];
-
-  const result: string[] = [];
-  for (let m = startM; m < endM; m += 60) {
-    result.push(`${toTime(m)}-${toTime(m + 60)}`);
-  }
-  return result;
-}
+import { expandTimeSlot } from '@/lib/booking';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

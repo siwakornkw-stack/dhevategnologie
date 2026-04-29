@@ -19,12 +19,9 @@ export function SuccessContent() {
 
   useEffect(() => {
     if (!bookingId) return;
-    fetch('/api/sport/bookings')
+    fetch(`/api/sport/bookings/${bookingId}`)
       .then((r) => r.ok ? r.json() : null)
-      .then((data) => {
-        if (!Array.isArray(data)) return;
-        const b = (data as { id: string; field: { name: string }; date: string; timeSlot: string }[])
-          .find((x) => x.id === bookingId);
+      .then((b: { field: { name: string }; date: string; timeSlot: string } | null) => {
         if (b) {
           setDetail({
             fieldName: b.field.name,

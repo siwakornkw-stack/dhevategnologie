@@ -44,7 +44,10 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Fallback: local filesystem (dev only)
+  // Fallback: local filesystem (dev only) — ephemeral on Vercel, block in production
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'กรุณาตั้งค่า Cloudinary ก่อนอัปโหลดรูปภาพ' }, { status: 500 });
+  }
   const filename = `${baseName}.${ext}`;
   const uploadDir = path.join(process.cwd(), 'public', 'uploads');
   await mkdir(uploadDir, { recursive: true });
