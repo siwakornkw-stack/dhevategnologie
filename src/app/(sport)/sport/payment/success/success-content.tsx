@@ -41,15 +41,15 @@ export function SuccessContent() {
       {detail && (
         <div className="w-full bg-gray-50 dark:bg-gray-800 rounded-2xl p-4 mb-5 text-left space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500">สนาม</span>
+            <span className="text-gray-500">{t('fieldLabel')}</span>
             <span className="font-medium text-gray-900 dark:text-white">{detail.fieldName}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500">วันที่</span>
+            <span className="text-gray-500">{t('dateLabel')}</span>
             <span className="font-medium text-gray-900 dark:text-white">{detail.date}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500">เวลา</span>
+            <span className="text-gray-500">{t('timeLabel')}</span>
             <span className="font-semibold text-primary-600 dark:text-primary-400">{detail.timeSlot} น.</span>
           </div>
         </div>

@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth';
 import { stripe } from '@/lib/stripe';
 import { rateLimit, BOOKING_RATE_LIMIT } from '@/lib/rate-limit';
 import { expandTimeSlot, calculateCouponDiscount, isCouponUsable } from '@/lib/booking';
+import { sendBookingCreatedEmail } from '@/lib/email';
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
 
   const [field, user] = await Promise.all([
     prisma.field.findUnique({ where: { id: fieldId, isActive: true } }),
-    prisma.user.findUnique({ where: { id: session.user.id }, select: { points: true } }),
+    prisma.user.findUnique({ where: { id: session.user.id }, select: { points: true, name: true, email: true } }),
   ]);
   if (!field) return NextResponse.json({ error: 'ไม่พบสนามหรือสนามปิดให้บริการ' }, { status: 404 });
 
@@ -80,6 +81,13 @@ export async function POST(req: NextRequest) {
       if (incomingSlots.some((s) => takenSlots.has(s))) {
         throw Object.assign(new Error('CONFLICT'), { isConflict: true });
       }
+      if (appliedCoupon) {
+        const freshCoupon = await tx.coupon.findUnique({ where: { code: appliedCoupon.code } });
+        if (!freshCoupon || !isCouponUsable(freshCoupon)) {
+          throw Object.assign(new Error('COUPON_INVALID'), { isCouponInvalid: true });
+        }
+        await tx.coupon.update({ where: { code: appliedCoupon.code }, data: { usedCount: { increment: 1 } } });
+      }
       return tx.booking.create({
         data: {
           userId: session.user.id, fieldId, date: bookingDate, timeSlot: timeSlotRange, note,
@@ -88,7 +96,10 @@ export async function POST(req: NextRequest) {
         },
       });
     });
-  } catch {
+  } catch (e: unknown) {
+    if (e && typeof e === 'object' && 'isCouponInvalid' in e) {
+      return NextResponse.json({ error: 'คูปองนี้ไม่สามารถใช้ได้หรือหมดอายุแล้ว' }, { status: 400 });
+    }
     return NextResponse.json({ error: 'ช่วงเวลานี้ถูกจองแล้ว' }, { status: 409 });
   }
 
@@ -102,11 +113,6 @@ export async function POST(req: NextRequest) {
       }),
     );
   }
-  if (appliedCoupon) {
-    sideEffects.push(
-      prisma.coupon.update({ where: { code: appliedCoupon.code }, data: { usedCount: { increment: 1 } } }),
-    );
-  }
   if (sideEffects.length > 0) await Promise.all(sideEffects);
 
   const stripeKey = process.env.STRIPE_SECRET_KEY;
@@ -114,6 +120,16 @@ export async function POST(req: NextRequest) {
 
   if (!stripeEnabled || totalAmount === 0) {
     await prisma.booking.update({ where: { id: booking.id }, data: { status: 'APPROVED' } });
+    if (user?.email) {
+      sendBookingCreatedEmail(user.email, {
+        userName: user.name ?? 'ลูกค้า',
+        fieldName: field.name,
+        date: new Date(date).toLocaleDateString('th-TH'),
+        timeSlot: timeSlotRange,
+        amountPaid: totalAmount,
+        discountAmount: discountAmount || undefined,
+      }).catch(() => {});
+    }
     return NextResponse.json({ url: '/sport/bookings', skipPayment: true });
   }
 
@@ -143,6 +159,15 @@ export async function POST(req: NextRequest) {
     });
 
     await prisma.booking.update({ where: { id: booking.id }, data: { stripeSessionId: checkoutSession.id } });
+    if (user?.email) {
+      sendBookingCreatedEmail(user.email, {
+        userName: user.name ?? 'ลูกค้า',
+        fieldName: field.name,
+        date: new Date(date).toLocaleDateString('th-TH'),
+        timeSlot: timeSlotRange,
+        discountAmount: discountAmount || undefined,
+      }).catch(() => {});
+    }
     return NextResponse.json({ url: checkoutSession.url });
   } catch (err) {
     // Rollback booking, restore points, and undo coupon usage

@@ -69,8 +69,6 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  return NextResponse.json(
-    { bookings, errors, groupId },
-    { status: bookings.length > 0 ? 201 : 409 },
-  );
+  const status = bookings.length === 0 ? 409 : errors.length === 0 ? 201 : 200;
+  return NextResponse.json({ bookings, errors, groupId }, { status });
 }

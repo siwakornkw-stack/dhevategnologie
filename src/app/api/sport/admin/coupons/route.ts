@@ -63,6 +63,7 @@ export async function PATCH(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { id, isActive } = await req.json();
+  if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
   const coupon = await prisma.coupon.update({ where: { id }, data: { isActive } });
   return NextResponse.json(coupon);
 }
@@ -72,6 +73,7 @@ export async function DELETE(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { id } = await req.json();
+  if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
   await prisma.coupon.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }
