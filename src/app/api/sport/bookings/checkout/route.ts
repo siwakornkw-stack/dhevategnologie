@@ -113,6 +113,7 @@ export async function POST(req: NextRequest) {
   const stripeEnabled = stripeKey && !stripeKey.startsWith('sk_test_your');
 
   if (!stripeEnabled) {
+    await prisma.booking.update({ where: { id: booking.id }, data: { status: 'APPROVED' } });
     return NextResponse.json({ url: '/sport/bookings', skipPayment: true });
   }
 
