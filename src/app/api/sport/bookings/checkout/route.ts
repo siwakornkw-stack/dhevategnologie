@@ -5,6 +5,8 @@ import { stripe } from '@/lib/stripe';
 import { rateLimit, BOOKING_RATE_LIMIT } from '@/lib/rate-limit';
 import { expandTimeSlot, calculateCouponDiscount, isCouponUsable } from '@/lib/booking';
 import { sendBookingCreatedEmail } from '@/lib/email';
+import { notifyLineNewBooking } from '@/lib/line-notify';
+import { sendPushToUser } from '@/lib/web-push';
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -130,6 +132,45 @@ export async function POST(req: NextRequest) {
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   const stripeEnabled = stripeKey && !stripeKey.startsWith('sk_test_your');
 
+  // Notify admins of new booking (fire-and-forget)
+  const fieldName = field.name;
+  async function notifyAdmins() {
+    const bookingInfo = {
+      userName: user?.name ?? 'ลูกค้า',
+      fieldName,
+      date: new Date(date).toLocaleDateString('th-TH'),
+      timeSlot: timeSlotRange,
+    };
+    const admins = await prisma.user.findMany({
+      where: { role: 'ADMIN' },
+      select: { id: true, notifInApp: true },
+    });
+    const tasks: Promise<unknown>[] = [
+      notifyLineNewBooking(bookingInfo).catch(() => {}),
+    ];
+    for (const admin of admins) {
+      if (admin.notifInApp) {
+        tasks.push(
+          prisma.notification.create({
+            data: {
+              userId: admin.id,
+              type: 'NEW_BOOKING',
+              title: 'การจองใหม่',
+              message: `${bookingInfo.userName} จอง ${fieldName} · ${bookingInfo.date} เวลา ${timeSlotRange} น.`,
+              link: '/sport/admin/bookings',
+            },
+          }).catch(() => {}),
+          sendPushToUser(admin.id, {
+            title: 'การจองใหม่',
+            message: `${bookingInfo.userName} จอง ${fieldName} · ${timeSlotRange} น.`,
+            link: '/sport/admin/bookings',
+          }).catch(() => {}),
+        );
+      }
+    }
+    await Promise.allSettled(tasks);
+  }
+
   if (!stripeEnabled || totalAmount === 0) {
     if (user?.email) {
       sendBookingCreatedEmail(user.email, {
@@ -141,6 +182,7 @@ export async function POST(req: NextRequest) {
         discountAmount: discountAmount || undefined,
       }).catch(() => {});
     }
+    notifyAdmins().catch(() => {});
     return NextResponse.json({ url: '/sport/bookings', skipPayment: true });
   }
 
@@ -179,6 +221,7 @@ export async function POST(req: NextRequest) {
         discountAmount: discountAmount || undefined,
       }).catch(() => {});
     }
+    notifyAdmins().catch(() => {});
     return NextResponse.json({ url: checkoutSession.url });
   } catch (err) {
     // Rollback booking, restore points, and undo coupon usage
