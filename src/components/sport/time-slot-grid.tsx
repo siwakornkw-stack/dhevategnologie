@@ -3,10 +3,27 @@
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 
+function toMin(t: string): number {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
 function addMin(time: string, mins: number): string {
   const [h, m] = time.split(':').map(Number);
   const total = h * 60 + m + mins;
   return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
+// Find the status of the first booking that overlaps with a slot (interval overlap, not exact key match)
+function getSlotStatus(slot: string, bookedSlots: Record<string, string>): string | undefined {
+  const [s, e] = slot.split('-');
+  const slotStart = toMin(s);
+  const slotEnd = toMin(e);
+  const matchKey = Object.keys(bookedSlots).find((key) => {
+    const [ks, ke] = key.split('-');
+    return slotStart < toMin(ke) && slotEnd > toMin(ks);
+  });
+  return matchKey ? bookedSlots[matchKey] : undefined;
 }
 
 interface TimeSlotGridProps {
@@ -24,13 +41,12 @@ interface TimeSlotGridProps {
 export function TimeSlotGrid({ slots, bookedSlots, selectedSlots, onSelect, onWaitingList, waitingSlots = [], disabled, duration = 1, quantity = 1 }: TimeSlotGridProps) {
   const t = useTranslations('booking');
 
-  // How many consecutive hourly slots a booking of duration*quantity needs
   const slotsNeeded = Math.ceil(duration * quantity * 60 / 60);
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
       {slots.map((slot, idx) => {
-        const slotStatus = bookedSlots[slot];
+        const slotStatus = getSlotStatus(slot, bookedSlots);
         const isThisBooked = !!slotStatus;
         const isApproved = slotStatus === 'APPROVED';
         const isSelected = selectedSlots.includes(slot);
@@ -39,14 +55,12 @@ export function TimeSlotGrid({ slots, bookedSlots, selectedSlots, onSelect, onWa
         const slotStart = slot.split('-')[0];
         const slotEnd = addMin(slotStart, duration * 60);
 
-        // Check if this slot can be a valid start for duration*quantity
         let isInvalidStart = false;
         for (let i = 0; i < slotsNeeded; i++) {
           const s = slots[idx + i];
-          if (!s || bookedSlots[s]) { isInvalidStart = true; break; }
+          if (!s || getSlotStatus(s, bookedSlots)) { isInvalidStart = true; break; }
         }
 
-        // Already-selected slots stay clickable (to allow deselect)
         const isDisabled = !isSelected && isInvalidStart;
 
         return (
