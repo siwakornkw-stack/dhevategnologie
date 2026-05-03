@@ -162,10 +162,6 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
       router.push('/sport/auth/signin');
       return;
     }
-    if (!emailVerified) {
-      toast.error('กรุณายืนยัน email ก่อนทำการจอง');
-      return;
-    }
     if (!fullSlot) return;
     setBooking(true);
     try {
