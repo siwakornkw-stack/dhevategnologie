@@ -25,10 +25,12 @@ function addMinutesToTime(time: string, minutes: number): string {
   return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 }
 
-function formatDuration(hours: number): string {
-  const whole = Math.floor(hours);
-  if (hours % 1 === 0) return `${whole} ชม.`;
-  return `${whole > 0 ? `${whole}.` : ''}30 ชม.`;
+function formatDurationMin(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (m === 0) return `${h} ชม.`;
+  if (h === 0) return `${m} นาที`;
+  return `${h} ชม. ${m} นาที`;
 }
 
 export function AvailabilityClient() {
@@ -41,8 +43,8 @@ export function AvailabilityClient() {
 
   // Dialog state
   const [dialog, setDialog] = useState<{ field: Field; slot: string } | null>(null);
-  const [duration, setDuration] = useState<1 | 1.5>(1);
-  const [quantity, setQuantity] = useState(1);
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -78,9 +80,12 @@ export function AvailabilityClient() {
   }, [selectedDate, fields, fetchAvailability]);
 
   function openDialog(field: Field, slot: string) {
+    const slotStart = slot.split('-')[0];
+    const defaultEnd = addMinutesToTime(slotStart, 60);
+    const clampedEnd = toMin(defaultEnd) <= toMin(field.closeTime) ? defaultEnd : field.closeTime;
     setDialog({ field, slot });
-    setDuration(1);
-    setQuantity(1);
+    setStartTime(slotStart);
+    setEndTime(clampedEnd);
     setNote('');
   }
 
@@ -88,35 +93,33 @@ export function AvailabilityClient() {
     setDialog(null);
   }
 
-  // Compute max quantity for dialog
-  const dialogMaxQty = (() => {
-    if (!dialog) return 1;
-    const fieldSlots = generateTimeSlots(dialog.field.openTime, dialog.field.closeTime);
-    const startIdx = fieldSlots.indexOf(dialog.slot);
+  const dialogDurationMin = startTime && endTime ? toMin(endTime) - toMin(startTime) : 0;
+  const dialogTotalHours = dialogDurationMin / 60;
+  const dialogPrice = dialog ? dialog.field.pricePerHour * dialogTotalHours : 0;
+  const dialogFullSlot = startTime && endTime ? `${startTime}-${endTime}` : null;
+
+  // Check if selected range overlaps any booked slot
+  const hasConflict = (() => {
+    if (!dialog || !startTime || !endTime || dialogDurationMin <= 0) return false;
+    const startMin = toMin(startTime);
+    const endMin = toMin(endTime);
     const booked = availability[dialog.field.id] ?? {};
-    let maxQ = 1;
-    for (let q = 2; q <= 12; q++) {
-      const needed = Math.ceil((duration * q * 60) / 60);
-      let valid = true;
-      for (let i = 0; i < needed; i++) {
-        const s = fieldSlots[startIdx + i];
-        if (!s || booked[s]) { valid = false; break; }
-      }
-      if (valid) maxQ = q;
-      else break;
-    }
-    return maxQ;
+    return Object.keys(booked).some((slotKey) => {
+      const [s, e] = slotKey.split('-');
+      return startMin < toMin(e) && endMin > toMin(s);
+    });
   })();
 
-  const dialogFullSlot = dialog
-    ? `${dialog.slot.split('-')[0]}-${addMinutesToTime(dialog.slot.split('-')[0], duration * quantity * 60)}`
-    : null;
-
-  const dialogTotalHours = duration * quantity;
-  const dialogPrice = dialog ? dialog.field.pricePerHour * dialogTotalHours : 0;
+  const isValidRange =
+    dialog &&
+    startTime &&
+    endTime &&
+    dialogDurationMin >= 30 &&
+    toMin(startTime) >= toMin(dialog.field.openTime) &&
+    toMin(endTime) <= toMin(dialog.field.closeTime);
 
   async function handleBook() {
-    if (!dialog || !dialogFullSlot) return;
+    if (!dialog || !dialogFullSlot || !isValidRange) return;
     setSubmitting(true);
     try {
       const res = await fetch('/api/sport/admin/book', {
@@ -133,10 +136,9 @@ export function AvailabilityClient() {
       if (!res.ok) throw new Error(data.error ?? 'เกิดข้อผิดพลาด');
       toast.success(`จองสำเร็จ! ${dialog.field.name} ${dialogFullSlot} น.`);
       closeDialog();
-      // Refresh availability for this field
       const r = await fetch(`/api/sport/fields/${dialog.field.id}/availability?date=${selectedDate}`);
       const d = await r.json();
-      setAvailability((prev) => ({ ...prev, [dialog.field.id]: d.bookedSlots ?? {} }));
+      setAvailability((prev) => ({ ...prev, [dialog!.field.id]: d.bookedSlots ?? {} }));
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -219,7 +221,7 @@ export function AvailabilityClient() {
                             )}
                           >
                             {slotStart}
-                            {isBooked && <span className="ml-1 opacity-60">×</span>}
+                            {isBooked && <span className="ml-1 opacity-60">x</span>}
                           </button>
                         );
                       })}
@@ -243,7 +245,7 @@ export function AvailabilityClient() {
               จองสนาม
             </h3>
 
-            {/* Field + Date + Start */}
+            {/* Field + Date summary */}
             <div className="space-y-2 mb-5 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-500">สนาม</span>
@@ -255,58 +257,71 @@ export function AvailabilityClient() {
                   {new Date(selectedDate).toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">เวลา</span>
-                <span className="font-semibold text-primary-600 dark:text-primary-400">
-                  {dialogFullSlot?.replace('-', '–')} น. ({formatDuration(dialogTotalHours)})
-                </span>
+              {dialogDurationMin > 0 && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">เวลา</span>
+                    <span className="font-semibold text-primary-600 dark:text-primary-400">
+                      {startTime}–{endTime} น. ({formatDurationMin(dialogDurationMin)})
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">ราคา</span>
+                    <span className="font-bold text-gray-900 dark:text-white">
+                      ฿{dialogPrice % 1 === 0 ? dialogPrice.toLocaleString() : dialogPrice.toFixed(2)}
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Time range pickers */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">เวลาเริ่ม</label>
+                <input
+                  type="time"
+                  value={startTime}
+                  min={dialog.field.openTime}
+                  max={endTime ? addMinutesToTime(endTime, -30) : dialog.field.closeTime}
+                  step={1800}
+                  onChange={(e) => {
+                    setStartTime(e.target.value);
+                    // push end if end <= new start
+                    if (e.target.value && endTime && toMin(endTime) <= toMin(e.target.value)) {
+                      setEndTime(addMinutesToTime(e.target.value, 60));
+                    }
+                  }}
+                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-400"
+                />
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">ราคา</span>
-                <span className="font-bold text-gray-900 dark:text-white">฿{dialogPrice.toLocaleString()}</span>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">เวลาสิ้นสุด</label>
+                <input
+                  type="time"
+                  value={endTime}
+                  min={startTime ? addMinutesToTime(startTime, 30) : dialog.field.openTime}
+                  max={dialog.field.closeTime}
+                  step={1800}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-400"
+                />
               </div>
             </div>
 
-            {/* Duration */}
-            <div className="mb-4">
-              <p className="text-xs text-gray-500 mb-2">ระยะเวลาต่อครั้ง</p>
-              <div className="flex gap-2">
-                {([1, 1.5] as const).map((d) => (
-                  <button
-                    key={d}
-                    onClick={() => { setDuration(d); setQuantity(1); }}
-                    className={cn(
-                      'flex-1 py-2 rounded-xl text-sm font-semibold border-2 transition-all',
-                      duration === d
-                        ? 'bg-primary-600 border-primary-600 text-white'
-                        : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-primary-400'
-                    )}
-                  >
-                    {d === 1 ? '1 ชม.' : '1.30 ชม.'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Quantity */}
-            <div className="mb-4">
-              <p className="text-xs text-gray-500 mb-2">จำนวนรอบ</p>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  disabled={quantity <= 1}
-                  className="w-9 h-9 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold text-lg flex items-center justify-center hover:border-primary-400 transition disabled:opacity-30"
-                >−</button>
-                <span className="flex-1 text-center text-sm font-semibold text-gray-800 dark:text-gray-200">
-                  {formatDuration(dialogTotalHours)}
-                </span>
-                <button
-                  onClick={() => setQuantity((q) => Math.min(dialogMaxQty, q + 1))}
-                  disabled={quantity >= dialogMaxQty}
-                  className="w-9 h-9 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold text-lg flex items-center justify-center hover:border-primary-400 transition disabled:opacity-30"
-                >+</button>
-              </div>
-            </div>
+            {/* Validation messages */}
+            {startTime && endTime && dialogDurationMin < 30 && (
+              <p className="text-xs text-red-500 mb-3">ระยะเวลาขั้นต่ำ 30 นาที</p>
+            )}
+            {startTime && toMin(startTime) < toMin(dialog.field.openTime) && (
+              <p className="text-xs text-red-500 mb-3">เวลาเริ่มต้องไม่ก่อน {dialog.field.openTime} น.</p>
+            )}
+            {endTime && toMin(endTime) > toMin(dialog.field.closeTime) && (
+              <p className="text-xs text-red-500 mb-3">เวลาสิ้นสุดต้องไม่เกิน {dialog.field.closeTime} น.</p>
+            )}
+            {hasConflict && isValidRange && (
+              <p className="text-xs text-orange-500 mb-3">ช่วงเวลานี้ซ้อนทับกับการจองที่มีอยู่</p>
+            )}
 
             {/* Note */}
             <div className="mb-5">
@@ -330,7 +345,7 @@ export function AvailabilityClient() {
               </button>
               <button
                 onClick={handleBook}
-                disabled={submitting}
+                disabled={submitting || !isValidRange || hasConflict}
                 className="flex-1 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? 'กำลังจอง...' : 'จองและอนุมัติ'}
