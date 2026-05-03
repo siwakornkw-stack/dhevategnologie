@@ -84,12 +84,8 @@ export async function POST(req: NextRequest) {
     booking = await prisma.$transaction(async (tx) => {
       const existingBookings = await tx.booking.findMany({
         where: { fieldId, date: bookingDate, status: { in: ['PENDING', 'APPROVED'] } },
-        select: { timeSlot: true, userId: true },
+        select: { timeSlot: true },
       });
-      // Prevent duplicate booking from same user (double-click / concurrent submit)
-      if (existingBookings.some((b) => b.userId === session.user.id)) {
-        throw Object.assign(new Error('DUPLICATE'), { isDuplicate: true });
-      }
       const takenSlots = new Set(existingBookings.flatMap((b) => expandTimeSlot(b.timeSlot)));
       const incomingSlots = slotsArray.flatMap((s) => expandTimeSlot(s));
       if (incomingSlots.some((s) => takenSlots.has(s))) {
@@ -117,9 +113,6 @@ export async function POST(req: NextRequest) {
   } catch (e: unknown) {
     if (e && typeof e === 'object' && 'isCouponInvalid' in e) {
       return NextResponse.json({ error: 'คูปองนี้ไม่สามารถใช้ได้หรือหมดอายุแล้ว' }, { status: 400 });
-    }
-    if (e && typeof e === 'object' && 'isDuplicate' in e) {
-      return NextResponse.json({ error: 'คุณมีการจองที่รอดำเนินการสำหรับช่วงเวลานี้อยู่แล้ว' }, { status: 409 });
     }
     return NextResponse.json({ error: 'ช่วงเวลานี้ถูกจองแล้ว' }, { status: 409 });
   }
