@@ -216,7 +216,7 @@ model Booking {
   coupon            Coupon?            @relation(fields: [couponCode], references: [code])
   pointTransactions PointTransaction[]
 
-  @@unique([fieldId, date, timeSlot])
+  @@index([fieldId, date])
   @@index([userId])
   @@index([status])
   @@index([createdAt])

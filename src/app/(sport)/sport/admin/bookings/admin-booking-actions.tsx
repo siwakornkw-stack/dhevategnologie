@@ -10,7 +10,10 @@ async function callUpdateStatus(bookingId: string, status: string) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ status }),
   });
-  if (!res.ok) throw new Error();
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error ?? 'เกิดข้อผิดพลาด');
+  }
 }
 
 export function AdminBookingActions({ bookingId }: { bookingId: string }) {

@@ -64,8 +64,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     );
   }
 
-  // Cancellation deadline: users cannot cancel within CANCEL_DEADLINE_HOURS of start
-  if (!isAdmin && status === 'CANCELLED') {
+  // Cancellation deadline: users cannot cancel APPROVED bookings within CANCEL_DEADLINE_HOURS of start
+  // PENDING bookings (payment not completed) are always cancellable
+  if (!isAdmin && status === 'CANCELLED' && booking.status === 'APPROVED') {
     const [startStr] = booking.timeSlot.split('-');
     const [h, m] = startStr.split(':').map(Number);
     const bookingStart = new Date(booking.date);
