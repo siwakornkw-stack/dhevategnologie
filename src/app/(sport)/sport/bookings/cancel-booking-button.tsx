@@ -20,11 +20,12 @@ export function CancelBookingButton({ bookingId }: { bookingId: string }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'CANCELLED' }),
       });
-      if (!res.ok) throw new Error(t('cancel.apiError'));
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? t('cancel.apiError'));
       toast.success(t('cancel.success'));
       router.refresh();
-    } catch {
-      toast.error(t('cancel.error'));
+    } catch (err) {
+      toast.error((err as Error).message);
     } finally {
       setLoading(false);
       setConfirm(false);

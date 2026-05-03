@@ -115,6 +115,11 @@ export default async function FieldDetailPage({ params }: PageProps) {
 
         {/* Right: Booking Panel */}
         <div className="lg:col-span-3 space-y-8">
+          {session && !session.user.emailVerified && (
+            <div className="rounded-2xl border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20 px-4 py-3 text-sm text-yellow-700 dark:text-yellow-300">
+              กรุณายืนยัน email ของคุณก่อนทำการจอง - ตรวจสอบกล่องจดหมายของคุณ
+            </div>
+          )}
           <FieldBookingClient
             fieldId={field.id}
             fieldName={field.name}
@@ -122,6 +127,7 @@ export default async function FieldDetailPage({ params }: PageProps) {
             openTime={field.openTime}
             closeTime={field.closeTime}
             isLoggedIn={!!session}
+            emailVerified={!!session?.user.emailVerified}
           />
           <FieldReviews fieldId={field.id} />
         </div>

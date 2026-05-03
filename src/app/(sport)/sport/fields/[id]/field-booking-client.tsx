@@ -17,6 +17,7 @@ interface FieldBookingClientProps {
   openTime: string;
   closeTime: string;
   isLoggedIn: boolean;
+  emailVerified?: boolean;
 }
 
 function toMin(t: string): number {
@@ -35,7 +36,7 @@ function formatDuration(hours: number): string {
   return `${whole > 0 ? `${whole}.` : ''}30 ชม.`;
 }
 
-export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime, closeTime, isLoggedIn }: FieldBookingClientProps) {
+export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime, closeTime, isLoggedIn, emailVerified = true }: FieldBookingClientProps) {
   const router = useRouter();
   const t = useTranslations('booking');
   const today = formatDateISO(new Date());
@@ -159,6 +160,10 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
   async function handleBook() {
     if (!isLoggedIn) {
       router.push('/sport/auth/signin');
+      return;
+    }
+    if (!emailVerified) {
+      toast.error('กรุณายืนยัน email ก่อนทำการจอง');
       return;
     }
     if (!fullSlot) return;

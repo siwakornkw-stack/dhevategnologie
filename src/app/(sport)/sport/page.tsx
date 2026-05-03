@@ -7,25 +7,34 @@ import { SportType } from '@prisma/client';
 import { ViewToggle } from '@/components/sport/view-toggle';
 import { getTranslations } from 'next-intl/server';
 
+const PAGE_SIZE = 12;
+
 interface PageProps {
-  searchParams: Promise<{ sport?: string; search?: string; minPrice?: string; maxPrice?: string }>;
+  searchParams: Promise<{ sport?: string; search?: string; minPrice?: string; maxPrice?: string; page?: string }>;
 }
 
 async function FieldsList({ searchParams }: { searchParams: Awaited<PageProps['searchParams']> }) {
-  const { sport, search, minPrice, maxPrice } = searchParams;
+  const { sport, search, minPrice, maxPrice, page } = searchParams;
+  const currentPage = Math.max(1, parseInt(page ?? '1', 10) || 1);
+  const skip = (currentPage - 1) * PAGE_SIZE;
 
-  const [fields, reviewAggs] = await Promise.all([
+  const where = {
+    isActive: true,
+    ...(sport && Object.values(SportType).includes(sport as SportType) ? { sportType: sport as SportType } : {}),
+    ...(search ? { OR: [{ name: { contains: search } }, { location: { contains: search } }] } : {}),
+    ...(minPrice || maxPrice
+      ? { pricePerHour: { ...(minPrice ? { gte: Number(minPrice) } : {}), ...(maxPrice ? { lte: Number(maxPrice) } : {}) } }
+      : {}),
+  };
+
+  const [fields, totalCount, reviewAggs] = await Promise.all([
     prisma.field.findMany({
-      where: {
-        isActive: true,
-        ...(sport && Object.values(SportType).includes(sport as SportType) ? { sportType: sport as SportType } : {}),
-        ...(search ? { OR: [{ name: { contains: search } }, { location: { contains: search } }] } : {}),
-        ...(minPrice || maxPrice
-          ? { pricePerHour: { ...(minPrice ? { gte: Number(minPrice) } : {}), ...(maxPrice ? { lte: Number(maxPrice) } : {}) } }
-          : {}),
-      },
+      where,
       orderBy: { createdAt: 'desc' },
+      take: PAGE_SIZE,
+      skip,
     }),
+    prisma.field.count({ where }),
     prisma.review.groupBy({
       by: ['fieldId'],
       _avg: { rating: true },
@@ -34,9 +43,63 @@ async function FieldsList({ searchParams }: { searchParams: Awaited<PageProps['s
   ]);
 
   const ratingMap = new Map(reviewAggs.map((r) => [r.fieldId, { avg: r._avg.rating ?? 0, count: r._count.rating }]));
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   return (
-    <ViewToggle fields={fields} ratingMap={ratingMap} />
+    <div className="space-y-6">
+      <ViewToggle fields={fields} ratingMap={ratingMap} />
+      {totalPages > 1 && (
+        <FieldsPagination currentPage={currentPage} totalPages={totalPages} searchParams={searchParams} />
+      )}
+    </div>
+  );
+}
+
+function FieldsPagination({
+  currentPage,
+  totalPages,
+  searchParams,
+}: {
+  currentPage: number;
+  totalPages: number;
+  searchParams: Record<string, string | undefined>;
+}) {
+  function buildHref(p: number) {
+    const q = new URLSearchParams();
+    if (searchParams.sport) q.set('sport', searchParams.sport);
+    if (searchParams.search) q.set('search', searchParams.search);
+    if (searchParams.minPrice) q.set('minPrice', searchParams.minPrice);
+    if (searchParams.maxPrice) q.set('maxPrice', searchParams.maxPrice);
+    q.set('page', String(p));
+    return `/sport?${q.toString()}`;
+  }
+
+  return (
+    <div className="flex items-center justify-center gap-2 pt-2">
+      {currentPage > 1 && (
+        <a href={buildHref(currentPage - 1)} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 hover:border-primary-400 transition">
+          ก่อนหน้า
+        </a>
+      )}
+      {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+        <a
+          key={p}
+          href={buildHref(p)}
+          className={`px-4 py-2 rounded-xl border text-sm font-medium transition ${
+            p === currentPage
+              ? 'bg-primary-600 border-primary-600 text-white'
+              : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-primary-400'
+          }`}
+        >
+          {p}
+        </a>
+      ))}
+      {currentPage < totalPages && (
+        <a href={buildHref(currentPage + 1)} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 hover:border-primary-400 transition">
+          ถัดไป
+        </a>
+      )}
+    </div>
   );
 }
 
