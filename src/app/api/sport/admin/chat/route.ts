@@ -20,19 +20,23 @@ export async function GET() {
     take: 100,
   });
 
-  const withUnread = await Promise.all(
-    conversations.map(async (c) => {
-      const unread = await prisma.message.count({
-        where: { conversationId: c.id, senderRole: 'USER', isRead: false },
-      });
-      return {
-        ...c,
-        lastMessage: c.messages[0] ?? null,
-        unreadCount: unread,
-        messages: undefined,
-      };
-    }),
-  );
+  const unreadCounts = await prisma.message.groupBy({
+    by: ['conversationId'],
+    where: {
+      conversationId: { in: conversations.map((c) => c.id) },
+      senderRole: 'USER',
+      isRead: false,
+    },
+    _count: { id: true },
+  });
+  const unreadMap = new Map(unreadCounts.map((u) => [u.conversationId, u._count.id]));
+
+  const withUnread = conversations.map((c) => ({
+    ...c,
+    lastMessage: c.messages[0] ?? null,
+    unreadCount: unreadMap.get(c.id) ?? 0,
+    messages: undefined,
+  }));
 
   return NextResponse.json(withUnread);
 }

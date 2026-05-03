@@ -20,7 +20,8 @@ export default async function AdminCalendarPage({ searchParams }: PageProps) {
   const today = new Date();
   const weekStart = dateStr ? new Date(dateStr) : (() => {
     const d = new Date(today);
-    d.setDate(d.getDate() - d.getDay() + 1);
+    const day = d.getDay(); // 0=Sun
+    d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
     d.setHours(0, 0, 0, 0);
     return d;
   })();

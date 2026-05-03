@@ -65,7 +65,8 @@ export default function ProfilePage() {
         setNotifEmail(data.notifEmail ?? true);
         setNotifLine(data.notifLine ?? true);
         setNotifInApp(data.notifInApp ?? true);
-      });
+      })
+      .catch(() => toast.error('ไม่สามารถโหลดข้อมูลโปรไฟล์ได้'));
 
     fetch('/api/sport/referral')
       .then((r) => r.ok ? r.json() : null)

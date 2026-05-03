@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { auth } from '@/lib/auth';
 import { rateLimit, WAITING_LIST_RATE_LIMIT } from '@/lib/rate-limit';
 
@@ -43,8 +44,11 @@ export async function POST(req: NextRequest) {
       data: { userId: session.user.id, fieldId, date: new Date(date), timeSlot },
     });
     return NextResponse.json(entry, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: 'คุณอยู่ใน waiting list แล้ว' }, { status: 409 });
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+      return NextResponse.json({ error: 'คุณอยู่ใน waiting list แล้ว' }, { status: 409 });
+    }
+    return NextResponse.json({ error: 'เกิดข้อผิดพลาด กรุณาลองใหม่' }, { status: 500 });
   }
 }
 
