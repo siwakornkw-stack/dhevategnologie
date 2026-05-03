@@ -131,7 +131,6 @@ export async function POST(req: NextRequest) {
   const stripeEnabled = stripeKey && !stripeKey.startsWith('sk_test_your');
 
   if (!stripeEnabled || totalAmount === 0) {
-    await prisma.booking.update({ where: { id: booking.id }, data: { status: 'APPROVED' } });
     if (user?.email) {
       sendBookingCreatedEmail(user.email, {
         userName: user.name ?? 'ลูกค้า',
