@@ -34,8 +34,8 @@ export async function POST(req: NextRequest) {
   }
   const [newStart, newEnd] = incoming;
 
-  if (newEnd - newStart < 30) {
-    return NextResponse.json({ error: 'ระยะเวลาขั้นต่ำ 30 นาที' }, { status: 400 });
+  if (newEnd - newStart < 5) {
+    return NextResponse.json({ error: 'ระยะเวลาขั้นต่ำ 5 นาที' }, { status: 400 });
   }
 
   const bookingDate = new Date(date);

@@ -33,15 +33,63 @@ function formatDurationMin(minutes: number): string {
   return `${h} ชม. ${m} นาที`;
 }
 
-function generateTimeOptions(fromTime: string, toTime: string): string[] {
-  const options: string[] = [];
-  let cur = toMin(fromTime);
-  const end = toMin(toTime);
-  while (cur <= end) {
-    options.push(`${String(Math.floor(cur / 60)).padStart(2, '0')}:${String(cur % 60).padStart(2, '0')}`);
-    cur += 30;
+const MIN_STEP = 5;
+
+function TimeSelect({
+  value,
+  onChange,
+  minTime,
+  maxTime,
+}: {
+  value: string;
+  onChange: (t: string) => void;
+  minTime: string;
+  maxTime: string;
+}) {
+  const minMin = toMin(minTime);
+  const maxMin = toMin(maxTime);
+  const curMin = Math.max(minMin, Math.min(maxMin, toMin(value)));
+  const hVal = Math.floor(curMin / 60);
+  const mVal = curMin % 60;
+
+  const hours = Array.from({ length: 24 }, (_, i) => i).filter(
+    (hr) => hr * 60 + (60 - MIN_STEP) >= minMin && hr * 60 <= maxMin
+  );
+
+  const minutes = Array.from({ length: 60 / MIN_STEP }, (_, i) => i * MIN_STEP).filter((mn) => {
+    const total = hVal * 60 + mn;
+    return total >= minMin && total <= maxMin;
+  });
+
+  function handleHourChange(newH: number) {
+    let total = newH * 60 + mVal;
+    total = Math.max(minMin, Math.min(maxMin, total));
+    const clampedM = Math.floor((total % 60) / MIN_STEP) * MIN_STEP;
+    onChange(`${String(newH).padStart(2, '0')}:${String(clampedM).padStart(2, '0')}`);
   }
-  return options;
+
+  const selectCls =
+    'rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2 py-2 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-400 text-center w-full';
+
+  return (
+    <div className="flex items-center gap-1">
+      <select value={hVal} onChange={(e) => handleHourChange(Number(e.target.value))} className={selectCls}>
+        {hours.map((hr) => (
+          <option key={hr} value={hr}>{String(hr).padStart(2, '0')}</option>
+        ))}
+      </select>
+      <span className="text-gray-400 font-bold text-sm">:</span>
+      <select
+        value={mVal}
+        onChange={(e) => onChange(`${String(hVal).padStart(2, '0')}:${String(Number(e.target.value)).padStart(2, '0')}`)}
+        className={selectCls}
+      >
+        {minutes.map((mn) => (
+          <option key={mn} value={mn}>{String(mn).padStart(2, '0')}</option>
+        ))}
+      </select>
+    </div>
+  );
 }
 
 export function AvailabilityClient() {
@@ -125,7 +173,7 @@ export function AvailabilityClient() {
     dialog &&
     startTime &&
     endTime &&
-    dialogDurationMin >= 30 &&
+    dialogDurationMin >= MIN_STEP &&
     toMin(startTime) >= toMin(dialog.field.openTime) &&
     toMin(endTime) <= toMin(dialog.field.closeTime);
 
@@ -289,36 +337,27 @@ export function AvailabilityClient() {
             {/* Time range pickers */}
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">เวลาเริ่ม</label>
-                <select
+                <label className="text-xs text-gray-500 mb-2 block">เวลาเริ่ม</label>
+                <TimeSelect
                   value={startTime}
-                  onChange={(e) => {
-                    setStartTime(e.target.value);
-                    if (e.target.value && endTime && toMin(endTime) <= toMin(e.target.value)) {
-                      setEndTime(addMinutesToTime(e.target.value, 60));
+                  minTime={dialog.field.openTime}
+                  maxTime={addMinutesToTime(dialog.field.closeTime, -MIN_STEP)}
+                  onChange={(t) => {
+                    setStartTime(t);
+                    if (endTime && toMin(endTime) <= toMin(t)) {
+                      setEndTime(addMinutesToTime(t, 60));
                     }
                   }}
-                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-400"
-                >
-                  {generateTimeOptions(dialog.field.openTime, addMinutesToTime(dialog.field.closeTime, -30)).map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
+                />
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">เวลาสิ้นสุด</label>
-                <select
+                <label className="text-xs text-gray-500 mb-2 block">เวลาสิ้นสุด</label>
+                <TimeSelect
                   value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-400"
-                >
-                  {generateTimeOptions(
-                    addMinutesToTime(startTime || dialog.field.openTime, 30),
-                    dialog.field.closeTime
-                  ).map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
+                  minTime={addMinutesToTime(startTime || dialog.field.openTime, MIN_STEP)}
+                  maxTime={dialog.field.closeTime}
+                  onChange={setEndTime}
+                />
               </div>
             </div>
 
