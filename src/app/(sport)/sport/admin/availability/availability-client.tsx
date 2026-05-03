@@ -35,6 +35,16 @@ function formatDurationMin(minutes: number): string {
 
 const MIN_STEP = 5;
 
+function isSlotOverlapping(slot: string, booked: Record<string, string>): boolean {
+  const [s, e] = slot.split('-');
+  const slotStart = toMin(s);
+  const slotEnd = toMin(e);
+  return Object.keys(booked).some((key) => {
+    const [ks, ke] = key.split('-');
+    return slotStart < toMin(ke) && slotEnd > toMin(ks);
+  });
+}
+
 function TimeSelect({
   value,
   onChange,
@@ -239,7 +249,7 @@ export function AvailabilityClient() {
             {fields.map((field) => {
               const allSlots = generateTimeSlots(field.openTime, field.closeTime);
               const booked = availability[field.id] ?? {};
-              const availableSlots = allSlots.filter((s) => !booked[s]);
+              const availableSlots = allSlots.filter((s) => !isSlotOverlapping(s, booked));
 
               return (
                 <div key={field.id} className="px-5 py-4">
@@ -265,7 +275,7 @@ export function AvailabilityClient() {
                   ) : (
                     <div className="flex flex-wrap gap-2">
                       {allSlots.map((slot) => {
-                        const isBooked = !!booked[slot];
+                        const isBooked = isSlotOverlapping(slot, booked);
                         const slotStart = slot.split('-')[0];
                         return (
                           <button

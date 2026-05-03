@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 
@@ -14,6 +15,10 @@ function parseSlot(ts: string): [number, number] | null {
   const e = toMinutes(parts[1]);
   if (isNaN(s) || isNaN(e) || e <= s) return null;
   return [s, e];
+}
+
+function overlaps(aStart: number, aEnd: number, bStart: number, bEnd: number): boolean {
+  return aStart < bEnd && aEnd > bStart;
 }
 
 export async function POST(req: NextRequest) {
@@ -63,39 +68,44 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Conflict check: interval overlap with any active booking
-  const existingBookings = await prisma.booking.findMany({
-    where: { fieldId, date: bookingDate, status: { in: ['PENDING', 'APPROVED'] } },
-    select: { timeSlot: true },
-  });
-
-  const hasConflict = existingBookings.some((b) => {
-    const parsed = parseSlot(b.timeSlot);
-    if (!parsed) return false;
-    const [existStart, existEnd] = parsed;
-    return newStart < existEnd && newEnd > existStart;
-  });
-
-  if (hasConflict) {
-    return NextResponse.json({ error: 'ช่วงเวลานี้ถูกจองแล้ว' }, { status: 409 });
-  }
-
   try {
-    const booking = await prisma.booking.create({
-      data: {
-        userId: session.user.id,
-        fieldId,
-        date: bookingDate,
-        timeSlot,
-        note: note || null,
-        status: 'APPROVED',
+    // Serializable transaction: conflict check + insert are atomic.
+    // Prevents race conditions where two concurrent requests both pass the check
+    // and both proceed to create overlapping bookings.
+    const booking = await prisma.$transaction(
+      async (tx) => {
+        const existing = await tx.booking.findMany({
+          where: { fieldId, date: bookingDate, status: { in: ['PENDING', 'APPROVED'] } },
+          select: { timeSlot: true },
+        });
+
+        const conflict = existing.some((b) => {
+          const p = parseSlot(b.timeSlot);
+          return p ? overlaps(newStart, newEnd, p[0], p[1]) : false;
+        });
+
+        if (conflict) throw new Error('conflict');
+
+        return tx.booking.create({
+          data: {
+            userId: session.user.id,
+            fieldId,
+            date: bookingDate,
+            timeSlot,
+            note: note || null,
+            status: 'APPROVED',
+          },
+          include: { field: { select: { name: true } } },
+        });
       },
-      include: {
-        field: { select: { name: true } },
-      },
-    });
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+    );
+
     return NextResponse.json(booking, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: 'ช่วงเวลานี้ถูกจองแล้ว' }, { status: 409 });
+  } catch (err) {
+    const msg = err instanceof Error && err.message === 'conflict'
+      ? 'ช่วงเวลานี้ถูกจองแล้ว'
+      : 'ช่วงเวลานี้ถูกจองแล้ว';
+    return NextResponse.json({ error: msg }, { status: 409 });
   }
 }
