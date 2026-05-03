@@ -33,6 +33,17 @@ function formatDurationMin(minutes: number): string {
   return `${h} ชม. ${m} นาที`;
 }
 
+function generateTimeOptions(fromTime: string, toTime: string): string[] {
+  const options: string[] = [];
+  let cur = toMin(fromTime);
+  const end = toMin(toTime);
+  while (cur <= end) {
+    options.push(`${String(Math.floor(cur / 60)).padStart(2, '0')}:${String(cur % 60).padStart(2, '0')}`);
+    cur += 30;
+  }
+  return options;
+}
+
 export function AvailabilityClient() {
   const today = formatDateISO(new Date());
   const [selectedDate, setSelectedDate] = useState(today);
@@ -279,46 +290,39 @@ export function AvailabilityClient() {
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">เวลาเริ่ม</label>
-                <input
-                  type="time"
+                <select
                   value={startTime}
-                  min={dialog.field.openTime}
-                  max={endTime ? addMinutesToTime(endTime, -30) : dialog.field.closeTime}
-                  step={1800}
                   onChange={(e) => {
                     setStartTime(e.target.value);
-                    // push end if end <= new start
                     if (e.target.value && endTime && toMin(endTime) <= toMin(e.target.value)) {
                       setEndTime(addMinutesToTime(e.target.value, 60));
                     }
                   }}
                   className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-400"
-                />
+                >
+                  {generateTimeOptions(dialog.field.openTime, addMinutesToTime(dialog.field.closeTime, -30)).map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">เวลาสิ้นสุด</label>
-                <input
-                  type="time"
+                <select
                   value={endTime}
-                  min={startTime ? addMinutesToTime(startTime, 30) : dialog.field.openTime}
-                  max={dialog.field.closeTime}
-                  step={1800}
                   onChange={(e) => setEndTime(e.target.value)}
                   className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-400"
-                />
+                >
+                  {generateTimeOptions(
+                    addMinutesToTime(startTime || dialog.field.openTime, 30),
+                    dialog.field.closeTime
+                  ).map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
             {/* Validation messages */}
-            {startTime && endTime && dialogDurationMin < 30 && (
-              <p className="text-xs text-red-500 mb-3">ระยะเวลาขั้นต่ำ 30 นาที</p>
-            )}
-            {startTime && toMin(startTime) < toMin(dialog.field.openTime) && (
-              <p className="text-xs text-red-500 mb-3">เวลาเริ่มต้องไม่ก่อน {dialog.field.openTime} น.</p>
-            )}
-            {endTime && toMin(endTime) > toMin(dialog.field.closeTime) && (
-              <p className="text-xs text-red-500 mb-3">เวลาสิ้นสุดต้องไม่เกิน {dialog.field.closeTime} น.</p>
-            )}
             {hasConflict && isValidRange && (
               <p className="text-xs text-orange-500 mb-3">ช่วงเวลานี้ซ้อนทับกับการจองที่มีอยู่</p>
             )}
