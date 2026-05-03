@@ -17,14 +17,21 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Missing params' }, { status: 400 });
   }
 
+  const parsedDate = new Date(date);
   const [myEntry, count] = await Promise.all([
     prisma.waitingList.findUnique({
-      where: { fieldId_date_timeSlot_userId: { fieldId, date: new Date(date), timeSlot, userId: session.user.id } },
+      where: { fieldId_date_timeSlot_userId: { fieldId, date: parsedDate, timeSlot, userId: session.user.id } },
     }),
-    prisma.waitingList.count({ where: { fieldId, date: new Date(date), timeSlot } }),
+    prisma.waitingList.count({ where: { fieldId, date: parsedDate, timeSlot } }),
   ]);
 
-  return NextResponse.json({ isWaiting: !!myEntry, count });
+  const position = myEntry
+    ? await prisma.waitingList.count({
+        where: { fieldId, date: parsedDate, timeSlot, createdAt: { lte: myEntry.createdAt } },
+      })
+    : null;
+
+  return NextResponse.json({ isWaiting: !!myEntry, count, position });
 }
 
 export async function POST(req: NextRequest) {

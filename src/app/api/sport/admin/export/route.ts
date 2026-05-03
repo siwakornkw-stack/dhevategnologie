@@ -38,6 +38,7 @@ export async function GET(req: NextRequest) {
   const bookings = await prisma.booking.findMany({
     where,
     orderBy: { date: 'desc' },
+    take: 10000,
     include: {
       user: { select: { name: true, email: true, phone: true } },
       field: { select: { name: true, sportType: true, pricePerHour: true } },
@@ -92,7 +93,11 @@ export async function GET(req: NextRequest) {
     ];
   });
 
-  const escape = (val: string) => `"${val.replace(/"/g, '""')}"`;
+  // Prevent Excel formula injection by prefixing dangerous leading characters with a tab
+  const escape = (val: string) => {
+    const s = /^[=+\-@\t\r]/.test(val) ? '\t' + val : val;
+    return `"${s.replace(/"/g, '""')}"`;
+  };
   const csvContent = [csvHeaders, ...csvRows]
     .map((row) => row.map((cell) => escape(String(cell))).join(','))
     .join('\r\n');

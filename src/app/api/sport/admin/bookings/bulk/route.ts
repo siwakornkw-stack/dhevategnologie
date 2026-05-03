@@ -94,25 +94,32 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        // Referral bonus on first approved booking
+        // Referral bonus on first approved booking — wrapped in transaction to prevent concurrent double-award
         const isFirstApproved = !priorApprovedSet.has(booking.userId) && booking.user.referredById && !referralGivenTo.has(booking.userId);
         if (isFirstApproved && booking.user.referredById) {
           referralGivenTo.add(booking.userId);
           const referrerId = booking.user.referredById;
+          const currentBatchIds = bookings.map((b) => b.id);
           tasks.push(
-            prisma.user.update({ where: { id: referrerId }, data: { points: { increment: REFERRAL_BONUS } } }),
-            prisma.pointTransaction.create({
-              data: { userId: referrerId, points: REFERRAL_BONUS, type: 'EARN', note: 'โบนัสแนะนำเพื่อน' },
-            }),
-            prisma.notification.create({
-              data: {
-                userId: referrerId,
-                type: 'REFERRAL_BONUS',
-                title: '⭐ ได้รับโบนัสแนะนำเพื่อน',
-                message: `คุณได้รับ ${REFERRAL_BONUS} แต้มจากการที่เพื่อนจองสนามครั้งแรก`,
-                link: '/sport/profile',
-              },
-            }),
+            prisma.$transaction(async (tx) => {
+              const otherApproved = await tx.booking.count({
+                where: { userId: booking.userId, status: 'APPROVED', id: { notIn: currentBatchIds } },
+              });
+              if (otherApproved > 0) return;
+              await tx.user.update({ where: { id: referrerId }, data: { points: { increment: REFERRAL_BONUS } } });
+              await tx.pointTransaction.create({
+                data: { userId: referrerId, points: REFERRAL_BONUS, type: 'EARN', note: 'โบนัสแนะนำเพื่อน' },
+              });
+              await tx.notification.create({
+                data: {
+                  userId: referrerId,
+                  type: 'REFERRAL_BONUS',
+                  title: '⭐ ได้รับโบนัสแนะนำเพื่อน',
+                  message: `คุณได้รับ ${REFERRAL_BONUS} แต้มจากการที่เพื่อนจองสนามครั้งแรก`,
+                  link: '/sport/profile',
+                },
+              });
+            }).catch(() => {}),
           );
         }
 

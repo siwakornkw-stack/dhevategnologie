@@ -9,14 +9,19 @@ async function sendLine(message: string) {
   const token = process.env.LINE_NOTIFY_TOKEN;
   if (!token || token.startsWith('your-')) return;
 
-  await fetch('https://notify-api.line.me/api/notify', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({ message }),
-  });
+  try {
+    const res = await fetch('https://notify-api.line.me/api/notify', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({ message }),
+    });
+    if (!res.ok) console.error('[line-notify] send failed, status:', res.status);
+  } catch (err) {
+    console.error('[line-notify] send failed:', err);
+  }
 }
 
 export async function notifyLineNewBooking(data: BookingInfo) {

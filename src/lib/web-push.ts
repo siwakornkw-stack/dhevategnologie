@@ -28,6 +28,8 @@ export async function sendPushToUser(userId: string, payload: { title: string; m
         // Remove expired/invalid subscriptions
         if (err && typeof err === 'object' && 'statusCode' in err && (err.statusCode === 404 || err.statusCode === 410)) {
           await prisma.pushSubscription.delete({ where: { id: sub.id } }).catch(() => {});
+        } else {
+          console.error('[web-push] sendNotification failed:', err);
         }
       }
     }),

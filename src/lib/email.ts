@@ -3,6 +3,11 @@ import { Resend } from 'resend';
 const resend = new Resend(process.env.RESEND_API_KEY ?? 're_placeholder');
 const FROM = process.env.EMAIL_FROM ?? 'noreply@88arena.com';
 
+async function sendEmail(args: Parameters<typeof resend.emails.send>[0]) {
+  const { error } = await resend.emails.send(args);
+  if (error) console.error('[email] send failed:', error);
+}
+
 interface BookingEmailData {
   userName: string;
   fieldName: string;
@@ -15,7 +20,7 @@ interface BookingEmailData {
 export async function sendVerificationEmail(to: string, token: string) {
   if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith('re_your')) return;
   const url = `${process.env.NEXTAUTH_URL}/sport/auth/verify-email?token=${token}`;
-  await resend.emails.send({
+  await sendEmail({
     from: FROM,
     to,
     subject: '📧 ยืนยันอีเมลของคุณ - 88ARENA',
@@ -37,7 +42,7 @@ export async function sendVerificationEmail(to: string, token: string) {
 export async function sendPasswordResetEmail(to: string, token: string) {
   if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith('re_your')) return;
   const url = `${process.env.NEXTAUTH_URL}/sport/auth/reset-password?token=${token}`;
-  await resend.emails.send({
+  await sendEmail({
     from: FROM,
     to,
     subject: '🔐 รีเซ็ตรหัสผ่าน - 88ARENA',
@@ -57,7 +62,7 @@ export async function sendPasswordResetEmail(to: string, token: string) {
 
 export async function sendBookingCreatedEmail(to: string, data: BookingEmailData) {
   if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith('re_your')) return;
-  await resend.emails.send({
+  await sendEmail({
     from: FROM,
     to,
     subject: `✅ ยืนยันการจอง: ${data.fieldName}`,
@@ -80,7 +85,7 @@ export async function sendBookingPaidEmail(to: string, data: BookingEmailData) {
     data.amountPaid !== undefined ? `<tr><td style="padding:10px 16px;color:#6b7280;font-size:14px;">ยอดชำระ</td><td style="padding:10px 16px;font-weight:700;color:#16a34a;">฿${data.amountPaid.toLocaleString()}</td></tr>` : '',
     data.discountAmount ? `<tr style="background:#fff;"><td style="padding:10px 16px;color:#6b7280;font-size:14px;">ส่วนลด</td><td style="padding:10px 16px;font-weight:600;color:#dc2626;">-฿${data.discountAmount.toLocaleString()}</td></tr>` : '',
   ].filter(Boolean).join('');
-  await resend.emails.send({
+  await sendEmail({
     from: FROM,
     to,
     subject: `💳 ชำระเงินสำเร็จ: ${data.fieldName}`,
@@ -99,7 +104,7 @@ export async function sendBookingPaidEmail(to: string, data: BookingEmailData) {
 
 export async function sendBookingApprovedEmail(to: string, data: BookingEmailData) {
   if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith('re_your')) return;
-  await resend.emails.send({
+  await sendEmail({
     from: FROM,
     to,
     subject: `🎉 อนุมัติการจอง: ${data.fieldName}`,
@@ -118,7 +123,7 @@ export async function sendBookingApprovedEmail(to: string, data: BookingEmailDat
 
 export async function sendBookingCancelledEmail(to: string, data: BookingEmailData) {
   if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith('re_your')) return;
-  await resend.emails.send({
+  await sendEmail({
     from: FROM,
     to,
     subject: `🚫 ยกเลิกการจอง: ${data.fieldName}`,
@@ -137,7 +142,7 @@ export async function sendBookingCancelledEmail(to: string, data: BookingEmailDa
 
 export async function sendBookingRejectedEmail(to: string, data: BookingEmailData) {
   if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith('re_your')) return;
-  await resend.emails.send({
+  await sendEmail({
     from: FROM,
     to,
     subject: `❌ ปฏิเสธการจอง: ${data.fieldName}`,

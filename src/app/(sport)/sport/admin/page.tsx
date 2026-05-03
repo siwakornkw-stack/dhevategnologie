@@ -8,6 +8,7 @@ import { SPORT_TYPE_EMOJI, SPORT_TYPE_LABELS } from '@/lib/booking';
 import { AddFieldForm } from './fields/add-field-form';
 import { AdminFieldActions } from './fields/admin-field-actions';
 import { EditFieldForm } from './fields/edit-field-form';
+import { AdminAutoRefresh } from '@/components/sport/admin-auto-refresh';
 
 export async function generateMetadata() {
   const { getTranslations } = await import('next-intl/server');
@@ -47,6 +48,7 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="wrapper py-8 space-y-8 max-w-6xl">
+      <AdminAutoRefresh />
       {/* Header */}
       <div className="space-y-3">
         <div>

@@ -37,6 +37,15 @@ export default async function MyBookingsPage() {
     }),
   ]);
 
+  const waitingListWithPosition = await Promise.all(
+    waitingList.map(async (entry) => {
+      const position = await prisma.waitingList.count({
+        where: { fieldId: entry.fieldId, date: entry.date, timeSlot: entry.timeSlot, createdAt: { lte: entry.createdAt } },
+      });
+      return { ...entry, position };
+    })
+  );
+
   const reviewMap = new Map(reviews.map((r) => [r.fieldId, r]));
   const now = new Date();
 
@@ -82,13 +91,13 @@ export default async function MyBookingsPage() {
             </section>
           )}
 
-          {waitingList.length > 0 && (
+          {waitingListWithPosition.length > 0 && (
             <section className="space-y-3">
               <h2 className="text-base font-semibold text-gray-700 dark:text-gray-300">
-                {t('waitingSection', { count: waitingList.length })}
+                {t('waitingSection', { count: waitingListWithPosition.length })}
               </h2>
               <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700/50 divide-y divide-gray-100 dark:divide-gray-800">
-                {waitingList.map((entry) => (
+                {waitingListWithPosition.map((entry) => (
                   <div key={entry.id} className="p-4 flex items-center gap-4">
                     <span className="text-2xl">{SPORT_TYPE_EMOJI[entry.field.sportType] ?? '🏟️'}</span>
                     <div className="flex-1 min-w-0">
@@ -98,7 +107,7 @@ export default async function MyBookingsPage() {
                       </p>
                     </div>
                     <span className="text-xs px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-medium flex-shrink-0">
-                      {t('inQueue')}
+                      {t('inQueue')} #{entry.position}
                     </span>
                   </div>
                 ))}

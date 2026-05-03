@@ -24,11 +24,6 @@ export async function notifyWaitingList(fieldId: string, date: Date, timeSlot: s
   const dateStr = date.toLocaleDateString('th-TH');
   const fieldName = entries[0].field.name;
 
-  // Delete notified entries so users aren't spammed on future cancellations
-  await prisma.waitingList.deleteMany({
-    where: { id: { in: entries.map((e) => e.id) } },
-  });
-
   await Promise.allSettled(
     entries.map(async (entry) => {
       const { user } = entry;
@@ -86,4 +81,9 @@ export async function notifyWaitingList(fieldId: string, date: Date, timeSlot: s
       }).catch(() => {});
     })
   );
+
+  // Delete after notifications sent so users aren't removed silently on failure
+  await prisma.waitingList.deleteMany({
+    where: { id: { in: entries.map((e) => e.id) } },
+  });
 }
