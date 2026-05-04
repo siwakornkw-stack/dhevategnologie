@@ -40,11 +40,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'สามารถจองได้ล่วงหน้าสูงสุด 1 ปี' }, { status: 400 });
   }
 
-  const [field, user] = await Promise.all([
+  const [field, user, blocked] = await Promise.all([
     prisma.field.findUnique({ where: { id: fieldId, isActive: true } }),
     prisma.user.findUnique({ where: { id: session.user.id }, select: { points: true, name: true, email: true } }),
+    prisma.fieldBlockedDate.findFirst({ where: { fieldId, date: bookingDate } }),
   ]);
   if (!field) return NextResponse.json({ error: 'ไม่พบสนามหรือสนามปิดให้บริการ' }, { status: 404 });
+  if (blocked) return NextResponse.json({ error: `สนามปิดให้บริการในวันนี้${blocked.reason ? `: ${blocked.reason}` : ''}` }, { status: 409 });
 
   // Validate coupon
   let appliedCoupon: { code: string; discountType: string; discountValue: number } | null = null;

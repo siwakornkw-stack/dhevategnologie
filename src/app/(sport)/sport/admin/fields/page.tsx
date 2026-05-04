@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { SPORT_TYPE_EMOJI, SPORT_TYPE_LABELS } from '@/lib/booking';
 import { AdminFieldActions } from './admin-field-actions';
 import { AddFieldForm } from './add-field-form';
+import { EditFieldForm } from './edit-field-form';
+import { BlockedDatesManager } from './blocked-dates-manager';
 
 export const metadata = { title: 'จัดการสนาม' };
 
@@ -47,7 +49,11 @@ export default async function AdminFieldsPage() {
                   </p>
                   {field.location && <p className="text-xs text-gray-400">📍 {field.location}</p>}
                 </div>
-                <AdminFieldActions fieldId={field.id} fieldName={field.name} />
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <BlockedDatesManager fieldId={field.id} fieldName={field.name} />
+                  <EditFieldForm field={{ id: field.id, name: field.name, sportType: field.sportType, pricePerHour: field.pricePerHour, location: field.location, description: field.description, facilities: field.facilities, imageUrl: field.imageUrl, images: field.images, openTime: field.openTime, closeTime: field.closeTime, isActive: field.isActive }} />
+                  <AdminFieldActions fieldId={field.id} fieldName={field.name} />
+                </div>
               </div>
             ))}
           </div>

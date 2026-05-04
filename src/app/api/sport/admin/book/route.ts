@@ -53,11 +53,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'วันที่ไม่ถูกต้อง' }, { status: 400 });
   }
 
-  const field = await prisma.field.findUnique({
-    where: { id: fieldId },
-    select: { id: true, openTime: true, closeTime: true },
-  });
+  const [field, blocked] = await Promise.all([
+    prisma.field.findUnique({ where: { id: fieldId }, select: { id: true, openTime: true, closeTime: true } }),
+    prisma.fieldBlockedDate.findFirst({ where: { fieldId, date: bookingDate } }),
+  ]);
   if (!field) return NextResponse.json({ error: 'ไม่พบสนาม' }, { status: 404 });
+  if (blocked) return NextResponse.json({ error: `สนามปิดให้บริการในวันนี้${blocked.reason ? `: ${blocked.reason}` : ''}` }, { status: 409 });
 
   const fieldOpen = toMinutes(field.openTime);
   const fieldClose = toMinutes(field.closeTime);

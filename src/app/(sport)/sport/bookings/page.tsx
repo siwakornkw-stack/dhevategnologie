@@ -1,11 +1,16 @@
 import { redirect } from 'next/navigation';
+import { Suspense } from 'react';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { BookingStatusBadge } from '@/components/sport/booking-status-badge';
 import { SPORT_TYPE_EMOJI, SPORT_TYPE_LABELS } from '@/lib/booking';
 import { CancelBookingButton } from './cancel-booking-button';
 import { DownloadReceiptButton } from '@/components/sport/download-receipt-button';
 import { ReviewBookingButton } from '@/components/sport/review-booking-button';
+import { QrCodeButton } from '@/components/sport/qr-code-button';
+import { BookingCalendar } from '@/components/sport/booking-calendar';
+import { BookingFilters } from './booking-filters';
 import { getTranslations } from 'next-intl/server';
 
 export async function generateMetadata() {
@@ -13,14 +18,36 @@ export async function generateMetadata() {
   return { title: t('title') };
 }
 
-export default async function MyBookingsPage() {
+export default async function MyBookingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string; from?: string; to?: string; view?: string }>;
+}) {
   const session = await auth();
   if (!session) redirect('/sport/auth/signin');
   const t = await getTranslations('booking');
+  const params = await searchParams;
+
+  const where: Prisma.BookingWhereInput = { userId: session.user.id };
+  if (params.status && params.status !== 'ALL') {
+    where.status = params.status as Prisma.EnumBookingStatusFilter;
+  }
+  if (params.from || params.to) {
+    const dateFilter: Prisma.DateTimeFilter = {};
+    if (params.from) {
+      const d = new Date(params.from);
+      if (!isNaN(d.getTime())) dateFilter.gte = d;
+    }
+    if (params.to) {
+      const d = new Date(params.to);
+      if (!isNaN(d.getTime())) { d.setHours(23, 59, 59, 999); dateFilter.lte = d; }
+    }
+    where.date = dateFilter;
+  }
 
   const [bookings, waitingList, reviews] = await Promise.all([
     prisma.booking.findMany({
-      where: { userId: session.user.id },
+      where,
       include: {
         field: { select: { id: true, name: true, sportType: true, imageUrl: true, location: true, pricePerHour: true } },
       },
@@ -48,16 +75,29 @@ export default async function MyBookingsPage() {
 
   const reviewMap = new Map(reviews.map((r) => [r.fieldId, r]));
   const now = new Date();
+  const isCalendar = params.view === 'calendar';
 
   const active = bookings.filter((b) => ['PENDING', 'APPROVED'].includes(b.status));
   const past = bookings.filter((b) => ['REJECTED', 'CANCELLED'].includes(b.status));
 
+  const calendarBookings = bookings.map((b) => ({
+    id: b.id,
+    date: b.date.toISOString(),
+    timeSlot: b.timeSlot,
+    status: b.status,
+    field: { name: b.field.name, sportType: b.field.sportType },
+  }));
+
   return (
-    <div className="wrapper py-8 max-w-3xl space-y-8">
+    <div className="wrapper py-8 max-w-3xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">📋 {t('title')}</h1>
         <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{t('subtitle')}</p>
       </div>
+
+      <Suspense>
+        <BookingFilters />
+      </Suspense>
 
       {bookings.length === 0 ? (
         <div className="text-center py-20 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700/50">
@@ -67,6 +107,10 @@ export default async function MyBookingsPage() {
           <a href="/sport" className="mt-4 inline-block gradient-btn text-white text-sm font-medium px-6 py-2.5 rounded-full">
             {t('viewAllFields')}
           </a>
+        </div>
+      ) : isCalendar ? (
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700/50 p-5">
+          <BookingCalendar bookings={calendarBookings} />
         </div>
       ) : (
         <>
@@ -204,21 +248,29 @@ function BookingCard({ booking, canCancel, canReview, existingReview, userName, 
           </span>
           <div className="flex items-center gap-2 flex-wrap">
             {booking.status === 'APPROVED' && (
-              <DownloadReceiptButton booking={{
-                bookingId: booking.id,
-                fieldName: booking.field.name,
-                sportType: booking.field.sportType,
-                date: booking.date.toISOString(),
-                timeSlot: booking.timeSlot,
-                userName,
-                userEmail,
-                pricePerHour: booking.field.pricePerHour,
-                totalAmount,
-                discountAmount: booking.discountAmount ?? 0,
-                couponCode: booking.couponCode ?? undefined,
-                status: booking.status,
-                createdAt: booking.createdAt.toISOString(),
-              }} />
+              <>
+                <QrCodeButton
+                  bookingId={booking.id}
+                  fieldName={booking.field.name}
+                  date={new Date(booking.date).toLocaleDateString('th-TH', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+                  timeSlot={booking.timeSlot}
+                />
+                <DownloadReceiptButton booking={{
+                  bookingId: booking.id,
+                  fieldName: booking.field.name,
+                  sportType: booking.field.sportType,
+                  date: booking.date.toISOString(),
+                  timeSlot: booking.timeSlot,
+                  userName,
+                  userEmail,
+                  pricePerHour: booking.field.pricePerHour,
+                  totalAmount,
+                  discountAmount: booking.discountAmount ?? 0,
+                  couponCode: booking.couponCode ?? undefined,
+                  status: booking.status,
+                  createdAt: booking.createdAt.toISOString(),
+                }} />
+              </>
             )}
             {canReview && (
               <ReviewBookingButton

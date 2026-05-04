@@ -45,6 +45,7 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
   const [duration, setDuration] = useState<1 | 1.5>(1);
   const [quantity, setQuantity] = useState(1);
   const [bookedSlots, setBookedSlots] = useState<Record<string, string>>({});
+  const [blockedDate, setBlockedDate] = useState<{ isBlocked: boolean; reason?: string | null }>({ isBlocked: false });
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [booking, setBooking] = useState(false);
   const [note, setNote] = useState('');
@@ -120,10 +121,14 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
     setCoupon(null);
     setCouponCode('');
     setRedeemPoints(false);
+    setBlockedDate({ isBlocked: false });
     setLoadingSlots(true);
     fetch(`/api/sport/fields/${fieldId}/availability?date=${selectedDate}`)
       .then((r) => r.json())
-      .then((data) => setBookedSlots(data.bookedSlots ?? {}))
+      .then((data) => {
+        setBookedSlots(data.bookedSlots ?? {});
+        if (data.isBlocked) setBlockedDate({ isBlocked: true, reason: data.blockedReason });
+      })
       .catch(() => setBookedSlots({}))
       .finally(() => setLoadingSlots(false));
   }, [fieldId, selectedDate]);
@@ -271,6 +276,11 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
 
         {loadingSlots ? (
           <TimeSlotSkeleton />
+        ) : blockedDate.isBlocked ? (
+          <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-center">
+            <p className="text-sm font-semibold text-red-600 dark:text-red-400">สนามปิดให้บริการในวันที่เลือก</p>
+            {blockedDate.reason && <p className="text-xs text-red-500 dark:text-red-400 mt-1">{blockedDate.reason}</p>}
+          </div>
         ) : (
           <TimeSlotGrid
             slots={slots}

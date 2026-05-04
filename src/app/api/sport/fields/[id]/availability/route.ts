@@ -16,6 +16,20 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const field = await prisma.field.findFirst({ where: { id: decodedId } });
   if (!field) return NextResponse.json({ error: 'Field not found' }, { status: 404 });
 
+  // Check if the date is blocked by admin
+  const blocked = await prisma.fieldBlockedDate.findFirst({
+    where: { fieldId: decodedId, date: dateObj },
+  });
+  if (blocked) {
+    return NextResponse.json({
+      bookedSlots: {},
+      openTime: field.openTime,
+      closeTime: field.closeTime,
+      isBlocked: true,
+      blockedReason: blocked.reason,
+    });
+  }
+
   const bookings = await prisma.booking.findMany({
     where: {
       fieldId: decodedId,
@@ -32,5 +46,5 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
   }
 
-  return NextResponse.json({ bookedSlots, openTime: field.openTime, closeTime: field.closeTime });
+  return NextResponse.json({ bookedSlots, openTime: field.openTime, closeTime: field.closeTime, isBlocked: false });
 }

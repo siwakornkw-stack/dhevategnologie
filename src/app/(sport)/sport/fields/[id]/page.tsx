@@ -55,6 +55,15 @@ export default async function FieldDetailPage({ params }: PageProps) {
               <span className="text-8xl">{emoji}</span>
             )}
           </div>
+          {field.images.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {field.images.map((url, idx) => (
+                <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
+                  <img src={url} alt={`${field.name} ${idx + 1}`} className="h-16 w-24 rounded-xl object-cover border border-gray-200 dark:border-gray-700/50 hover:opacity-90 transition" />
+                </a>
+              ))}
+            </div>
+          )}
 
           {/* Info Card */}
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700/50 p-5 space-y-4">

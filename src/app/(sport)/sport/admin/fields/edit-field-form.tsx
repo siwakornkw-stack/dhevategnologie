@@ -16,6 +16,7 @@ interface Field {
   description: string | null;
   facilities: string | null;
   imageUrl: string | null;
+  images: string[];
   openTime: string;
   closeTime: string;
   isActive: boolean;
@@ -26,6 +27,7 @@ export function EditFieldForm({ field }: { field: Field }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingExtra, setUploadingExtra] = useState(false);
   const [form, setFormState] = useState({
     name: field.name,
     sportType: field.sportType,
@@ -34,13 +36,38 @@ export function EditFieldForm({ field }: { field: Field }) {
     description: field.description ?? '',
     facilities: field.facilities ?? '',
     imageUrl: field.imageUrl ?? '',
+    images: field.images ?? [],
     openTime: field.openTime,
     closeTime: field.closeTime,
     isActive: field.isActive,
   });
 
-  function set(k: string, v: string | boolean) {
+  function set(k: string, v: string | boolean | string[]) {
     setFormState((f) => ({ ...f, [k]: v }));
+  }
+
+  async function handleExtraImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingExtra(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/sport/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      set('images', [...form.images, data.url]);
+      toast.success('อัปโหลดรูปสำเร็จ');
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setUploadingExtra(false);
+      e.target.value = '';
+    }
+  }
+
+  function removeExtraImage(idx: number) {
+    set('images', form.images.filter((_, i) => i !== idx));
   }
 
   function handleClose() { setOpen(false); }
@@ -159,6 +186,29 @@ export function EditFieldForm({ field }: { field: Field }) {
                     </label>
                   </div>
                   {form.imageUrl && <img src={form.imageUrl} alt="preview" className="mt-2 h-24 w-auto rounded-lg object-cover border border-gray-200 dark:border-gray-700" />}
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">รูปภาพเพิ่มเติม</label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {form.images.map((url, idx) => (
+                      <div key={idx} className="relative group">
+                        <img src={url} alt="" className="h-20 w-20 rounded-lg object-cover border border-gray-200 dark:border-gray-700" />
+                        <button
+                          type="button"
+                          onClick={() => removeExtraImage(idx)}
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                        >
+                          x
+                        </button>
+                      </div>
+                    ))}
+                    <label className={`h-20 w-20 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex flex-col items-center justify-center cursor-pointer hover:border-primary-400 transition text-gray-400 text-xs ${uploadingExtra ? 'opacity-50 pointer-events-none' : ''}`}>
+                      {uploadingExtra ? '...' : '+'}
+                      <span className="text-[10px] mt-0.5">{uploadingExtra ? 'กำลังอัป' : 'เพิ่มรูป'}</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={handleExtraImageUpload} disabled={uploadingExtra} />
+                    </label>
+                  </div>
                 </div>
 
                 <div className="sm:col-span-2">

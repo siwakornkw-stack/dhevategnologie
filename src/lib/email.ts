@@ -177,6 +177,31 @@ export async function sendBookingCancelledEmail(to: string, data: BookingEmailDa
   });
 }
 
+export async function sendBookingReminderEmail(to: string, data: BookingEmailData) {
+  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith('re_your')) return;
+  await sendEmail({
+    from: FROM,
+    to,
+    subject: `แจ้งเตือนการจองพรุ่งนี้: ${data.fieldName}`,
+    html: emailTemplate({
+      titleEn: 'Booking Reminder',
+      titleTh: 'แจ้งเตือนการจอง',
+      emoji: '⏰',
+      bodyEn: `
+        <p>Hi <strong>${escapeHtml(data.userName)}</strong>,</p>
+        <p>This is a reminder that you have a booking <strong>tomorrow</strong>.</p>
+        ${bookingDetails(data)}
+        <p>Please arrive at least 10 minutes before your slot.</p>
+      `,
+      bodyTh: `
+        <p>สวัสดีคุณ <strong>${escapeHtml(data.userName)}</strong></p>
+        <p>แจ้งเตือนว่าคุณมีการจองสนาม<strong>พรุ่งนี้</strong></p>
+        <p>กรุณามาถึงสนามก่อนเวลาอย่างน้อย 10 นาที</p>
+      `,
+    }),
+  });
+}
+
 export async function sendBookingRejectedEmail(to: string, data: BookingEmailData) {
   if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith('re_your')) return;
   await sendEmail({

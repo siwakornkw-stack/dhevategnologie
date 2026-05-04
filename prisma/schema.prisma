@@ -176,6 +176,7 @@ model Field {
   sportType    SportType
   pricePerHour Float
   imageUrl     String?
+  images       String[]  @default([])
   location     String?
   facilities   String?
   isActive     Boolean   @default(true)
@@ -189,6 +190,20 @@ model Field {
   bookings     Booking[]
   waitingLists WaitingList[]
   reviews      Review[]
+  blockedDates FieldBlockedDate[]
+}
+
+model FieldBlockedDate {
+  id        String   @id @default(cuid())
+  fieldId   String
+  date      DateTime
+  reason    String?
+  createdAt DateTime @default(now())
+
+  field Field @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@unique([fieldId, date])
+  @@index([fieldId])
 }
 
 model Booking {

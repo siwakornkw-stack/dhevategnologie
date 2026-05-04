@@ -44,6 +44,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       sportType: body.sportType,
       pricePerHour: body.pricePerHour ? Number(body.pricePerHour) : undefined,
       imageUrl: body.imageUrl,
+      images: Array.isArray(body.images) ? body.images.filter(Boolean) : undefined,
       location: body.location,
       facilities: body.facilities,
       openTime: body.openTime,
