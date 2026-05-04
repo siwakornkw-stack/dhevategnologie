@@ -59,7 +59,7 @@ export function PricingCard({ plan, billingPeriod }: Props) {
                 }
               )}
             >
-              {plan.cta}``
+              {plan.cta}
             </button>
           )}
         </div>

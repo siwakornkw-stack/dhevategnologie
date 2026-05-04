@@ -20,6 +20,11 @@ export async function POST(req: NextRequest) {
   const fieldExists = await prisma.field.findUnique({ where: { id: fieldId, isActive: true }, select: { id: true } });
   if (!fieldExists) return NextResponse.json({ error: 'ไม่พบสนามหรือสนามปิดให้บริการ' }, { status: 404 });
 
+  const startDateObj = new Date(startDate);
+  if (isNaN(startDateObj.getTime())) {
+    return NextResponse.json({ error: 'วันที่ไม่ถูกต้อง' }, { status: 400 });
+  }
+
   const numWeeks = Math.min(Math.max(parseInt(weeks, 10), 1), 52);
   const groupId = `rec-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
@@ -29,7 +34,7 @@ export async function POST(req: NextRequest) {
   const incomingSlots = expandTimeSlot(timeSlot);
 
   for (let i = 0; i < numWeeks; i++) {
-    const d = new Date(startDate);
+    const d = new Date(startDateObj);
     d.setDate(d.getDate() + i * 7);
 
     try {

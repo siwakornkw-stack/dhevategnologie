@@ -26,13 +26,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
+  if (couponCode && (typeof couponCode !== 'string' || couponCode.length > 50)) {
+    return NextResponse.json({ error: 'รูปแบบโค้ดส่วนลดไม่ถูกต้อง' }, { status: 400 });
+  }
+
   const bookingDate = new Date(date);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const maxDate = new Date(today);
   maxDate.setFullYear(today.getFullYear() + 1);
 
-  if (bookingDate < today || bookingDate > maxDate) {
+  if (isNaN(bookingDate.getTime()) || bookingDate < today || bookingDate > maxDate) {
     return NextResponse.json({ error: 'สามารถจองได้ล่วงหน้าสูงสุด 1 ปี' }, { status: 400 });
   }
 
@@ -186,7 +190,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url: '/sport/bookings', skipPayment: true });
   }
 
-  const baseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 
   try {
     const desc = [

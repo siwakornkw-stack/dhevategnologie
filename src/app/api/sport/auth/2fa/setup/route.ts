@@ -38,6 +38,10 @@ export async function POST(req: NextRequest) {
 
   const { code, action } = await req.json();
 
+  if (!code || typeof code !== 'string' || code.length < 4 || code.length > 10) {
+    return NextResponse.json({ error: 'รหัส 2FA ไม่ถูกต้อง' }, { status: 400 });
+  }
+
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: { twoFactorSecret: true, twoFactorEnabled: true },

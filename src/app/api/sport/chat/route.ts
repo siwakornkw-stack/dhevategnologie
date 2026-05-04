@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { rateLimit } from '@/lib/rate-limit';
+import { rateLimit, CHAT_RATE_LIMIT } from '@/lib/rate-limit';
 import { z } from 'zod';
 
-const CHAT_RATE_LIMIT = { limit: 30, windowMs: 60 * 1000 };
 
 const sendSchema = z.object({
   content: z.string().min(1).max(2000),

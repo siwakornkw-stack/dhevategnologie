@@ -11,10 +11,13 @@ import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import { signIn } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 type Inputs = z.infer<typeof authValidation.login>;
 
 export default function SignInForm() {
+  const router = useRouter();
   const form = useForm<Inputs>({
     resolver: zodResolver(authValidation.login),
     defaultValues: {
@@ -33,16 +36,20 @@ export default function SignInForm() {
 
   async function onSubmit(data: Inputs) {
     setIsLoading(true);
-
-    await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate API call
-
-    toast.success(
-      <pre>
-        <code>{JSON.stringify(data, null, 2)}</code>
-      </pre>
-    );
-
+    const res = await signIn('credentials', {
+      email: data.email,
+      password: data.password,
+      redirect: false,
+    });
     setIsLoading(false);
+
+    if (res?.error) {
+      toast.error('Invalid email or password');
+    } else {
+      toast.success('Signed in successfully');
+      router.push('/sport');
+      router.refresh();
+    }
   }
 
   return (

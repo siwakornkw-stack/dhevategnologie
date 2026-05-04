@@ -1,40 +1,24 @@
-'use client';
+import { prisma } from '@/lib/prisma';
+import ChatView from './_chat';
 
-import GeneratorInput from '@/components/generator/generator-input';
-import { RenderMessage } from '@/components/generator/render-message';
-import { GradientBlob } from '@/components/gradient-blob';
-import { useChat } from '@ai-sdk/react';
-import { createIdGenerator } from 'ai';
-import { useState } from 'react';
+export default async function Page({ params }: { params: Promise<{ chatId: string }> }) {
+  const { chatId } = await params;
 
-export default function Page() {
-  const [isThinking, setIsThinking] = useState(false);
-
-  const chatHandler = useChat({
-    generateId: createIdGenerator({ prefix: 'msgc' }),
-    sendExtraMessageFields: true,
-    onResponse: () => setIsThinking(false),
+  const session = await prisma.aiChatSession.findUnique({
+    where: { id: chatId },
+    include: {
+      messages: {
+        orderBy: { createdAt: 'asc' },
+        select: { id: true, role: true, content: true },
+      },
+    },
   });
 
-  return (
-    <div className="contents">
-      <RenderMessage useChat={chatHandler} isThinking={isThinking} />
+  const initialMessages = (session?.messages ?? []).map((m) => ({
+    id: m.id,
+    role: m.role as 'user' | 'assistant',
+    content: m.content,
+  }));
 
-      <div className="px-5 md:px-12">
-        <form
-          onSubmit={(e) => {
-            setIsThinking(true);
-            chatHandler.handleSubmit(e);
-          }}
-        >
-          <GeneratorInput
-            value={chatHandler.input}
-            onChange={chatHandler.handleInputChange}
-          />
-        </form>
-
-        <GradientBlob />
-      </div>
-    </div>
-  );
+  return <ChatView chatId={chatId} initialMessages={initialMessages} />;
 }

@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { rateLimit, AUTH_RATE_LIMIT } from '@/lib/rate-limit';
 
 const schema = z.object({
-  token: z.string().min(1),
+  token: z.string().min(1, 'Token ไม่ถูกต้อง'),
   password: z.string().min(6, 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'),
 });
 

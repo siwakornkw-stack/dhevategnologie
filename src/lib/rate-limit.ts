@@ -85,3 +85,5 @@ export const AUTH_RATE_LIMIT: RateLimitConfig = { limit: 5, windowMs: 15 * 60 * 
 export const UPLOAD_RATE_LIMIT: RateLimitConfig = { limit: 20, windowMs: 60 * 1000 };
 export const REVIEW_RATE_LIMIT: RateLimitConfig = { limit: 5, windowMs: 60 * 1000 };
 export const WAITING_LIST_RATE_LIMIT: RateLimitConfig = { limit: 10, windowMs: 60 * 1000 };
+export const AI_RATE_LIMIT: RateLimitConfig = { limit: 20, windowMs: 60 * 1000 };
+export const CHAT_RATE_LIMIT: RateLimitConfig = { limit: 30, windowMs: 60 * 1000 };

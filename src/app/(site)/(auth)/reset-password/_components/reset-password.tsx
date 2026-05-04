@@ -27,19 +27,21 @@ export default function ResetPasswordForm({ resetToken }: PropsType) {
 
   async function onSubmit(data: Inputs) {
     setIsLoading(true);
-
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate API call
-
-      toast.success(
-        <pre>
-          <code>{JSON.stringify({ data, resetToken }, null, 2)}</code>
-        </pre>
-      );
-
+      const res = await fetch('/api/sport/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: resetToken, password: data.newPassword }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error ?? 'Something went wrong');
+        return;
+      }
+      toast.success('Password reset successfully. You can now sign in.');
       form.reset();
-    } catch (error) {
-      console.error(error);
+    } catch {
+      toast.error('Network error. Please try again.');
     } finally {
       setIsLoading(false);
     }

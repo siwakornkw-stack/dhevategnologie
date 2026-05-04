@@ -9,7 +9,7 @@ import { randomBytes } from 'crypto';
 const schema = z.object({
   name: z.string().min(2, 'ชื่อต้องมีอย่างน้อย 2 ตัวอักษร'),
   email: z.string().email('อีเมลไม่ถูกต้อง'),
-  phone: z.string().regex(/^0[0-9]{8,9}$/, 'เบอร์โทรไม่ถูกต้อง (ตัวอย่าง: 0812345678)'),
+  phone: z.string().regex(/^0[0-9]{8,9}$/, 'เบอร์โทรไม่ถูกต้อง (ตัวอย่าง: 0812345678)').optional(),
   password: z.string().min(6, 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'),
   referralCode: z.string().optional(),
 });

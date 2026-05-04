@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import th from '../messages/th.json';
 import en from '../messages/en.json';
+import my from '../messages/my.json';
 import { LOCALES, DEFAULT_LOCALE } from './config';
 
 type Msg = Record<string, unknown>;
@@ -19,17 +20,22 @@ function collectKeys(obj: Msg, prefix = ''): string[] {
 }
 
 describe('i18n messages', () => {
-  it('th.json and en.json have the same keys', () => {
+  it('all locale files have the same keys as th.json', () => {
     const thKeys = new Set(collectKeys(th));
-    const enKeys = new Set(collectKeys(en));
-    const missingInEn = [...thKeys].filter((k) => !enKeys.has(k));
-    const missingInTh = [...enKeys].filter((k) => !thKeys.has(k));
-    expect({ missingInEn, missingInTh }).toEqual({ missingInEn: [], missingInTh: [] });
+    for (const [name, locale] of [['en', en], ['my', my]] as const) {
+      const localeKeys = new Set(collectKeys(locale as Msg));
+      const missing = [...thKeys].filter((k) => !localeKeys.has(k));
+      const extra = [...localeKeys].filter((k) => !thKeys.has(k));
+      expect({ [`missingIn_${name}`]: missing, [`extraIn_${name}`]: extra }).toEqual({
+        [`missingIn_${name}`]: [],
+        [`extraIn_${name}`]: [],
+      });
+    }
   });
 
   it('all message values are non-empty strings', () => {
-    for (const locale of [th, en]) {
-      for (const key of collectKeys(locale)) {
+    for (const locale of [th, en, my]) {
+      for (const key of collectKeys(locale as Msg)) {
         const value = key.split('.').reduce<unknown>((acc, k) => (acc as Msg)?.[k], locale);
         expect(typeof value).toBe('string');
         expect((value as string).length).toBeGreaterThan(0);
@@ -37,8 +43,8 @@ describe('i18n messages', () => {
     }
   });
 
-  it('config exposes both supported locales', () => {
-    expect(LOCALES).toEqual(['th', 'en']);
+  it('config exposes all supported locales', () => {
+    expect(LOCALES).toEqual(['th', 'en', 'my']);
     expect(LOCALES).toContain(DEFAULT_LOCALE);
   });
 });

@@ -4,27 +4,23 @@ import GeneratorInput from '@/components/generator/generator-input';
 import { RenderMessage } from '@/components/generator/render-message';
 import { GradientBlob } from '@/components/gradient-blob';
 import { useChat } from '@ai-sdk/react';
-import { createIdGenerator } from 'ai';
-import { useRouter } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { createIdGenerator, type Message } from 'ai';
+import { useState } from 'react';
 
-export default function Page() {
+type Props = {
+  chatId: string;
+  initialMessages: Message[];
+};
+
+export default function ChatView({ chatId, initialMessages }: Props) {
   const [isThinking, setIsThinking] = useState(false);
-  const chatId = useRef(crypto.randomUUID());
-  const navigated = useRef(false);
-  const router = useRouter();
 
   const chatHandler = useChat({
-    body: { chatId: chatId.current },
+    body: { chatId },
+    initialMessages,
     generateId: createIdGenerator({ prefix: 'msgc' }),
     sendExtraMessageFields: true,
-    onResponse: () => {
-      setIsThinking(false);
-      if (!navigated.current) {
-        navigated.current = true;
-        router.replace(`/text-generator/${chatId.current}`, { scroll: false } as Parameters<typeof router.replace>[1]);
-      }
-    },
+    onResponse: () => setIsThinking(false),
   });
 
   return (

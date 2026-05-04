@@ -20,7 +20,7 @@ export async function notifyWaitingList(fieldId: string, date: Date, timeSlot: s
   const resendEnabled =
     process.env.RESEND_API_KEY && !process.env.RESEND_API_KEY.startsWith('re_your');
 
-  const bookingUrl = `${process.env.NEXTAUTH_URL ?? 'http://localhost:3000'}/sport/fields/${fieldId}`;
+  const bookingUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/sport/fields/${fieldId}`;
   const dateStr = date.toLocaleDateString('th-TH');
   const fieldName = entries[0].field.name;
 

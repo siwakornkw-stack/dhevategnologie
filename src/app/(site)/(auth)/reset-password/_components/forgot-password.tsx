@@ -27,19 +27,21 @@ export default function ForgotPasswordForm({ invalidToken }: PropsType) {
 
   async function onSubmit(data: Inputs) {
     setIsLoading(true);
-
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate API call
-
-      toast.success(
-        <pre>
-          <code>{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      );
-
+      const res = await fetch('/api/sport/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: data.email }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error ?? 'Something went wrong');
+        return;
+      }
+      toast.success('If that email is registered, a reset link has been sent.');
       form.reset();
-    } catch (error) {
-      console.error(error);
+    } catch {
+      toast.error('Network error. Please try again.');
     } finally {
       setIsLoading(false);
     }

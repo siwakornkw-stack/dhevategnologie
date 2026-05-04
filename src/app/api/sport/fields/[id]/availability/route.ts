@@ -10,13 +10,16 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   if (!date) return NextResponse.json({ error: 'date required' }, { status: 400 });
 
+  const dateObj = new Date(date);
+  if (isNaN(dateObj.getTime())) return NextResponse.json({ error: 'Invalid date' }, { status: 400 });
+
   const field = await prisma.field.findFirst({ where: { id: decodedId } });
   if (!field) return NextResponse.json({ error: 'Field not found' }, { status: 404 });
 
   const bookings = await prisma.booking.findMany({
     where: {
       fieldId: decodedId,
-      date: new Date(date),
+      date: dateObj,
       status: { in: ['PENDING', 'APPROVED'] },
     },
     select: { timeSlot: true, status: true },

@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
   const maxDate = new Date(today);
   maxDate.setFullYear(today.getFullYear() + 1);
 
-  if (bookingDate < today || bookingDate > maxDate) {
+  if (isNaN(bookingDate.getTime()) || bookingDate < today || bookingDate > maxDate) {
     return NextResponse.json({ error: 'วันที่ไม่ถูกต้อง' }, { status: 400 });
   }
 

@@ -20,9 +20,14 @@ export async function GET(req: NextRequest) {
 
   if (from || to) {
     const dateFilter: Prisma.DateTimeFilter = {};
-    if (from) dateFilter.gte = new Date(from);
+    if (from) {
+      const fromDate = new Date(from);
+      if (isNaN(fromDate.getTime())) return NextResponse.json({ error: 'Invalid from date' }, { status: 400 });
+      dateFilter.gte = fromDate;
+    }
     if (to) {
       const toDate = new Date(to);
+      if (isNaN(toDate.getTime())) return NextResponse.json({ error: 'Invalid to date' }, { status: 400 });
       toDate.setHours(23, 59, 59, 999);
       dateFilter.lte = toDate;
     }

@@ -10,9 +10,12 @@ export async function POST(req: NextRequest) {
 
   if (!sig) return NextResponse.json({ error: 'No signature' }, { status: 400 });
 
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 });
+
   let event: ReturnType<typeof stripe.webhooks.constructEvent>;
   try {
-    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+    event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
   } catch {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
@@ -106,6 +109,43 @@ export async function POST(req: NextRequest) {
           );
         }
         if (tasks.length > 0) await Promise.allSettled(tasks);
+      }
+    }
+  }
+
+  if (event.type === 'charge.refunded') {
+    const charge = event.data.object;
+    const paymentIntentId = typeof charge.payment_intent === 'string' ? charge.payment_intent : null;
+    if (paymentIntentId) {
+      const booking = await prisma.booking.findFirst({
+        where: { stripePaymentIntentId: paymentIntentId },
+        select: { id: true, userId: true, couponCode: true, pointsRedeemed: true, status: true },
+      });
+
+      if (booking) {
+        // Atomic status transition - prevents double-processing on concurrent webhooks
+        const updated = await prisma.booking.updateMany({
+          where: { id: booking.id, status: { not: 'CANCELLED' } },
+          data: { status: 'CANCELLED' },
+        });
+
+        if (updated.count > 0) {
+          const tasks: Promise<unknown>[] = [];
+          if (booking.couponCode) {
+            tasks.push(
+              prisma.coupon.update({ where: { code: booking.couponCode }, data: { usedCount: { decrement: 1 } } }).catch(() => {}),
+            );
+          }
+          if (booking.pointsRedeemed && booking.pointsRedeemed > 0) {
+            tasks.push(
+              prisma.user.update({ where: { id: booking.userId }, data: { points: { increment: booking.pointsRedeemed } } }),
+              prisma.pointTransaction.create({
+                data: { userId: booking.userId, points: booking.pointsRedeemed, type: 'EARN', bookingId: booking.id, note: 'คืนแต้มเนื่องจากการคืนเงิน' },
+              }),
+            );
+          }
+          if (tasks.length > 0) await Promise.allSettled(tasks);
+        }
       }
     }
   }

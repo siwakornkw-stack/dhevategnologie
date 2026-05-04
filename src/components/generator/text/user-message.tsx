@@ -33,8 +33,8 @@ export default function UserMessage({
 
     try {
       await onEdit(value, { isSubmitting });
-    } catch (error) {
-      console.error('Error while editing message:', error);
+    } catch {
+      // onEdit handles its own error state
     } finally {
       setIsSubmitting(false);
       setShowEditInput(false);

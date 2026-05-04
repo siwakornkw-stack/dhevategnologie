@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = req.nextUrl;
   const q = searchParams.get('q') ?? '';
-  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
+  const page = Math.min(1000, Math.max(1, parseInt(searchParams.get('page') ?? '1', 10)));
   const PAGE_SIZE = 20;
 
   const where = q

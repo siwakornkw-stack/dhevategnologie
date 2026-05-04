@@ -38,8 +38,10 @@ export async function POST(req: NextRequest) {
   if (maxUses !== undefined && maxUses !== null && Number(maxUses) < 1) {
     return NextResponse.json({ error: 'จำนวนครั้งที่ใช้ได้ต้องมากกว่า 0' }, { status: 400 });
   }
-  if (expiresAt && new Date(expiresAt) <= new Date()) {
-    return NextResponse.json({ error: 'วันหมดอายุต้องเป็นวันในอนาคต' }, { status: 400 });
+  if (expiresAt) {
+    const expiresDate = new Date(expiresAt);
+    if (isNaN(expiresDate.getTime())) return NextResponse.json({ error: 'วันหมดอายุไม่ถูกต้อง' }, { status: 400 });
+    if (expiresDate <= new Date()) return NextResponse.json({ error: 'วันหมดอายุต้องเป็นวันในอนาคต' }, { status: 400 });
   }
 
   try {

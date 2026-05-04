@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
   }
 
   const parsedDate = new Date(date);
+  if (isNaN(parsedDate.getTime())) return NextResponse.json({ error: 'Invalid date' }, { status: 400 });
   const [myEntry, count] = await Promise.all([
     prisma.waitingList.findUnique({
       where: { fieldId_date_timeSlot_userId: { fieldId, date: parsedDate, timeSlot, userId: session.user.id } },
@@ -45,10 +46,12 @@ export async function POST(req: NextRequest) {
   if (!fieldId || !date || !timeSlot) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
+  const postDate = new Date(date);
+  if (isNaN(postDate.getTime())) return NextResponse.json({ error: 'Invalid date' }, { status: 400 });
 
   try {
     const entry = await prisma.waitingList.create({
-      data: { userId: session.user.id, fieldId, date: new Date(date), timeSlot },
+      data: { userId: session.user.id, fieldId, date: postDate, timeSlot },
     });
     return NextResponse.json(entry, { status: 201 });
   } catch (e) {
@@ -64,9 +67,16 @@ export async function DELETE(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { fieldId, date, timeSlot } = await req.json();
+  if (!fieldId || !date || !timeSlot) {
+    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+  }
+  const parsedDate = new Date(date);
+  if (isNaN(parsedDate.getTime())) {
+    return NextResponse.json({ error: 'Invalid date' }, { status: 400 });
+  }
 
   await prisma.waitingList.deleteMany({
-    where: { userId: session.user.id, fieldId, date: new Date(date), timeSlot },
+    where: { userId: session.user.id, fieldId, date: parsedDate, timeSlot },
   });
 
   return NextResponse.json({ ok: true });

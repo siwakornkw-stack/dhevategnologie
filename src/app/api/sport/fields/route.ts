@@ -5,10 +5,15 @@ import { SportType } from '@prisma/client';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const sport = searchParams.get('sport') as SportType | null;
-  const minPrice = searchParams.get('minPrice');
-  const maxPrice = searchParams.get('maxPrice');
+  const sportParam = searchParams.get('sport');
+  const validSports = Object.values(SportType);
+  const sport = sportParam && validSports.includes(sportParam as SportType) ? (sportParam as SportType) : null;
+  const minPriceRaw = searchParams.get('minPrice');
+  const maxPriceRaw = searchParams.get('maxPrice');
   const search = searchParams.get('search');
+
+  const minPrice = minPriceRaw !== null && !isNaN(Number(minPriceRaw)) ? Number(minPriceRaw) : null;
+  const maxPrice = maxPriceRaw !== null && !isNaN(Number(maxPriceRaw)) ? Number(maxPriceRaw) : null;
 
   const fields = await prisma.field.findMany({
     where: {
@@ -20,11 +25,11 @@ export async function GET(req: NextRequest) {
           { location: { contains: search } },
         ],
       }),
-      ...(minPrice || maxPrice
+      ...(minPrice !== null || maxPrice !== null
         ? {
             pricePerHour: {
-              ...(minPrice ? { gte: Number(minPrice) } : {}),
-              ...(maxPrice ? { lte: Number(maxPrice) } : {}),
+              ...(minPrice !== null ? { gte: minPrice } : {}),
+              ...(maxPrice !== null ? { lte: maxPrice } : {}),
             },
           }
         : {}),
