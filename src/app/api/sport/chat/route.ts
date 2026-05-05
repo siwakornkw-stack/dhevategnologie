@@ -82,5 +82,32 @@ export async function POST(req: NextRequest) {
     data: { lastMessageAt: new Date() },
   });
 
+  // Notify admins on incoming user message (fire-and-forget, rate-limited to 1 per 2 min)
+  if (!isAdmin) {
+    const senderName = session.user.name ?? 'ลูกค้า';
+    const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000);
+    prisma.user.findMany({ where: { role: 'ADMIN' }, select: { id: true } }).then((admins) =>
+      Promise.allSettled(
+        admins.map(async (admin) => {
+          const recent = await prisma.notification.findFirst({
+            where: { userId: admin.id, type: 'CHAT_MESSAGE', isRead: false, createdAt: { gte: twoMinAgo } },
+            select: { id: true },
+          });
+          if (!recent) {
+            return prisma.notification.create({
+              data: {
+                userId: admin.id,
+                type: 'CHAT_MESSAGE',
+                title: 'ข้อความใหม่จากลูกค้า',
+                message: `${senderName}: ${parsed.data.content.slice(0, 60)}`,
+                link: '/sport/admin/chat',
+              },
+            });
+          }
+        })
+      )
+    ).catch(() => {});
+  }
+
   return NextResponse.json(message);
 }

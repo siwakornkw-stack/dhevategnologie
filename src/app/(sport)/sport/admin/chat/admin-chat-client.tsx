@@ -33,6 +33,19 @@ export function AdminChatClient({ currentUserId }: { currentUserId: string }) {
     }
   }
 
+  function selectConversation(userId: string) {
+    setSelectedUserId(userId);
+    setShowListMobile(false);
+    setConversations((prev) =>
+      prev.map((c) => (c.userId === userId ? { ...c, unreadCount: 0 } : c))
+    );
+    fetch('/api/sport/admin/chat', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    }).catch(() => {});
+  }
+
   useEffect(() => {
     loadList();
     const interval = setInterval(loadList, 10000);
@@ -41,9 +54,9 @@ export function AdminChatClient({ currentUserId }: { currentUserId: string }) {
 
   useEffect(() => {
     if (!selectedUserId && conversations.length > 0) {
-      setSelectedUserId(conversations[0].userId);
+      selectConversation(conversations[0].userId);
     }
-  }, [conversations, selectedUserId]);
+  }, [conversations, selectedUserId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const selected = conversations.find((c) => c.userId === selectedUserId);
 
@@ -72,7 +85,7 @@ export function AdminChatClient({ currentUserId }: { currentUserId: string }) {
                 return (
                   <li key={c.id}>
                     <button
-                      onClick={() => { setSelectedUserId(c.userId); setShowListMobile(false); }}
+                      onClick={() => selectConversation(c.userId)}
                       className={`w-full text-left px-4 py-3 flex items-center gap-3 transition ${
                         isSel ? 'bg-primary-50 dark:bg-primary-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-800'
                       }`}
