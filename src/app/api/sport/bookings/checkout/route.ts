@@ -117,10 +117,12 @@ export async function POST(req: NextRequest) {
       });
     });
   } catch (e: unknown) {
-    if (e && typeof e === 'object' && 'isCouponInvalid' in e) {
-      return NextResponse.json({ error: 'คูปองนี้ไม่สามารถใช้ได้หรือหมดอายุแล้ว' }, { status: 400 });
+    if (e && typeof e === 'object') {
+      if ('isCouponInvalid' in e) return NextResponse.json({ error: 'คูปองนี้ไม่สามารถใช้ได้หรือหมดอายุแล้ว' }, { status: 400 });
+      if ('isConflict' in e) return NextResponse.json({ error: 'ช่วงเวลานี้ถูกจองแล้ว' }, { status: 409 });
     }
-    return NextResponse.json({ error: 'ช่วงเวลานี้ถูกจองแล้ว' }, { status: 409 });
+    console.error('[checkout] transaction error:', e);
+    return NextResponse.json({ error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' }, { status: 500 });
   }
 
   // Deduct redeemed points and increment coupon usage after booking is confirmed

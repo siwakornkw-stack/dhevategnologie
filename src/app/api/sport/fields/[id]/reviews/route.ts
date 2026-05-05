@@ -41,6 +41,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
   }
 
+  const existing = await prisma.review.findUnique({
+    where: { userId_fieldId: { userId: session.user.id, fieldId } },
+    select: { id: true },
+  });
+
   const review = await prisma.review.upsert({
     where: { userId_fieldId: { userId: session.user.id, fieldId } },
     create: { userId: session.user.id, fieldId, ...parsed.data },
@@ -48,5 +53,5 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     include: { user: { select: { name: true, image: true } } },
   });
 
-  return NextResponse.json(review);
+  return NextResponse.json(review, { status: existing ? 200 : 201 });
 }

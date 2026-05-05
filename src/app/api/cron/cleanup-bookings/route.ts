@@ -14,13 +14,18 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const cutoff = new Date(Date.now() - 2 * 60 * 60 * 1000); // 2 hours ago
+  const stripeCutoff = new Date(Date.now() - 2 * 60 * 60 * 1000); // 2 hours ago
+  const manualCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago
 
   const toCancel = await prisma.booking.findMany({
     where: {
       status: 'PENDING',
-      stripeSessionId: { not: null },
-      createdAt: { lt: cutoff },
+      OR: [
+        // Stripe checkout sessions older than 2 hours
+        { stripeSessionId: { not: null }, createdAt: { lt: stripeCutoff } },
+        // Non-Stripe (free/manual) pending bookings older than 24 hours
+        { stripeSessionId: null, createdAt: { lt: manualCutoff } },
+      ],
     },
     select: { id: true, couponCode: true, pointsRedeemed: true, userId: true, fieldId: true, date: true, timeSlot: true },
   });

@@ -9,7 +9,7 @@ function parseTimeSlot(timeSlot: string): { startHour: number; hours: number } {
   const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + (m || 0); };
   const startMin = toMin(parts[0]);
   const endMin = toMin(parts[1]);
-  const hours = Math.max(0.5, (endMin - startMin) / 60);
+  const hours = Math.max(0, (endMin - startMin) / 60);
   return { startHour: Math.floor(startMin / 60), hours: isNaN(hours) ? 1 : hours };
 }
 

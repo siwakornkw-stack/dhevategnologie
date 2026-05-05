@@ -55,5 +55,9 @@ export async function PATCH(req: NextRequest) {
     select: { id: true, role: true },
   });
 
+  prisma.auditLog.create({
+    data: { adminId: session.user.id, action: 'USER_ROLE_CHANGED', targetId: userId, details: { role } },
+  }).catch(() => {});
+
   return NextResponse.json(user);
 }

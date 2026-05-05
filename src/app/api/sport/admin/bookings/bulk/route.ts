@@ -35,6 +35,9 @@ export async function POST(req: NextRequest) {
 
   if (status === 'APPROVED') {
     const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + (m || 0); };
+    prisma.auditLog.create({
+      data: { adminId: session.user.id, action: 'BOOKINGS_APPROVED', details: { ids: bookings.map((b) => b.id) } },
+    }).catch(() => {});
 
     // Check which users have prior approved bookings (for referral bonus)
     const userIds = [...new Set(bookings.map((b) => b.userId))];
@@ -50,7 +53,7 @@ export async function POST(req: NextRequest) {
     await Promise.all(
       bookings.map(async (booking) => {
         const [s, e] = booking.timeSlot.split('-');
-        const hrs = Math.max(0.5, (toMin(e) - toMin(s)) / 60);
+        const hrs = Math.max(0, (toMin(e) - toMin(s)) / 60);
         const paidAmount = Math.max(0, booking.field.pricePerHour * hrs - (booking.discountAmount ?? 0));
         const pointsEarned = Math.floor(paidAmount / 10);
 
@@ -128,6 +131,9 @@ export async function POST(req: NextRequest) {
     );
   } else {
     // REJECTED — send notifications and refund if paid
+    prisma.auditLog.create({
+      data: { adminId: session.user.id, action: 'BOOKINGS_REJECTED', details: { ids: bookings.map((b) => b.id) } },
+    }).catch(() => {});
     const stripeEnabled = process.env.STRIPE_SECRET_KEY && !process.env.STRIPE_SECRET_KEY.startsWith('sk_test_your');
 
     await Promise.all(

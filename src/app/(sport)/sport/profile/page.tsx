@@ -25,7 +25,6 @@ interface Profile {
   emailVerified: string | null;
   points: number;
   notifEmail: boolean;
-  notifLine: boolean;
   notifInApp: boolean;
   twoFactorEnabled: boolean;
   referralCode: string | null;
@@ -43,8 +42,10 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState('');
   const [saving, setSaving] = useState(false);
   const [notifEmail, setNotifEmail] = useState(true);
-  const [notifLine, setNotifLine] = useState(true);
   const [notifInApp, setNotifInApp] = useState(true);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [referralData, setReferralData] = useState<{ referralCode: string; referralLink: string; referralCount: number } | null>(null);
   const [copied, setCopied] = useState(false);
   const [pointsTxns, setPointsTxns] = useState<PointTransaction[]>([]);
@@ -63,7 +64,6 @@ export default function ProfilePage() {
         setPhone(data.phone ?? '');
         setImageUrl(data.image ?? null);
         setNotifEmail(data.notifEmail ?? true);
-        setNotifLine(data.notifLine ?? true);
         setNotifInApp(data.notifInApp ?? true);
       })
       .catch(() => toast.error('ไม่สามารถโหลดข้อมูลโปรไฟล์ได้'));
@@ -109,7 +109,7 @@ export default function ProfilePage() {
     e.preventDefault();
     setSaving(true);
     try {
-      const body: Record<string, unknown> = { name, phone, notifEmail, notifLine, notifInApp };
+      const body: Record<string, unknown> = { name, phone, notifEmail, notifInApp };
       if (currentPassword && newPassword) { body.currentPassword = currentPassword; body.newPassword = newPassword; }
 
       const res = await fetch('/api/sport/profile', {
@@ -120,7 +120,7 @@ export default function ProfilePage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      setProfile((p) => p ? { ...p, name: data.name, phone: data.phone, notifEmail, notifLine, notifInApp } : p);
+      setProfile((p) => p ? { ...p, name: data.name, phone: data.phone, notifEmail, notifInApp } : p);
       setCurrentPassword('');
       setNewPassword('');
       toast.success(t('edit.saveSuccess'));
@@ -129,6 +129,25 @@ export default function ProfilePage() {
       toast.error((err as Error).message);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    setDeleting(true);
+    try {
+      const res = await fetch('/api/sport/profile', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: deletePassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('ลบบัญชีสำเร็จ');
+      router.push('/sport/auth/signin');
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -271,7 +290,6 @@ export default function ProfilePage() {
         <div className="space-y-3">
           {[
             { key: 'notifEmail', label: t('notifSection.email'), value: notifEmail, set: setNotifEmail },
-            { key: 'notifLine', label: t('notifSection.line'), value: notifLine, set: setNotifLine },
             { key: 'notifInApp', label: t('notifSection.inApp'), value: notifInApp, set: setNotifInApp },
           ].map(({ key, label, value, set }) => (
             <div key={key} className="flex items-center justify-between">
@@ -354,6 +372,51 @@ export default function ProfilePage() {
             <span className="text-gray-400">→</span>
           </div>
         </a>
+      </div>
+
+      {/* Delete Account */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-red-200 dark:border-red-900/40 p-6 space-y-4">
+        <h2 className="font-semibold text-red-600 dark:text-red-400">ลบบัญชี</h2>
+        {!showDeleteConfirm ? (
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-500 dark:text-gray-400">ลบบัญชีและข้อมูลทั้งหมดอย่างถาวร</p>
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(true)}
+              className="px-4 py-2 rounded-xl border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition"
+            >
+              ลบบัญชี
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-red-600 dark:text-red-400 font-medium">การดำเนินการนี้ไม่สามารถย้อนกลับได้ กรุณากรอกรหัสผ่านเพื่อยืนยัน</p>
+            <input
+              className={inputCls}
+              type="password"
+              placeholder="รหัสผ่านปัจจุบัน"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => { setShowDeleteConfirm(false); setDeletePassword(''); }}
+                className="flex-1 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={deleting || !deletePassword}
+                className="flex-1 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition disabled:opacity-60"
+              >
+                {deleting ? 'กำลังลบ...' : 'ยืนยันลบบัญชี'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
 
   const csvRows = bookings.map((b) => {
     const [s, e] = b.timeSlot.split('-');
-    const hours = s && e ? Math.max(0.5, (toMin(e) - toMin(s)) / 60) : 1;
+    const hours = s && e ? Math.max(0, (toMin(e) - toMin(s)) / 60) : 0;
     const fullPrice = b.field.pricePerHour * hours;
     const discount = b.discountAmount ?? 0;
     const netAmount = Math.max(0, fullPrice - discount);

@@ -10,7 +10,10 @@ const schema = z.object({
   name: z.string().min(2, 'ชื่อต้องมีอย่างน้อย 2 ตัวอักษร'),
   email: z.string().email('อีเมลไม่ถูกต้อง'),
   phone: z.string().regex(/^0[0-9]{8,9}$/, 'เบอร์โทรไม่ถูกต้อง (ตัวอย่าง: 0812345678)').optional(),
-  password: z.string().min(6, 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'),
+  password: z.string()
+    .min(8, 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร')
+    .regex(/[A-Za-z]/, 'รหัสผ่านต้องมีตัวอักษร')
+    .regex(/[0-9]/, 'รหัสผ่านต้องมีตัวเลข'),
   referralCode: z.string().optional(),
 });
 
@@ -40,7 +43,8 @@ export async function POST(req: NextRequest) {
 
     const exists = await prisma.user.findUnique({ where: { email } });
     if (exists) {
-      return NextResponse.json({ error: 'อีเมลนี้ถูกใช้แล้ว' }, { status: 409 });
+      // Generic message to prevent email enumeration
+      return NextResponse.json({ error: 'ไม่สามารถสมัครสมาชิกด้วยข้อมูลนี้ได้' }, { status: 409 });
     }
 
     // Resolve referrer
@@ -56,9 +60,11 @@ export async function POST(req: NextRequest) {
     // Generate unique referral code for new user
     let newCode = makeReferralCode();
     let codeExists = await prisma.user.findFirst({ where: { referralCode: newCode } });
-    while (codeExists) {
+    let attempts = 0;
+    while (codeExists && attempts < 10) {
       newCode = makeReferralCode();
       codeExists = await prisma.user.findFirst({ where: { referralCode: newCode } });
+      attempts++;
     }
 
     const hashed = await bcrypt.hash(password, 12);
@@ -74,9 +80,7 @@ export async function POST(req: NextRequest) {
     sendVerificationEmail(email, token).catch(() => {});
 
     return NextResponse.json(user, { status: 201 });
-  } catch (err) {
-    console.error('[register]', err);
-    const message = err instanceof Error ? err.message : 'เกิดข้อผิดพลาดภายในระบบ';
-    return NextResponse.json({ error: message }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: 'เกิดข้อผิดพลาดภายในระบบ กรุณาลองใหม่' }, { status: 500 });
   }
 }

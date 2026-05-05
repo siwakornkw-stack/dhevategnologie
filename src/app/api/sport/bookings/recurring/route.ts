@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 
   for (let i = 0; i < numWeeks; i++) {
     const d = new Date(startDateObj);
-    d.setDate(d.getDate() + i * 7);
+    d.setUTCDate(d.getUTCDate() + i * 7);
 
     try {
       const existing = await prisma.booking.findMany({

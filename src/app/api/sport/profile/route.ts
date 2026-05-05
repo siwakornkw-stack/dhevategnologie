@@ -3,15 +3,21 @@ import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
+import { rateLimit } from '@/lib/rate-limit';
+
+const PROFILE_RATE_LIMIT = { limit: 10, windowMs: 15 * 60 * 1000 };
 
 const schema = z.object({
   name: z.string().min(1).max(100).optional(),
   phone: z.string().max(20).optional(),
   image: z.string().url().optional(),
   currentPassword: z.string().optional(),
-  newPassword: z.string().min(6).optional(),
+  newPassword: z.string()
+    .min(8, 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร')
+    .regex(/[A-Za-z]/, 'รหัสผ่านต้องมีตัวอักษร')
+    .regex(/[0-9]/, 'รหัสผ่านต้องมีตัวเลข')
+    .optional(),
   notifEmail: z.boolean().optional(),
-  notifLine: z.boolean().optional(),
   notifInApp: z.boolean().optional(),
 });
 
@@ -24,11 +30,12 @@ export async function GET() {
     select: {
       id: true, name: true, email: true, phone: true, image: true, role: true,
       createdAt: true, emailVerified: true, points: true,
-      notifEmail: true, notifLine: true, notifInApp: true,
+      notifEmail: true, notifInApp: true,
       twoFactorEnabled: true, referralCode: true,
     },
   });
 
+  if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json(user);
 }
 
@@ -36,18 +43,21 @@ export async function PUT(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  const ip = req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? 'unknown';
+  const rl = await rateLimit(`profile:${session.user.id}:${ip}`, PROFILE_RATE_LIMIT);
+  if (!rl.success) return NextResponse.json({ error: 'คุณส่งคำขอมากเกินไป' }, { status: 429 });
+
   const body = await req.json();
   const parsed = schema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: 'ข้อมูลไม่ถูกต้อง' }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
 
-  const { name, phone, image, currentPassword, newPassword, notifEmail, notifLine, notifInApp } = parsed.data;
+  const { name, phone, image, currentPassword, newPassword, notifEmail, notifInApp } = parsed.data;
   const updateData: Record<string, unknown> = {};
 
   if (name !== undefined) updateData.name = name;
   if (phone !== undefined) updateData.phone = phone;
   if (image !== undefined) updateData.image = image;
   if (notifEmail !== undefined) updateData.notifEmail = notifEmail;
-  if (notifLine !== undefined) updateData.notifLine = notifLine;
   if (notifInApp !== undefined) updateData.notifInApp = notifInApp;
 
   if (newPassword) {
@@ -66,4 +76,30 @@ export async function PUT(req: NextRequest) {
   });
 
   return NextResponse.json(updated);
+}
+
+export async function DELETE(req: NextRequest) {
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const ip = req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? 'unknown';
+  const rl = await rateLimit(`delete-account:${session.user.id}:${ip}`, { limit: 3, windowMs: 60 * 60 * 1000 });
+  if (!rl.success) return NextResponse.json({ error: 'คุณส่งคำขอมากเกินไป' }, { status: 429 });
+
+  const { password } = await req.json().catch(() => ({}));
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { password: true },
+  });
+  if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  if (user.password) {
+    if (!password) return NextResponse.json({ error: 'กรุณากรอกรหัสผ่านเพื่อยืนยัน' }, { status: 400 });
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) return NextResponse.json({ error: 'รหัสผ่านไม่ถูกต้อง' }, { status: 400 });
+  }
+
+  await prisma.user.delete({ where: { id: session.user.id } });
+  return NextResponse.json({ ok: true });
 }

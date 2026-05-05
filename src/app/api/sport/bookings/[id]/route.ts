@@ -89,7 +89,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       data: { status },
       include: {
         field: { select: { name: true, pricePerHour: true } },
-        user: { select: { name: true, email: true, notifEmail: true, notifLine: true, notifInApp: true, referredById: true } },
+        user: { select: { name: true, email: true, notifEmail: true, notifInApp: true, referredById: true } },
       },
     });
 
@@ -166,7 +166,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   if (status === 'APPROVED') {
     if (updated.user.notifEmail) notifTasks.push(sendBookingApprovedEmail(updated.user.email, emailData).catch(() => {}));
-    if (updated.user.notifLine) notifTasks.push(notifyLineBookingStatus('APPROVED', emailData).catch(() => {}));
+    notifTasks.push(notifyLineBookingStatus('APPROVED', emailData).catch(() => {}));
     if (updated.user.notifInApp) {
       notifTasks.push(
         prisma.notification.create({
@@ -177,7 +177,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
   } else if (status === 'REJECTED') {
     if (updated.user.notifEmail) notifTasks.push(sendBookingRejectedEmail(updated.user.email, emailData).catch(() => {}));
-    if (updated.user.notifLine) notifTasks.push(notifyLineBookingStatus('REJECTED', emailData).catch(() => {}));
+    notifTasks.push(notifyLineBookingStatus('REJECTED', emailData).catch(() => {}));
     if (updated.user.notifInApp) {
       notifTasks.push(
         prisma.notification.create({
