@@ -34,7 +34,7 @@ export default async function VerifyEmailPage({ searchParams }: PageProps) {
     }),
   ]);
 
-  redirect('/sport/auth/signin?verified=1');
+  redirect('/sport/auth/email-verified');
 }
 
 function VerifyResult({ error, expired }: { error: string; expired?: boolean }) {

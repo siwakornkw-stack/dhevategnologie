@@ -64,13 +64,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   callbacks: {
     ...authConfig.callbacks,
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id;
         token.role = (user as { role?: string }).role;
         token.emailVerified = (user as { emailVerified?: Date | null }).emailVerified ?? null;
         token.refreshedAt = Date.now();
         token.issuedAt = Date.now();
+        return token;
+      }
+      // Force immediate DB refresh when session is explicitly updated (e.g. after email verification)
+      if (trigger === 'update' && token.id) {
+        const fresh = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { role: true, emailVerified: true, passwordChangedAt: true },
+        });
+        if (fresh) {
+          token.role = fresh.role;
+          token.emailVerified = fresh.emailVerified;
+          token.refreshedAt = Date.now();
+        }
         return token;
       }
       // Refresh role and emailVerified from DB once per hour to pick up permission changes

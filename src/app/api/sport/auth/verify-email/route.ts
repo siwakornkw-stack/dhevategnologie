@@ -19,5 +19,5 @@ export async function GET(req: NextRequest) {
     prisma.verificationToken.delete({ where: { identifier_token: { identifier: record.identifier, token } } }),
   ]);
 
-  return NextResponse.redirect(new URL('/sport/auth/signin?verified=1', req.nextUrl.origin));
+  return NextResponse.redirect(new URL('/sport/auth/email-verified', req.nextUrl.origin));
 }
