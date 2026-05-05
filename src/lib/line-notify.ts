@@ -37,3 +37,9 @@ export async function notifyLineBookingStatus(status: 'APPROVED' | 'REJECTED', d
     `\n${icon} การจอง${label}\nลูกค้า: ${data.userName}\nสนาม: ${data.fieldName}\nวันที่: ${data.date}\nเวลา: ${data.timeSlot} น.`,
   );
 }
+
+export async function notifyLineBulkStatus(status: 'APPROVED' | 'REJECTED', count: number) {
+  const icon = status === 'APPROVED' ? '✅' : '❌';
+  const label = status === 'APPROVED' ? 'อนุมัติ' : 'ปฏิเสธ';
+  await sendLine(`\n${icon} ${label}การจอง ${count} รายการ`);
+}

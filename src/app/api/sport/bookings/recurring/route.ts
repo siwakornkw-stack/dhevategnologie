@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { rateLimit, BOOKING_RATE_LIMIT } from '@/lib/rate-limit';
@@ -10,6 +11,10 @@ export async function POST(req: NextRequest) {
 
   const rl = await rateLimit(`recurring:${session.user.id}`, BOOKING_RATE_LIMIT);
   if (!rl.success) return NextResponse.json({ error: 'คุณจองบ่อยเกินไป กรุณารอสักครู่' }, { status: 429 });
+
+  if (!session.user.emailVerified) {
+    return NextResponse.json({ error: 'กรุณายืนยันอีเมลก่อนทำการจอง' }, { status: 403 });
+  }
 
   const { fieldId, startDate, timeSlot, weeks, note } = await req.json();
 
@@ -38,27 +43,30 @@ export async function POST(req: NextRequest) {
     d.setUTCDate(d.getUTCDate() + i * 7);
 
     try {
-      const existing = await prisma.booking.findMany({
-        where: { fieldId, date: d, status: { in: ['PENDING', 'APPROVED'] } },
-        select: { timeSlot: true },
-      });
-      const takenSlots = new Set(existing.flatMap((b) => expandTimeSlot(b.timeSlot)));
-      if (incomingSlots.some((s) => takenSlots.has(s))) {
-        errors.push(d.toLocaleDateString('th-TH'));
-        continue;
-      }
-
-      const booking = await prisma.booking.create({
-        data: {
-          userId: session.user.id,
-          fieldId,
-          date: d,
-          timeSlot,
-          note,
-          isRecurring: true,
-          recurringGroupId: groupId,
+      const booking = await prisma.$transaction(
+        async (tx) => {
+          const existing = await tx.booking.findMany({
+            where: { fieldId, date: d, status: { in: ['PENDING', 'APPROVED'] } },
+            select: { timeSlot: true },
+          });
+          const takenSlots = new Set(existing.flatMap((b) => expandTimeSlot(b.timeSlot)));
+          if (incomingSlots.some((s) => takenSlots.has(s))) {
+            throw Object.assign(new Error('conflict'), { isConflict: true });
+          }
+          return tx.booking.create({
+            data: {
+              userId: session.user.id,
+              fieldId,
+              date: d,
+              timeSlot,
+              note,
+              isRecurring: true,
+              recurringGroupId: groupId,
+            },
+          });
         },
-      });
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
       bookings.push(booking);
     } catch {
       errors.push(d.toLocaleDateString('th-TH'));

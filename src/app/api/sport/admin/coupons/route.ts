@@ -54,6 +54,9 @@ export async function POST(req: NextRequest) {
         expiresAt: expiresAt ? new Date(expiresAt) : null,
       },
     });
+    prisma.auditLog.create({
+      data: { adminId: session.user.id, action: 'COUPON_CREATED', targetId: coupon.id, details: { code: coupon.code, discountType: coupon.discountType, discountValue: coupon.discountValue } },
+    }).catch(() => {});
     return NextResponse.json(coupon, { status: 201 });
   } catch {
     return NextResponse.json({ error: 'รหัสคูปองนี้มีอยู่แล้ว' }, { status: 409 });
@@ -67,6 +70,9 @@ export async function PATCH(req: NextRequest) {
   const { id, isActive } = await req.json();
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
   const coupon = await prisma.coupon.update({ where: { id }, data: { isActive } });
+  prisma.auditLog.create({
+    data: { adminId: session.user.id, action: 'COUPON_UPDATED', targetId: id, details: { isActive } },
+  }).catch(() => {});
   return NextResponse.json(coupon);
 }
 
@@ -77,5 +83,8 @@ export async function DELETE(req: NextRequest) {
   const { id } = await req.json();
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
   await prisma.coupon.delete({ where: { id } });
+  prisma.auditLog.create({
+    data: { adminId: session.user.id, action: 'COUPON_DELETED', targetId: id },
+  }).catch(() => {});
   return NextResponse.json({ ok: true });
 }

@@ -69,5 +69,9 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  prisma.auditLog.create({
+    data: { adminId: session.user.id, action: 'FIELD_CREATED', targetId: field.id, details: { name: field.name, sportType: field.sportType } },
+  }).catch(() => {});
+
   return NextResponse.json(field, { status: 201 });
 }

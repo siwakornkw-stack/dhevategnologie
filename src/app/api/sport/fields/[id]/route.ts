@@ -55,6 +55,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     },
   });
 
+  prisma.auditLog.create({
+    data: { adminId: session.user.id, action: 'FIELD_UPDATED', targetId: id, details: { name: field.name } },
+  }).catch(() => {});
+
   return NextResponse.json(field);
 }
 
@@ -77,5 +81,10 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
   }
 
   await prisma.field.delete({ where: { id } });
+
+  prisma.auditLog.create({
+    data: { adminId: session.user.id, action: 'FIELD_DELETED', targetId: id },
+  }).catch(() => {});
+
   return NextResponse.json({ success: true });
 }

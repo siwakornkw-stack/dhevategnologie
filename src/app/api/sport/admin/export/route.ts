@@ -50,6 +50,10 @@ export async function GET(req: NextRequest) {
     },
   });
 
+  prisma.auditLog.create({
+    data: { adminId: session.user.id, action: 'BOOKINGS_EXPORTED', details: { count: bookings.length, filters: { from, to, status, sportType } } },
+  }).catch(() => {});
+
   const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + (m || 0); };
 
   const csvHeaders = [

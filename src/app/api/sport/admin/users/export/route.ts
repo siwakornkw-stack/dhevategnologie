@@ -17,6 +17,10 @@ export async function GET() {
     },
   });
 
+  prisma.auditLog.create({
+    data: { adminId: session.user.id, action: 'USERS_EXPORTED', details: { count: users.length } },
+  }).catch(() => {});
+
   const escape = (val: unknown) => `"${String(val ?? '').replace(/"/g, '""')}"`;
 
   const header = ['ID', 'ชื่อ', 'อีเมล', 'เบอร์โทร', 'Role', 'ยืนยันอีเมล', 'การจอง', 'สมัครเมื่อ'].map(escape).join(',');

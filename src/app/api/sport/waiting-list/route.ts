@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { auth } from '@/lib/auth';
 import { rateLimit, WAITING_LIST_RATE_LIMIT } from '@/lib/rate-limit';
+import { expandTimeSlot } from '@/lib/booking';
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -48,6 +49,25 @@ export async function POST(req: NextRequest) {
   }
   const postDate = new Date(date);
   if (isNaN(postDate.getTime())) return NextResponse.json({ error: 'Invalid date' }, { status: 400 });
+
+  const existingBookings = await prisma.booking.findMany({
+    where: { fieldId, date: postDate, status: { in: ['PENDING', 'APPROVED'] } },
+    select: { timeSlot: true, userId: true },
+  });
+
+  const requestedSlots = expandTimeSlot(timeSlot);
+  const takenByAnyone = new Set(existingBookings.flatMap((b) => expandTimeSlot(b.timeSlot)));
+
+  if (!requestedSlots.some((s) => takenByAnyone.has(s))) {
+    return NextResponse.json({ error: 'ช่วงเวลานี้ยังมีว่าง สามารถจองได้เลย' }, { status: 400 });
+  }
+
+  const takenByUser = new Set(
+    existingBookings.filter((b) => b.userId === session.user.id).flatMap((b) => expandTimeSlot(b.timeSlot)),
+  );
+  if (requestedSlots.some((s) => takenByUser.has(s))) {
+    return NextResponse.json({ error: 'คุณมีการจองในช่วงเวลานี้อยู่แล้ว' }, { status: 400 });
+  }
 
   try {
     const entry = await prisma.waitingList.create({

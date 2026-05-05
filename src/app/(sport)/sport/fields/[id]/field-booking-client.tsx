@@ -167,6 +167,11 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
       router.push('/sport/auth/signin');
       return;
     }
+    if (isLoggedIn && !emailVerified) {
+      toast.error('กรุณายืนยันอีเมลก่อนทำการจอง');
+      router.push('/sport/auth/resend-verification');
+      return;
+    }
     if (!fullSlot) return;
     setBooking(true);
     try {
@@ -357,7 +362,7 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
                     🎟️ {coupon.code}
                     <button onClick={() => { setCoupon(null); setCouponCode(''); }} className="text-xs text-gray-400 hover:text-red-400 ml-1">✕</button>
                   </span>
-                  <span className="text-green-600 dark:text-green-400 font-medium">-฿{discountAmount.toLocaleString()}</span>
+                  <span className="text-green-600 dark:text-green-400 font-medium">-฿{couponDiscount.toLocaleString()}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm pt-1 border-t border-gray-100 dark:border-gray-800">
@@ -441,9 +446,17 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
               />
             </div>
 
+            {isLoggedIn && !emailVerified && (
+              <a
+                href="/sport/auth/resend-verification"
+                className="block text-xs text-center text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-xl px-3 py-2 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition"
+              >
+                ยืนยันอีเมลก่อนจอง — คลิกเพื่อส่งลิงก์ยืนยันใหม่
+              </a>
+            )}
             <button
               onClick={handleBook}
-              disabled={booking}
+              disabled={booking || (isLoggedIn && !emailVerified)}
               className="w-full gradient-btn text-white font-semibold py-3 rounded-xl disabled:opacity-60 disabled:cursor-not-allowed transition-all"
             >
               {booking

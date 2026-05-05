@@ -67,6 +67,7 @@ export async function PUT(req: NextRequest) {
     const valid = await bcrypt.compare(currentPassword, user.password);
     if (!valid) return NextResponse.json({ error: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' }, { status: 400 });
     updateData.password = await bcrypt.hash(newPassword, 12);
+    updateData.passwordChangedAt = new Date();
   }
 
   const updated = await prisma.user.update({
@@ -98,6 +99,16 @@ export async function DELETE(req: NextRequest) {
     if (!password) return NextResponse.json({ error: 'กรุณากรอกรหัสผ่านเพื่อยืนยัน' }, { status: 400 });
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return NextResponse.json({ error: 'รหัสผ่านไม่ถูกต้อง' }, { status: 400 });
+  }
+
+  const paidActiveCount = await prisma.booking.count({
+    where: { userId: session.user.id, status: { in: ['PENDING', 'APPROVED'] }, paidAt: { not: null } },
+  });
+  if (paidActiveCount > 0) {
+    return NextResponse.json(
+      { error: `กรุณายกเลิกการจองที่ชำระเงินแล้วก่อนลบบัญชี (${paidActiveCount} รายการ)` },
+      { status: 400 },
+    );
   }
 
   await prisma.user.delete({ where: { id: session.user.id } });

@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   }
 
   const [field, blocked] = await Promise.all([
-    prisma.field.findUnique({ where: { id: fieldId }, select: { id: true, openTime: true, closeTime: true } }),
+    prisma.field.findUnique({ where: { id: fieldId, isActive: true }, select: { id: true, openTime: true, closeTime: true } }),
     prisma.fieldBlockedDate.findFirst({ where: { fieldId, date: bookingDate } }),
   ]);
   if (!field) return NextResponse.json({ error: 'ไม่พบสนาม' }, { status: 404 });

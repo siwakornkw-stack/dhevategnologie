@@ -6,5 +6,9 @@ const isValidDsn = Boolean(dsn && !dsn.includes('your-key') && dsn.startsWith('h
 Sentry.init({
   dsn: isValidDsn ? dsn : undefined,
   tracesSampleRate: 1.0,
+  replaysOnErrorSampleRate: 1.0,
+  replaysSessionSampleRate: 0.1,
   enabled: process.env.NODE_ENV === 'production' && isValidDsn,
 });
+
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { WaitingListDeleteButton } from './delete-button';
 
 export const metadata = { title: 'Waiting List - Admin' };
 
@@ -75,6 +76,10 @@ export default async function AdminWaitingListPage() {
                       <span className="text-xs text-gray-400">
                         เข้าคิว {new Date(entry.createdAt).toLocaleDateString('th-TH')}
                       </span>
+                      <WaitingListDeleteButton
+                        entryId={entry.id}
+                        userName={entry.user.name ?? entry.user.email}
+                      />
                     </div>
                   ))}
                 </div>

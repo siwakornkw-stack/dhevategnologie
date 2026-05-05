@@ -91,11 +91,11 @@ export async function POST(req: NextRequest) {
         where: { id: bookingId },
         select: { couponCode: true, status: true, pointsRedeemed: true, userId: true },
       });
-      await prisma.booking.updateMany({
+      const expiredResult = await prisma.booking.updateMany({
         where: { id: bookingId, status: 'PENDING' },
         data: { status: 'CANCELLED' },
       });
-      if (booking?.status === 'PENDING') {
+      if (expiredResult.count > 0 && booking) {
         const tasks: Promise<unknown>[] = [];
         if (booking.couponCode) {
           tasks.push(prisma.coupon.update({ where: { code: booking.couponCode }, data: { usedCount: { decrement: 1 } } }).catch(() => {}));

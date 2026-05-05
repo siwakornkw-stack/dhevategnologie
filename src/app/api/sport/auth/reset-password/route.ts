@@ -6,7 +6,10 @@ import { rateLimit, AUTH_RATE_LIMIT } from '@/lib/rate-limit';
 
 const schema = z.object({
   token: z.string().min(1, 'Token ไม่ถูกต้อง'),
-  password: z.string().min(6, 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'),
+  password: z.string()
+    .min(8, 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร')
+    .regex(/[A-Za-z]/, 'รหัสผ่านต้องมีตัวอักษร')
+    .regex(/[0-9]/, 'รหัสผ่านต้องมีตัวเลข'),
 });
 
 export async function POST(req: NextRequest) {
@@ -34,7 +37,7 @@ export async function POST(req: NextRequest) {
   const hashed = await bcrypt.hash(password, 12);
 
   await Promise.all([
-    prisma.user.update({ where: { email }, data: { password: hashed } }),
+    prisma.user.update({ where: { email }, data: { password: hashed, passwordChangedAt: new Date() } }),
     prisma.verificationToken.delete({ where: { identifier_token: { identifier: record.identifier, token } } }),
   ]);
 

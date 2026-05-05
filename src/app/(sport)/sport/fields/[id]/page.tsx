@@ -131,6 +131,7 @@ export default async function FieldDetailPage({ params }: PageProps) {
             openTime={field.openTime}
             closeTime={field.closeTime}
             isLoggedIn={!!session}
+            emailVerified={!!session?.user?.emailVerified}
           />
           <FieldReviews fieldId={field.id} />
         </div>

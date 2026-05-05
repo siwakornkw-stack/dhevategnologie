@@ -49,6 +49,7 @@ model User {
   twoFactorSecret       String?
   twoFactorEnabled      Boolean  @default(false)
   twoFactorBackupCodes  String[] @default([])
+  passwordChangedAt     DateTime?
 
   referredBy        User?              @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)
   referrals         User[]             @relation("Referrals")

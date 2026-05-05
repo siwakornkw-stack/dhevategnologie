@@ -70,15 +70,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.role = (user as { role?: string }).role;
         token.emailVerified = (user as { emailVerified?: Date | null }).emailVerified ?? null;
         token.refreshedAt = Date.now();
+        token.issuedAt = Date.now();
         return token;
       }
       // Refresh role and emailVerified from DB once per hour to pick up permission changes
       if (token.id && Date.now() - ((token.refreshedAt as number) ?? 0) > 60 * 60 * 1000) {
         const fresh = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { role: true, emailVerified: true },
+          select: { role: true, emailVerified: true, passwordChangedAt: true },
         });
         if (fresh) {
+          // Invalidate session if password was changed after this token was issued
+          if (fresh.passwordChangedAt && token.issuedAt) {
+            if (fresh.passwordChangedAt.getTime() > (token.issuedAt as number)) {
+              return null;
+            }
+          }
           token.role = fresh.role;
           token.emailVerified = fresh.emailVerified;
         }

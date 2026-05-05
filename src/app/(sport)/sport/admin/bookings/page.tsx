@@ -40,6 +40,7 @@ export default async function AdminBookingsPage({ searchParams }: PageProps) {
         OR: [
           { user: { name: { contains: q, mode: 'insensitive' as const } } },
           { user: { email: { contains: q, mode: 'insensitive' as const } } },
+          { field: { name: { contains: q, mode: 'insensitive' as const } } },
         ],
       }
     : {};
