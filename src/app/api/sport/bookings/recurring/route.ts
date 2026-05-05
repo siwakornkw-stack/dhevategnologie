@@ -12,10 +12,6 @@ export async function POST(req: NextRequest) {
   const rl = await rateLimit(`recurring:${session.user.id}`, BOOKING_RATE_LIMIT);
   if (!rl.success) return NextResponse.json({ error: 'คุณจองบ่อยเกินไป กรุณารอสักครู่' }, { status: 429 });
 
-  if (!session.user.emailVerified) {
-    return NextResponse.json({ error: 'กรุณายืนยันอีเมลก่อนทำการจอง' }, { status: 403 });
-  }
-
   const { fieldId, startDate, timeSlot, weeks, note } = await req.json();
 
   if (!fieldId || !startDate || !timeSlot || !weeks) {

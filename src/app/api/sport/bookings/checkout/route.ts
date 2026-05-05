@@ -11,10 +11,6 @@ import { sendPushToUser } from '@/lib/web-push';
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  if (!session.user.emailVerified) {
-    return NextResponse.json({ error: 'กรุณายืนยันอีเมลก่อนทำการจอง' }, { status: 403 });
-  }
-
   const ip = req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? 'unknown';
   const rl = await rateLimit(`booking:${session.user.id}:${ip}`, BOOKING_RATE_LIMIT);
   if (!rl.success) {

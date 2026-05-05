@@ -167,11 +167,6 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
       router.push('/sport/auth/signin');
       return;
     }
-    if (isLoggedIn && !emailVerified) {
-      toast.error('กรุณายืนยันอีเมลก่อนทำการจอง');
-      router.push('/sport/auth/resend-verification');
-      return;
-    }
     if (!fullSlot) return;
     setBooking(true);
     try {
@@ -446,17 +441,9 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
               />
             </div>
 
-            {isLoggedIn && !emailVerified && (
-              <a
-                href="/sport/auth/resend-verification"
-                className="block text-xs text-center text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-xl px-3 py-2 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition"
-              >
-                ยืนยันอีเมลก่อนจอง — คลิกเพื่อส่งลิงก์ยืนยันใหม่
-              </a>
-            )}
             <button
               onClick={handleBook}
-              disabled={booking || (isLoggedIn && !emailVerified)}
+              disabled={booking}
               className="w-full gradient-btn text-white font-semibold py-3 rounded-xl disabled:opacity-60 disabled:cursor-not-allowed transition-all"
             >
               {booking
