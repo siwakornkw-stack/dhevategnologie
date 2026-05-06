@@ -29,6 +29,10 @@ export default async function FieldDetailPage({ params }: PageProps) {
     getTranslations('field'),
   ]);
 
+  const userPhone = session
+    ? await prisma.user.findUnique({ where: { id: session.user.id }, select: { phone: true } }).then((u) => u?.phone ?? null)
+    : null;
+
   if (!field) notFound();
 
   const emoji = SPORT_TYPE_EMOJI[field.sportType] ?? '🏟️';
@@ -132,6 +136,7 @@ export default async function FieldDetailPage({ params }: PageProps) {
             closeTime={field.closeTime}
             isLoggedIn={!!session}
             emailVerified={!!session?.user?.emailVerified}
+            userPhone={userPhone}
           />
           <FieldReviews fieldId={field.id} />
         </div>

@@ -18,6 +18,7 @@ interface FieldBookingClientProps {
   closeTime: string;
   isLoggedIn: boolean;
   emailVerified?: boolean;
+  userPhone?: string | null;
 }
 
 function toMin(t: string): number {
@@ -36,7 +37,7 @@ function formatDuration(hours: number): string {
   return `${whole > 0 ? `${whole}.` : ''}30 ชม.`;
 }
 
-export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime, closeTime, isLoggedIn, emailVerified = true }: FieldBookingClientProps) {
+export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime, closeTime, isLoggedIn, emailVerified = true, userPhone }: FieldBookingClientProps) {
   const router = useRouter();
   const t = useTranslations('booking');
   const today = formatDateISO(new Date());
@@ -48,6 +49,10 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
   const [blockedDate, setBlockedDate] = useState<{ isBlocked: boolean; reason?: string | null }>({ isBlocked: false });
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [booking, setBooking] = useState(false);
+  const [currentPhone, setCurrentPhone] = useState(userPhone ?? '');
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [phoneInput, setPhoneInput] = useState('');
+  const [savingPhone, setSavingPhone] = useState(false);
   const [note, setNote] = useState('');
   const [waitingSlots, setWaitingSlots] = useState<string[]>([]);
   const [isRecurring, setIsRecurring] = useState(false);
@@ -162,11 +167,7 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
     }
   }
 
-  async function handleBook() {
-    if (!isLoggedIn) {
-      router.push('/sport/auth/signin');
-      return;
-    }
+  async function startBooking() {
     if (!fullSlot) return;
     setBooking(true);
     try {
@@ -216,6 +217,43 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
     }
   }
 
+  async function handleBook() {
+    if (!isLoggedIn) {
+      router.push('/sport/auth/signin');
+      return;
+    }
+    if (!currentPhone) {
+      setPhoneInput('');
+      setShowPhoneModal(true);
+      return;
+    }
+    await startBooking();
+  }
+
+  async function handleSavePhone() {
+    const trimmed = phoneInput.trim();
+    if (!/^0[0-9]{8,9}$/.test(trimmed)) {
+      toast.error('เบอร์โทรไม่ถูกต้อง (ตัวอย่าง: 0812345678)');
+      return;
+    }
+    setSavingPhone(true);
+    try {
+      const res = await fetch('/api/sport/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: trimmed }),
+      });
+      if (!res.ok) throw new Error('บันทึกไม่สำเร็จ กรุณาลองใหม่');
+      setCurrentPhone(trimmed);
+      setShowPhoneModal(false);
+      await startBooking();
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setSavingPhone(false);
+    }
+  }
+
   const [startTime, endTime] = fullSlot ? fullSlot.split('-') : [null, null];
   const timeRange = fullSlot ? `${startTime}–${endTime}` : null;
   const basePrice = pricePerHour * totalHours;
@@ -233,6 +271,7 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
   const hasSelection = !!selectedSlot;
 
   return (
+    <>
     <div className="space-y-5">
       {/* Date Picker */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700/50 p-5">
@@ -462,5 +501,42 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
         )}
       </div>
     </div>
+
+    {/* Phone number modal */}
+    {showPhoneModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="w-full max-w-sm bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700/50 shadow-xl p-6 space-y-4">
+          <div className="text-center">
+            <div className="text-4xl mb-2">📱</div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">กรุณาเพิ่มเบอร์โทร</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">ต้องมีเบอร์โทรเพื่อยืนยันการจอง</p>
+          </div>
+          <input
+            type="tel"
+            value={phoneInput}
+            onChange={(e) => setPhoneInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSavePhone()}
+            placeholder="0812345678"
+            maxLength={10}
+            className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400 text-center text-lg tracking-widest"
+            autoFocus
+          />
+          <button
+            onClick={handleSavePhone}
+            disabled={savingPhone}
+            className="w-full gradient-btn text-white font-semibold py-3 rounded-xl disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {savingPhone ? 'กำลังบันทึก...' : 'บันทึกและจองเลย'}
+          </button>
+          <button
+            onClick={() => setShowPhoneModal(false)}
+            className="w-full text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 py-1"
+          >
+            ยกเลิก
+          </button>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
