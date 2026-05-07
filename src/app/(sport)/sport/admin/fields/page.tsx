@@ -13,7 +13,7 @@ export default async function AdminFieldsPage() {
   const session = await auth();
   if (!session || session.user.role !== 'ADMIN') redirect('/sport');
 
-  const fields = await prisma.field.findMany({ orderBy: { createdAt: 'desc' } });
+  const fields = await prisma.field.findMany({ where: { deletedAt: null }, orderBy: { createdAt: 'desc' } });
 
   return (
     <div className="wrapper py-8 max-w-5xl space-y-6">

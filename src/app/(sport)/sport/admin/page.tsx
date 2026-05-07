@@ -36,7 +36,7 @@ export default async function AdminDashboardPage() {
           field: { select: { name: true, sportType: true } },
         },
       }),
-      prisma.field.findMany({ orderBy: { createdAt: 'desc' } }),
+      prisma.field.findMany({ where: { deletedAt: null }, orderBy: { createdAt: 'desc' } }),
     ]);
 
   const stats = [

@@ -82,7 +82,10 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
     );
   }
 
-  await prisma.field.delete({ where: { id } });
+  await prisma.field.update({
+    where: { id },
+    data: { deletedAt: new Date(), isActive: false },
+  });
 
   prisma.auditLog.create({
     data: { adminId: session.user.id, action: 'FIELD_DELETED', targetId: id },

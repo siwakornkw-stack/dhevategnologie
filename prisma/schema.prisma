@@ -182,6 +182,7 @@ model Field {
   location     String?
   facilities   String?
   isActive     Boolean   @default(true)
+  deletedAt    DateTime?
   openTime     String    @default("08:00")
   closeTime    String    @default("22:00")
   lat          Float?
