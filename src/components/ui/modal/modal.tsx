@@ -85,9 +85,11 @@ export function Modal({
             </button>
           </div>
           <div className="mt-3 text-left w-full">
-            <h3 className="text-[30px] mb-2 leading-[38px] font-bold text-gray-800 dark:text-white/90">
-              {title}
-            </h3>
+            {title && (
+              <h3 className="text-[30px] mb-2 leading-[38px] font-bold text-gray-800 dark:text-white/90">
+                {title}
+              </h3>
+            )}
             {description && (
               <p className="text-gray-500 dark:text-gray-400">{description}</p>
             )}

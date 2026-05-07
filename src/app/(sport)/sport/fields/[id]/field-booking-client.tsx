@@ -9,6 +9,7 @@ import { TimeSlotGrid } from '@/components/sport/time-slot-grid';
 import { TimeSlotSkeleton } from '@/components/sport/skeleton';
 import { generateTimeSlots, formatDateISO } from '@/lib/booking';
 import { cn } from '@/lib/utils';
+import { Modal } from '@/components/ui/modal/modal';
 
 interface FieldBookingClientProps {
   fieldId: string;
@@ -231,6 +232,7 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
   }
 
   async function handleSavePhone() {
+    if (savingPhone) return;
     const trimmed = phoneInput.trim();
     if (!/^0[0-9]{8,9}$/.test(trimmed)) {
       toast.error('เบอร์โทรไม่ถูกต้อง (ตัวอย่าง: 0812345678)');
@@ -502,41 +504,36 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
       </div>
     </div>
 
-    {/* Phone number modal */}
-    {showPhoneModal && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-        <div className="w-full max-w-sm bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700/50 shadow-xl p-6 space-y-4">
-          <div className="text-center">
-            <div className="text-4xl mb-2">📱</div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">กรุณาเพิ่มเบอร์โทร</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">ต้องมีเบอร์โทรเพื่อยืนยันการจอง</p>
-          </div>
-          <input
-            type="tel"
-            value={phoneInput}
-            onChange={(e) => setPhoneInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSavePhone()}
-            placeholder="0812345678"
-            maxLength={10}
-            className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400 text-center text-lg tracking-widest"
-            autoFocus
-          />
-          <button
-            onClick={handleSavePhone}
-            disabled={savingPhone}
-            className="w-full gradient-btn text-white font-semibold py-3 rounded-xl disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {savingPhone ? 'กำลังบันทึก...' : 'บันทึกและจองเลย'}
-          </button>
-          <button
-            onClick={() => setShowPhoneModal(false)}
-            className="w-full text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 py-1"
-          >
-            ยกเลิก
-          </button>
-        </div>
+    <Modal
+      isOpen={showPhoneModal}
+      onClose={() => { if (!savingPhone) setShowPhoneModal(false); }}
+      className={{ modal: 'max-w-sm sm:w-auto p-6 sm:p-6' }}
+    >
+      <div className="text-center">
+        <div className="text-4xl mb-2">📱</div>
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white">กรุณาเพิ่มเบอร์โทร</h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">ต้องมีเบอร์โทรเพื่อยืนยันการจอง</p>
       </div>
-    )}
+      <div className="mt-4 space-y-3">
+        <input
+          type="tel"
+          value={phoneInput}
+          onChange={(e) => setPhoneInput(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSavePhone()}
+          placeholder="0812345678"
+          maxLength={10}
+          className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400 text-center text-lg tracking-widest"
+          autoFocus
+        />
+        <button
+          onClick={handleSavePhone}
+          disabled={savingPhone}
+          className="w-full gradient-btn text-white font-semibold py-3 rounded-xl disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {savingPhone ? 'กำลังบันทึก...' : 'บันทึกและจองเลย'}
+        </button>
+      </div>
+    </Modal>
     </>
   );
 }

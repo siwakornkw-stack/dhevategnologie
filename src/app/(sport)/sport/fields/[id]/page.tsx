@@ -29,11 +29,11 @@ export default async function FieldDetailPage({ params }: PageProps) {
     getTranslations('field'),
   ]);
 
-  const userPhone = session
-    ? await prisma.user.findUnique({ where: { id: session.user.id }, select: { phone: true } }).then((u) => u?.phone ?? null)
-    : null;
-
   if (!field) notFound();
+
+  const userPhone = session
+    ? (await prisma.user.findUnique({ where: { id: session.user.id }, select: { phone: true } }))?.phone ?? null
+    : null;
 
   const emoji = SPORT_TYPE_EMOJI[field.sportType] ?? '🏟️';
   const sportLabel = SPORT_TYPE_LABELS[field.sportType] ?? field.sportType;

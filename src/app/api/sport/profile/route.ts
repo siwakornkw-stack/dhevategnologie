@@ -9,7 +9,7 @@ const PROFILE_RATE_LIMIT = { limit: 10, windowMs: 15 * 60 * 1000 };
 
 const schema = z.object({
   name: z.string().min(1).max(100).optional(),
-  phone: z.string().max(20).optional(),
+  phone: z.string().regex(/^0[0-9]{8,9}$/, 'เบอร์โทรไม่ถูกต้อง').optional(),
   image: z.string().url().optional(),
   currentPassword: z.string().optional(),
   newPassword: z.string()
