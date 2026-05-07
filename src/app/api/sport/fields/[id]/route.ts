@@ -22,14 +22,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: 'เวลาเปิดต้องไม่เท่ากับเวลาปิด' }, { status: 400 });
   }
 
-  // If deactivating, check for active bookings
   if (body.isActive === false) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const activeCount = await prisma.booking.count({
-      where: { fieldId: id, status: { in: ['PENDING', 'APPROVED'] } },
+      where: { fieldId: id, status: { in: ['PENDING', 'APPROVED'] }, date: { gte: today } },
     });
     if (activeCount > 0) {
       return NextResponse.json(
-        { error: `ไม่สามารถปิดสนามได้ มีการจองที่ยังใช้งานอยู่ ${activeCount} รายการ` },
+        { error: `ไม่สามารถปิดสนามได้ มีการจองในอนาคตที่ยังใช้งานอยู่ ${activeCount} รายการ` },
         { status: 409 },
       );
     }
@@ -69,12 +70,14 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
 
   const { id } = await params;
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
   const activeCount = await prisma.booking.count({
-    where: { fieldId: id, status: { in: ['PENDING', 'APPROVED'] } },
+    where: { fieldId: id, status: { in: ['PENDING', 'APPROVED'] }, date: { gte: today } },
   });
   if (activeCount > 0) {
     return NextResponse.json(
-      { error: `ไม่สามารถลบสนามได้ มีการจองที่ยังใช้งานอยู่ ${activeCount} รายการ` },
+      { error: `ไม่สามารถลบสนามได้ มีการจองในอนาคตที่ยังใช้งานอยู่ ${activeCount} รายการ` },
       { status: 409 },
     );
   }
