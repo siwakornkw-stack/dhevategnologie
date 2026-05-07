@@ -38,11 +38,22 @@ const MIN_STEP = 5;
 function isSlotOverlapping(slot: string, booked: Record<string, string>): boolean {
   const [s, e] = slot.split('-');
   const slotStart = toMin(s);
-  const slotEnd = toMin(e);
+  let slotEnd = toMin(e);
+  if (slotEnd <= slotStart) slotEnd += 1440;
   return Object.keys(booked).some((key) => {
     const [ks, ke] = key.split('-');
-    return slotStart < toMin(ke) && slotEnd > toMin(ks);
+    let keyEnd = toMin(ke);
+    if (keyEnd <= toMin(ks)) keyEnd += 1440;
+    return slotStart < keyEnd && slotEnd > toMin(ks);
   });
+}
+
+function isWithinFieldHours(t: string, openTime: string, closeTime: string): boolean {
+  const tm = toMin(t);
+  const open = toMin(openTime);
+  const close = toMin(closeTime);
+  if (close > open) return tm >= open && tm <= close;
+  return tm >= open || tm <= close;
 }
 
 function TimeSelect({
@@ -151,7 +162,7 @@ export function AvailabilityClient() {
   function openDialog(field: Field, slot: string) {
     const slotStart = slot.split('-')[0];
     const defaultEnd = addMinutesToTime(slotStart, 60);
-    const clampedEnd = toMin(defaultEnd) <= toMin(field.closeTime) ? defaultEnd : field.closeTime;
+    const clampedEnd = isWithinFieldHours(defaultEnd, field.openTime, field.closeTime) ? defaultEnd : field.closeTime;
     setDialog({ field, slot });
     setStartTime(slotStart);
     setEndTime(clampedEnd);
@@ -162,7 +173,8 @@ export function AvailabilityClient() {
     setDialog(null);
   }
 
-  const dialogDurationMin = startTime && endTime ? toMin(endTime) - toMin(startTime) : 0;
+  const rawDuration = startTime && endTime ? toMin(endTime) - toMin(startTime) : 0;
+  const dialogDurationMin = rawDuration >= 0 ? rawDuration : rawDuration + 1440;
   const dialogTotalHours = dialogDurationMin / 60;
   const dialogPrice = dialog ? dialog.field.pricePerHour * dialogTotalHours : 0;
   const dialogFullSlot = startTime && endTime ? `${startTime}-${endTime}` : null;
@@ -170,12 +182,15 @@ export function AvailabilityClient() {
   // Check if selected range overlaps any booked slot
   const hasConflict = (() => {
     if (!dialog || !startTime || !endTime || dialogDurationMin <= 0) return false;
-    const startMin = toMin(startTime);
-    const endMin = toMin(endTime);
+    let sMin = toMin(startTime);
+    let eMin = toMin(endTime);
+    if (eMin <= sMin) eMin += 1440;
     const booked = availability[dialog.field.id] ?? {};
     return Object.keys(booked).some((slotKey) => {
       const [s, e] = slotKey.split('-');
-      return startMin < toMin(e) && endMin > toMin(s);
+      let ke = toMin(e);
+      if (ke <= toMin(s)) ke += 1440;
+      return sMin < ke && eMin > toMin(s);
     });
   })();
 
@@ -184,8 +199,8 @@ export function AvailabilityClient() {
     startTime &&
     endTime &&
     dialogDurationMin >= MIN_STEP &&
-    toMin(startTime) >= toMin(dialog.field.openTime) &&
-    toMin(endTime) <= toMin(dialog.field.closeTime);
+    isWithinFieldHours(startTime, dialog.field.openTime, dialog.field.closeTime) &&
+    isWithinFieldHours(endTime, dialog.field.openTime, dialog.field.closeTime);
 
   async function handleBook() {
     if (!dialog || !dialogFullSlot || !isValidRange) return;
@@ -345,31 +360,36 @@ export function AvailabilityClient() {
             </div>
 
             {/* Time range pickers */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div>
-                <label className="text-xs text-gray-500 mb-2 block">เวลาเริ่ม</label>
-                <TimeSelect
-                  value={startTime}
-                  minTime={dialog.field.openTime}
-                  maxTime={addMinutesToTime(dialog.field.closeTime, -MIN_STEP)}
-                  onChange={(t) => {
-                    setStartTime(t);
-                    if (endTime && toMin(endTime) <= toMin(t)) {
-                      setEndTime(addMinutesToTime(t, 60));
-                    }
-                  }}
-                />
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 mb-2 block">เวลาสิ้นสุด</label>
-                <TimeSelect
-                  value={endTime}
-                  minTime={addMinutesToTime(startTime || dialog.field.openTime, MIN_STEP)}
-                  maxTime={dialog.field.closeTime}
-                  onChange={setEndTime}
-                />
-              </div>
-            </div>
+            {(() => {
+              const overnight = toMin(dialog.field.closeTime) < toMin(dialog.field.openTime);
+              return (
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div>
+                    <label className="text-xs text-gray-500 mb-2 block">เวลาเริ่ม</label>
+                    <TimeSelect
+                      value={startTime}
+                      minTime={overnight ? '00:00' : dialog.field.openTime}
+                      maxTime={overnight ? '23:55' : addMinutesToTime(dialog.field.closeTime, -MIN_STEP)}
+                      onChange={(t) => {
+                        setStartTime(t);
+                        if (endTime && toMin(endTime) <= toMin(t)) {
+                          setEndTime(addMinutesToTime(t, 60));
+                        }
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 mb-2 block">เวลาสิ้นสุด</label>
+                    <TimeSelect
+                      value={endTime}
+                      minTime={overnight ? '00:00' : addMinutesToTime(startTime || dialog.field.openTime, MIN_STEP)}
+                      maxTime={overnight ? '23:55' : dialog.field.closeTime}
+                      onChange={setEndTime}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Validation messages */}
             {hasConflict && isValidRange && (

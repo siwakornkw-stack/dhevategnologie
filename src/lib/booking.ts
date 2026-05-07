@@ -2,10 +2,12 @@ export function generateTimeSlots(openTime: string, closeTime: string): string[]
   const slots: string[] = [];
   const [openH] = openTime.split(':').map(Number);
   const [closeH] = closeTime.split(':').map(Number);
+  if (openH === closeH) return slots;
+  const closeHAdj = closeH < openH ? closeH + 24 : closeH;
 
-  for (let h = openH; h < closeH; h++) {
-    const start = `${String(h).padStart(2, '0')}:00`;
-    const end = `${String(h + 1).padStart(2, '0')}:00`;
+  for (let h = openH; h < closeHAdj; h++) {
+    const start = `${String(h % 24).padStart(2, '0')}:00`;
+    const end = `${String((h + 1) % 24).padStart(2, '0')}:00`;
     slots.push(`${start}-${end}`);
   }
   return slots;
@@ -78,11 +80,12 @@ const toTime = (m: number): string =>
 export function expandTimeSlot(ts: string): string[] {
   const [start, end] = ts.split('-');
   const startM = toMinutes(start);
-  const endM = toMinutes(end);
+  let endM = toMinutes(end);
+  if (endM <= startM) endM += 1440;
   if (endM - startM <= 60) return [ts];
   const result: string[] = [];
   for (let m = startM; m < endM; m += 60) {
-    result.push(`${toTime(m)}-${toTime(m + 60)}`);
+    result.push(`${toTime(m % 1440)}-${toTime((m + 60) % 1440)}`);
   }
   return result;
 }

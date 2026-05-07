@@ -12,8 +12,9 @@ function parseSlot(ts: string): [number, number] | null {
   const parts = ts.split('-');
   if (parts.length !== 2) return null;
   const s = toMinutes(parts[0]);
-  const e = toMinutes(parts[1]);
-  if (isNaN(s) || isNaN(e) || e <= s) return null;
+  let e = toMinutes(parts[1]);
+  if (isNaN(s) || isNaN(e) || s === e) return null;
+  if (e < s) e += 1440;
   return [s, e];
 }
 
@@ -61,8 +62,14 @@ export async function POST(req: NextRequest) {
   if (blocked) return NextResponse.json({ error: `สนามปิดให้บริการในวันนี้${blocked.reason ? `: ${blocked.reason}` : ''}` }, { status: 409 });
 
   const fieldOpen = toMinutes(field.openTime);
-  const fieldClose = toMinutes(field.closeTime);
-  if (newStart < fieldOpen || newEnd > fieldClose) {
+  let fieldClose = toMinutes(field.closeTime);
+  if (fieldClose <= fieldOpen) fieldClose += 1440;
+
+  let slotStart = newStart;
+  let slotEnd = newEnd;
+  if (slotStart < fieldOpen) { slotStart += 1440; slotEnd += 1440; }
+
+  if (slotStart < fieldOpen || slotEnd > fieldClose) {
     return NextResponse.json(
       { error: `เวลาต้องอยู่ในช่วง ${field.openTime}–${field.closeTime} น.` },
       { status: 400 }

@@ -55,8 +55,8 @@ export async function POST(req: NextRequest) {
 
   const open = openTime || '08:00';
   const close = closeTime || '22:00';
-  if (open >= close) {
-    return NextResponse.json({ error: 'เวลาเปิดต้องน้อยกว่าเวลาปิด' }, { status: 400 });
+  if (open === close) {
+    return NextResponse.json({ error: 'เวลาเปิดต้องไม่เท่ากับเวลาปิด' }, { status: 400 });
   }
 
   const field = await prisma.field.create({

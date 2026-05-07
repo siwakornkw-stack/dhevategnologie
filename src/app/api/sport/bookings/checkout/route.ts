@@ -65,7 +65,8 @@ export async function POST(req: NextRequest) {
   const endTime = slotsArray[slotsArray.length - 1].split('-')[1];
   const timeSlotRange = slotsArray.length === 1 ? slotsArray[0] : `${startTime}-${endTime}`;
   const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
-  const hours = (toMin(endTime) - toMin(startTime)) / 60;
+  let hours = (toMin(endTime) - toMin(startTime)) / 60;
+  if (hours <= 0 && !isNaN(hours)) hours += 24;
   if (hours <= 0 || isNaN(hours)) {
     return NextResponse.json({ error: 'ช่วงเวลาไม่ถูกต้อง' }, { status: 400 });
   }

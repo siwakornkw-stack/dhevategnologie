@@ -18,8 +18,15 @@ describe('generateTimeSlots', () => {
     ]);
   });
 
-  it('returns empty when close <= open', () => {
+  it('returns empty when close equals open', () => {
     expect(generateTimeSlots('10:00', '10:00')).toEqual([]);
+  });
+
+  it('generates overnight slots when close is before open', () => {
+    expect(generateTimeSlots('18:00', '02:00')).toEqual([
+      '18:00-19:00', '19:00-20:00', '20:00-21:00', '21:00-22:00',
+      '22:00-23:00', '23:00-00:00', '00:00-01:00', '01:00-02:00',
+    ]);
   });
 
   it('pads single-digit hours with leading zero', () => {
