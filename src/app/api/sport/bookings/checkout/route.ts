@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth';
 import { stripe } from '@/lib/stripe';
 import { rateLimit, BOOKING_RATE_LIMIT } from '@/lib/rate-limit';
 import { expandTimeSlot, calculateCouponDiscount, isCouponUsable } from '@/lib/booking';
+import { isCouponSystemEnabled } from '@/lib/settings';
 import { sendBookingCreatedEmail } from '@/lib/email';
 import { notifyLineNewBooking } from '@/lib/line-notify';
 import { sendPushToUser } from '@/lib/web-push';
@@ -49,7 +50,8 @@ export async function POST(req: NextRequest) {
 
   // Validate coupon
   let appliedCoupon: { code: string; discountType: string; discountValue: number } | null = null;
-  if (couponCode) {
+  const couponEnabled = await isCouponSystemEnabled();
+  if (couponCode && couponEnabled) {
     const coupon = await prisma.coupon.findUnique({ where: { code: couponCode.trim().toUpperCase() } });
     if (coupon && isCouponUsable(coupon)) {
       appliedCoupon = { code: coupon.code, discountType: coupon.discountType, discountValue: coupon.discountValue };

@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { rateLimit } from '@/lib/rate-limit';
+import { isCouponSystemEnabled } from '@/lib/settings';
 
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const enabled = await isCouponSystemEnabled();
+  if (!enabled) return NextResponse.json({ error: 'ระบบคูปองปิดอยู่' }, { status: 403 });
 
   const rl = await rateLimit(`coupon:${session.user.id}`, { limit: 10, windowMs: 60 * 1000 });
   if (!rl.success) return NextResponse.json({ error: 'ลองใหม่ภายหลัง' }, { status: 429 });

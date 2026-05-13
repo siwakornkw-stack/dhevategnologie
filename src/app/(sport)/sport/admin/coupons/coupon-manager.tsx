@@ -15,9 +15,16 @@ interface Coupon {
   isActive: boolean;
 }
 
-export function CouponManager({ initialCoupons }: { initialCoupons: Coupon[] }) {
+interface CouponManagerProps {
+  initialCoupons: Coupon[];
+  initialCouponSystemEnabled: boolean;
+}
+
+export function CouponManager({ initialCoupons, initialCouponSystemEnabled }: CouponManagerProps) {
   const router = useRouter();
   const [coupons, setCoupons] = useState(initialCoupons);
+  const [couponSystemEnabled, setCouponSystemEnabled] = useState(initialCouponSystemEnabled);
+  const [systemToggling, setSystemToggling] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -27,6 +34,24 @@ export function CouponManager({ initialCoupons }: { initialCoupons: Coupon[] }) 
     maxUses: '',
     expiresAt: '',
   });
+
+  async function toggleCouponSystem() {
+    setSystemToggling(true);
+    try {
+      const res = await fetch('/api/sport/admin/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ couponSystemEnabled: !couponSystemEnabled }),
+      });
+      if (!res.ok) throw new Error('เกิดข้อผิดพลาด');
+      setCouponSystemEnabled((v) => !v);
+      toast.success(!couponSystemEnabled ? 'เปิดระบบคูปองแล้ว' : 'ปิดระบบคูปองแล้ว');
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setSystemToggling(false);
+    }
+  }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -93,6 +118,37 @@ export function CouponManager({ initialCoupons }: { initialCoupons: Coupon[] }) 
           className="px-4 py-2 rounded-full bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold transition"
         >
           {showForm ? 'ยกเลิก' : '+ สร้างคูปอง'}
+        </button>
+      </div>
+
+      {/* Global coupon system toggle */}
+      <div className={`rounded-2xl border p-5 flex items-center justify-between gap-4 transition-colors ${
+        couponSystemEnabled
+          ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800/50'
+          : 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700/50'
+      }`}>
+        <div>
+          <p className="font-semibold text-gray-900 dark:text-white">
+            ระบบคูปองส่วนลด
+          </p>
+          <p className="text-sm mt-0.5 text-gray-500 dark:text-gray-400">
+            {couponSystemEnabled
+              ? 'เปิดอยู่ — ลูกค้าเห็นช่องกรอกโค้ดส่วนลดตอนจอง'
+              : 'ปิดอยู่ — ลูกค้าไม่เห็นช่องกรอกโค้ด และโค้ดทุกตัวใช้ไม่ได้'}
+          </p>
+        </div>
+        <button
+          onClick={toggleCouponSystem}
+          disabled={systemToggling}
+          className={`relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${
+            couponSystemEnabled ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
+          }`}
+        >
+          <span
+            className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+              couponSystemEnabled ? 'translate-x-6' : 'translate-x-1'
+            }`}
+          />
         </button>
       </div>
 

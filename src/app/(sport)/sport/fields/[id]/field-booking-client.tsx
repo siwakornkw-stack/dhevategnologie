@@ -20,6 +20,7 @@ interface FieldBookingClientProps {
   isLoggedIn: boolean;
   emailVerified?: boolean;
   userPhone?: string | null;
+  couponSystemEnabled?: boolean;
 }
 
 function toMin(t: string): number {
@@ -38,7 +39,7 @@ function formatDuration(hours: number): string {
   return `${whole > 0 ? `${whole}.` : ''}30 ชม.`;
 }
 
-export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime, closeTime, isLoggedIn, emailVerified = true, userPhone }: FieldBookingClientProps) {
+export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime, closeTime, isLoggedIn, emailVerified = true, userPhone, couponSystemEnabled = true }: FieldBookingClientProps) {
   const router = useRouter();
   const t = useTranslations('booking');
   const today = formatDateISO(new Date());
@@ -450,7 +451,7 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
             )}
 
             {/* Coupon input */}
-            {!coupon && (
+            {couponSystemEnabled && !coupon && (
               <div className="flex gap-2">
                 <input
                   type="text"

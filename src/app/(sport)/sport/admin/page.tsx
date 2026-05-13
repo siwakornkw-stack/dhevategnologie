@@ -8,6 +8,7 @@ import { SPORT_TYPE_EMOJI, SPORT_TYPE_LABELS } from '@/lib/booking';
 import { AddFieldForm } from './fields/add-field-form';
 import { AdminFieldActions } from './fields/admin-field-actions';
 import { EditFieldForm } from './fields/edit-field-form';
+import { BlockedDatesManager } from './fields/blocked-dates-manager';
 import { AdminAutoRefresh } from '@/components/sport/admin-auto-refresh';
 
 export async function generateMetadata() {
@@ -181,6 +182,7 @@ export default async function AdminDashboardPage() {
 
                 {/* Actions */}
                 <div className="flex items-center gap-2">
+                  <BlockedDatesManager fieldId={field.id} fieldName={field.name} />
                   <EditFieldForm field={field} />
                   <AdminFieldActions fieldId={field.id} fieldName={field.name} />
                 </div>

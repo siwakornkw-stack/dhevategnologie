@@ -6,6 +6,7 @@ import { FieldReviews } from '@/components/sport/field-reviews';
 import { SPORT_TYPE_LABELS, SPORT_TYPE_EMOJI } from '@/lib/booking';
 import { ShareButton } from '@/components/sport/share-button';
 import { getTranslations } from 'next-intl/server';
+import { isCouponSystemEnabled } from '@/lib/settings';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -23,10 +24,11 @@ export async function generateMetadata({ params }: PageProps) {
 export default async function FieldDetailPage({ params }: PageProps) {
   const { id } = await params;
   const decodedId = decodeURIComponent(id);
-  const [field, session, t] = await Promise.all([
+  const [field, session, t, couponSystemEnabled] = await Promise.all([
     prisma.field.findFirst({ where: { id: decodedId, isActive: true } }),
     auth(),
     getTranslations('field'),
+    isCouponSystemEnabled(),
   ]);
 
   if (!field) notFound();
@@ -137,6 +139,7 @@ export default async function FieldDetailPage({ params }: PageProps) {
             isLoggedIn={!!session}
             emailVerified={!!session?.user?.emailVerified}
             userPhone={userPhone}
+            couponSystemEnabled={couponSystemEnabled}
           />
           <FieldReviews fieldId={field.id} />
         </div>
