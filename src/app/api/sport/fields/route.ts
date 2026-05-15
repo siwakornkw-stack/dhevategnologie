@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { name, description, sportType, pricePerHour, imageUrl, location, facilities, openTime, closeTime, lat, lng } = body;
+  const { name, description, sportType, pricePerHour, imageUrl, location, facilities, openTime, closeTime, lat, lng, priceRules } = body;
 
   if (!name || !sportType || !pricePerHour) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -66,6 +66,22 @@ export async function POST(req: NextRequest) {
       openTime: openTime || '08:00', closeTime: closeTime || '22:00',
       lat: lat ? Number(lat) : null,
       lng: lng ? Number(lng) : null,
+      ...(Array.isArray(priceRules) && priceRules.length > 0
+        ? {
+            priceRules: {
+              create: priceRules
+                .filter((r: { startTime?: string; endTime?: string; pricePerHour?: unknown }) =>
+                  r.startTime && r.endTime && r.startTime !== r.endTime && Number(r.pricePerHour) > 0,
+                )
+                .map((r: { startTime: string; endTime: string; pricePerHour: unknown; label?: string }) => ({
+                  startTime: r.startTime,
+                  endTime: r.endTime,
+                  pricePerHour: Number(r.pricePerHour),
+                  label: r.label || null,
+                })),
+            },
+          }
+        : {}),
     },
   });
 

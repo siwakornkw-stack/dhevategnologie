@@ -13,8 +13,18 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const dateObj = new Date(date);
   if (isNaN(dateObj.getTime())) return NextResponse.json({ error: 'Invalid date' }, { status: 400 });
 
-  const field = await prisma.field.findFirst({ where: { id: decodedId } });
+  const field = await prisma.field.findFirst({
+    where: { id: decodedId },
+    include: { priceRules: { orderBy: { startTime: 'asc' } } },
+  });
   if (!field) return NextResponse.json({ error: 'Field not found' }, { status: 404 });
+
+  const priceRules = field.priceRules.map((r) => ({
+    startTime: r.startTime,
+    endTime: r.endTime,
+    pricePerHour: r.pricePerHour,
+    label: r.label,
+  }));
 
   // Check if the date is blocked by admin
   const blocked = await prisma.fieldBlockedDate.findFirst({
@@ -25,6 +35,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       bookedSlots: {},
       openTime: field.openTime,
       closeTime: field.closeTime,
+      priceRules,
       isBlocked: true,
       blockedReason: blocked.reason,
     });
@@ -46,5 +57,5 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
   }
 
-  return NextResponse.json({ bookedSlots, openTime: field.openTime, closeTime: field.closeTime, isBlocked: false });
+  return NextResponse.json({ bookedSlots, openTime: field.openTime, closeTime: field.closeTime, priceRules, isBlocked: false });
 }

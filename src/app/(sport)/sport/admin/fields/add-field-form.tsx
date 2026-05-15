@@ -7,6 +7,13 @@ import { SPORT_TYPE_LABELS } from '@/lib/booking';
 
 const SPORT_TYPES = Object.entries(SPORT_TYPE_LABELS);
 
+interface PriceRuleInput {
+  startTime: string;
+  endTime: string;
+  pricePerHour: string;
+  label: string;
+}
+
 const defaultForm = {
   name: '', sportType: 'FOOTBALL', pricePerHour: '',
   location: '', description: '', facilities: '',
@@ -20,8 +27,18 @@ export function AddFieldForm() {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState(defaultForm);
   const [uploading, setUploading] = useState(false);
+  const [priceRules, setPriceRules] = useState<PriceRuleInput[]>([]);
 
   function setField(k: string, v: string) { setForm((f) => ({ ...f, [k]: v })); }
+  function addPriceRule() {
+    setPriceRules((prev) => [...prev, { startTime: '08:00', endTime: '12:00', pricePerHour: '', label: '' }]);
+  }
+  function removePriceRule(idx: number) {
+    setPriceRules((prev) => prev.filter((_, i) => i !== idx));
+  }
+  function updatePriceRule(idx: number, key: keyof PriceRuleInput, val: string) {
+    setPriceRules((prev) => prev.map((r, i) => (i === idx ? { ...r, [key]: val } : r)));
+  }
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -42,7 +59,7 @@ export function AddFieldForm() {
     }
   }
 
-  function handleClose() { setOpen(false); setForm(defaultForm); }
+  function handleClose() { setOpen(false); setForm(defaultForm); setPriceRules([]); }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -53,7 +70,10 @@ export function AddFieldForm() {
       const res = await fetch('/api/sport/fields', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          priceRules: priceRules.map((r) => ({ ...r, pricePerHour: Number(r.pricePerHour) })),
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -224,6 +244,65 @@ export function AddFieldForm() {
                     value={form.description}
                     onChange={(e) => setField('description', e.target.value)}
                   />
+                </div>
+
+                {/* ราคาตามช่วงเวลา */}
+                <div className="sm:col-span-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                      ราคาตามช่วงเวลา <span className="text-gray-400 font-normal">(ถ้าไม่ตั้ง ใช้ราคาปกติ)</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={addPriceRule}
+                      className="text-xs px-2.5 py-1 rounded-lg bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-900/40 transition"
+                    >
+                      + เพิ่มช่วงราคา
+                    </button>
+                  </div>
+                  {priceRules.length > 0 && (
+                    <div className="space-y-2">
+                      {priceRules.map((rule, idx) => (
+                        <div key={idx} className="flex gap-2 items-center flex-wrap">
+                          <input
+                            type="time"
+                            value={rule.startTime}
+                            onChange={(e) => updatePriceRule(idx, 'startTime', e.target.value)}
+                            className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-400"
+                          />
+                          <span className="text-gray-400 text-sm">-</span>
+                          <input
+                            type="time"
+                            value={rule.endTime}
+                            onChange={(e) => updatePriceRule(idx, 'endTime', e.target.value)}
+                            className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-400"
+                          />
+                          <input
+                            type="number"
+                            min="1"
+                            placeholder="฿/ชม."
+                            value={rule.pricePerHour}
+                            onChange={(e) => updatePriceRule(idx, 'pricePerHour', e.target.value)}
+                            className="w-28 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-400"
+                          />
+                          <input
+                            type="text"
+                            placeholder="ชื่อช่วง (ไม่บังคับ)"
+                            value={rule.label}
+                            onChange={(e) => updatePriceRule(idx, 'label', e.target.value)}
+                            className="flex-1 min-w-[120px] rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-400"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removePriceRule(idx)}
+                            className="text-red-400 hover:text-red-600 transition text-xl leading-none px-1"
+                          >
+                            x
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 

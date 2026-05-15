@@ -194,6 +194,7 @@ model Field {
   waitingLists WaitingList[]
   reviews      Review[]
   blockedDates FieldBlockedDate[]
+  priceRules   FieldPriceRule[]
 }
 
 model FieldBlockedDate {
@@ -206,6 +207,20 @@ model FieldBlockedDate {
   field Field @relation(fields: [fieldId], references: [id], onDelete: Cascade)
 
   @@unique([fieldId, date])
+  @@index([fieldId])
+}
+
+model FieldPriceRule {
+  id           String   @id @default(cuid())
+  fieldId      String
+  startTime    String
+  endTime      String
+  pricePerHour Float
+  label        String?
+  createdAt    DateTime @default(now())
+
+  field Field @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
   @@index([fieldId])
 }
 

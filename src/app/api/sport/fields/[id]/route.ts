@@ -4,7 +4,7 @@ import { auth } from '@/lib/auth';
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const field = await prisma.field.findUnique({ where: { id } });
+  const field = await prisma.field.findUnique({ where: { id }, include: { priceRules: { orderBy: { startTime: 'asc' } } } });
   if (!field) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json(field);
 }
@@ -36,23 +36,46 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
   }
 
-  const field = await prisma.field.update({
-    where: { id },
-    data: {
-      name: body.name,
-      description: body.description,
-      sportType: body.sportType,
-      pricePerHour: body.pricePerHour ? Number(body.pricePerHour) : undefined,
-      imageUrl: body.imageUrl,
-      images: Array.isArray(body.images) ? body.images.filter(Boolean) : undefined,
-      location: body.location,
-      facilities: body.facilities,
-      openTime: body.openTime,
-      closeTime: body.closeTime,
-      isActive: body.isActive,
-      lat: body.lat !== undefined ? (body.lat ? Number(body.lat) : null) : undefined,
-      lng: body.lng !== undefined ? (body.lng ? Number(body.lng) : null) : undefined,
-    },
+  const priceRulesInput = Array.isArray(body.priceRules) ? body.priceRules : null;
+
+  const field = await prisma.$transaction(async (tx) => {
+    const updated = await tx.field.update({
+      where: { id },
+      data: {
+        name: body.name,
+        description: body.description,
+        sportType: body.sportType,
+        pricePerHour: body.pricePerHour ? Number(body.pricePerHour) : undefined,
+        imageUrl: body.imageUrl,
+        images: Array.isArray(body.images) ? body.images.filter(Boolean) : undefined,
+        location: body.location,
+        facilities: body.facilities,
+        openTime: body.openTime,
+        closeTime: body.closeTime,
+        isActive: body.isActive,
+        lat: body.lat !== undefined ? (body.lat ? Number(body.lat) : null) : undefined,
+        lng: body.lng !== undefined ? (body.lng ? Number(body.lng) : null) : undefined,
+      },
+    });
+    if (priceRulesInput !== null) {
+      await tx.fieldPriceRule.deleteMany({ where: { fieldId: id } });
+      const validRules = priceRulesInput.filter(
+        (r: { startTime?: string; endTime?: string; pricePerHour?: unknown }) =>
+          r.startTime && r.endTime && r.startTime !== r.endTime && Number(r.pricePerHour) > 0,
+      );
+      if (validRules.length > 0) {
+        await tx.fieldPriceRule.createMany({
+          data: validRules.map((r: { startTime: string; endTime: string; pricePerHour: unknown; label?: string }) => ({
+            fieldId: id,
+            startTime: r.startTime,
+            endTime: r.endTime,
+            pricePerHour: Number(r.pricePerHour),
+            label: r.label || null,
+          })),
+        });
+      }
+    }
+    return updated;
   });
 
   prisma.auditLog.create({

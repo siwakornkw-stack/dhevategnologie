@@ -25,7 +25,7 @@ export default async function FieldDetailPage({ params }: PageProps) {
   const { id } = await params;
   const decodedId = decodeURIComponent(id);
   const [field, session, t, couponSystemEnabled] = await Promise.all([
-    prisma.field.findFirst({ where: { id: decodedId, isActive: true } }),
+    prisma.field.findFirst({ where: { id: decodedId, isActive: true }, include: { priceRules: { orderBy: { startTime: 'asc' } } } }),
     auth(),
     getTranslations('field'),
     isCouponSystemEnabled(),
@@ -134,6 +134,7 @@ export default async function FieldDetailPage({ params }: PageProps) {
             fieldId={field.id}
             fieldName={field.name}
             pricePerHour={field.pricePerHour}
+            priceRules={field.priceRules.map((r) => ({ startTime: r.startTime, endTime: r.endTime, pricePerHour: r.pricePerHour, label: r.label }))}
             openTime={field.openTime}
             closeTime={field.closeTime}
             isLoggedIn={!!session}

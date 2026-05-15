@@ -115,6 +115,33 @@ export function pointsToDiscount(points: number): number {
   return Math.floor(Math.max(0, points) / 100) * 10;
 }
 
+export type PriceRule = { startTime: string; endTime: string; pricePerHour: number };
+
+export function calculatePriceWithRules(
+  bookingStart: string,
+  bookingEnd: string,
+  defaultPricePerHour: number,
+  rules: PriceRule[],
+): number {
+  const startM = toMinutes(bookingStart);
+  let endM = toMinutes(bookingEnd);
+  if (endM <= startM) endM += 1440;
+  if (!rules.length) return ((endM - startM) / 60) * defaultPricePerHour;
+  let total = 0;
+  for (let m = startM; m < endM; m += 30) {
+    const seg = m % 1440;
+    const rule = rules.find((r) => {
+      const rStart = toMinutes(r.startTime);
+      let rEnd = toMinutes(r.endTime);
+      if (rEnd <= rStart) rEnd += 1440;
+      const segAdj = seg < rStart ? seg + 1440 : seg;
+      return segAdj >= rStart && segAdj < rEnd;
+    });
+    total += (rule?.pricePerHour ?? defaultPricePerHour) / 2;
+  }
+  return total;
+}
+
 /** Check whether a coupon (already fetched) is usable right now. */
 export function isCouponUsable(coupon: {
   isActive: boolean;

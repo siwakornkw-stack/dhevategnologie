@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { stripe } from '@/lib/stripe';
 import { rateLimit, BOOKING_RATE_LIMIT } from '@/lib/rate-limit';
-import { expandTimeSlot, calculateCouponDiscount, isCouponUsable } from '@/lib/booking';
+import { expandTimeSlot, calculateCouponDiscount, isCouponUsable, calculatePriceWithRules } from '@/lib/booking';
 import { isCouponSystemEnabled } from '@/lib/settings';
 import { sendBookingCreatedEmail } from '@/lib/email';
 import { notifyLineNewBooking } from '@/lib/line-notify';
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
   }
 
   const [field, user, blocked] = await Promise.all([
-    prisma.field.findUnique({ where: { id: fieldId, isActive: true } }),
+    prisma.field.findUnique({ where: { id: fieldId, isActive: true }, include: { priceRules: true } }),
     prisma.user.findUnique({ where: { id: session.user.id }, select: { points: true, name: true, email: true } }),
     prisma.fieldBlockedDate.findFirst({ where: { fieldId, date: bookingDate } }),
   ]);
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
   if (hours <= 0 || isNaN(hours)) {
     return NextResponse.json({ error: 'ช่วงเวลาไม่ถูกต้อง' }, { status: 400 });
   }
-  const baseAmount = field.pricePerHour * hours;
+  const baseAmount = calculatePriceWithRules(startTime, endTime, field.pricePerHour, field.priceRules);
 
   const couponDiscount = calculateCouponDiscount(appliedCoupon, baseAmount);
 

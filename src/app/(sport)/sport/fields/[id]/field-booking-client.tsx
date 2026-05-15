@@ -7,7 +7,7 @@ import { useTranslations } from 'next-intl';
 import { DatePicker } from '@/components/sport/date-picker';
 import { TimeSlotGrid } from '@/components/sport/time-slot-grid';
 import { TimeSlotSkeleton } from '@/components/sport/skeleton';
-import { generateTimeSlots, formatDateISO } from '@/lib/booking';
+import { generateTimeSlots, formatDateISO, calculatePriceWithRules, type PriceRule } from '@/lib/booking';
 import { cn } from '@/lib/utils';
 import { Modal } from '@/components/ui/modal/modal';
 
@@ -15,6 +15,7 @@ interface FieldBookingClientProps {
   fieldId: string;
   fieldName: string;
   pricePerHour: number;
+  priceRules?: PriceRule[];
   openTime: string;
   closeTime: string;
   isLoggedIn: boolean;
@@ -39,7 +40,7 @@ function formatDuration(hours: number): string {
   return `${whole > 0 ? `${whole}.` : ''}30 ชม.`;
 }
 
-export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime, closeTime, isLoggedIn, emailVerified = true, userPhone, couponSystemEnabled = true }: FieldBookingClientProps) {
+export function FieldBookingClient({ fieldId, fieldName, pricePerHour, priceRules = [], openTime, closeTime, isLoggedIn, emailVerified = true, userPhone, couponSystemEnabled = true }: FieldBookingClientProps) {
   const router = useRouter();
   const t = useTranslations('booking');
   const today = formatDateISO(new Date());
@@ -259,7 +260,9 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
 
   const [startTime, endTime] = fullSlot ? fullSlot.split('-') : [null, null];
   const timeRange = fullSlot ? `${startTime}–${endTime}` : null;
-  const basePrice = pricePerHour * totalHours;
+  const basePrice = startTime && endTime
+    ? calculatePriceWithRules(startTime, endTime, pricePerHour, priceRules)
+    : 0;
   const couponDiscount = coupon
     ? coupon.discountType === 'PERCENT'
       ? Math.round(basePrice * coupon.discountValue / 100)
@@ -389,7 +392,9 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, openTime,
             <div className="border-t border-gray-100 dark:border-gray-800 pt-3 space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">
-                  {t('summary.serviceFee')} <span className="text-xs">({formatDuration(totalHours)} × ฿{pricePerHour.toLocaleString()})</span>
+                  {t('summary.serviceFee')} <span className="text-xs">
+                    ({formatDuration(totalHours)}{priceRules.length > 0 ? ' · ราคาตามช่วงเวลา' : ` × ฿${pricePerHour.toLocaleString()}`})
+                  </span>
                 </span>
                 <span className="font-medium text-gray-700 dark:text-gray-300">฿{basePrice.toLocaleString()}</span>
               </div>

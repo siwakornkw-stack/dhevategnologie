@@ -13,7 +13,11 @@ export default async function AdminFieldsPage() {
   const session = await auth();
   if (!session || session.user.role !== 'ADMIN') redirect('/sport');
 
-  const fields = await prisma.field.findMany({ where: { deletedAt: null }, orderBy: { createdAt: 'desc' } });
+  const fields = await prisma.field.findMany({
+    where: { deletedAt: null },
+    orderBy: { createdAt: 'desc' },
+    include: { priceRules: { orderBy: { startTime: 'asc' } } },
+  });
 
   return (
     <div className="wrapper py-8 max-w-5xl space-y-6">
@@ -51,7 +55,7 @@ export default async function AdminFieldsPage() {
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <BlockedDatesManager fieldId={field.id} fieldName={field.name} />
-                  <EditFieldForm field={{ id: field.id, name: field.name, sportType: field.sportType, pricePerHour: field.pricePerHour, location: field.location, description: field.description, facilities: field.facilities, imageUrl: field.imageUrl, images: field.images, openTime: field.openTime, closeTime: field.closeTime, isActive: field.isActive }} />
+                  <EditFieldForm field={{ id: field.id, name: field.name, sportType: field.sportType, pricePerHour: field.pricePerHour, location: field.location, description: field.description, facilities: field.facilities, imageUrl: field.imageUrl, images: field.images, openTime: field.openTime, closeTime: field.closeTime, isActive: field.isActive, priceRules: field.priceRules }} />
                   <AdminFieldActions fieldId={field.id} fieldName={field.name} />
                 </div>
               </div>
