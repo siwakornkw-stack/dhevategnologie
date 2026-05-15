@@ -100,10 +100,14 @@ export default async function FieldDetailPage({ params }: PageProps) {
             <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100 dark:border-gray-800">
               <div>
                 <p className="text-xs text-gray-400">{t('price')}</p>
-                <p className="text-xl font-bold text-primary-600 dark:text-primary-400">
-                  ฿{field.pricePerHour.toLocaleString()}
-                  <span className="text-sm font-normal text-gray-400">/ชม.</span>
-                </p>
+                {field.priceRules.length > 0 ? (
+                  <p className="text-base font-bold text-primary-600 dark:text-primary-400">ราคาตามช่วงเวลา</p>
+                ) : (
+                  <p className="text-xl font-bold text-primary-600 dark:text-primary-400">
+                    ฿{field.pricePerHour.toLocaleString()}
+                    <span className="text-sm font-normal text-gray-400">/ชม.</span>
+                  </p>
+                )}
               </div>
               <div>
                 <p className="text-xs text-gray-400">{t('openHours')}</p>
@@ -112,6 +116,28 @@ export default async function FieldDetailPage({ params }: PageProps) {
                 </p>
               </div>
             </div>
+
+            {field.priceRules.length > 0 && (
+              <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
+                <p className="text-xs text-gray-400 mb-2">อัตราค่าบริการ</p>
+                <div className="space-y-1">
+                  {field.priceRules.map((r) => (
+                    <div key={r.id} className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">
+                        {r.startTime} – {r.endTime} น.{r.label ? ` (${r.label})` : ''}
+                      </span>
+                      <span className="font-semibold text-primary-600 dark:text-primary-400">
+                        ฿{r.pricePerHour.toLocaleString()}/ชม.
+                      </span>
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-between text-sm text-gray-400">
+                    <span>ช่วงเวลาอื่น</span>
+                    <span>฿{field.pricePerHour.toLocaleString()}/ชม.</span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {field.facilities && (
               <div className="pt-2 border-t border-gray-100 dark:border-gray-800">

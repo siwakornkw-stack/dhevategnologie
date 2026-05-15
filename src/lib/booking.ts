@@ -115,7 +115,7 @@ export function pointsToDiscount(points: number): number {
   return Math.floor(Math.max(0, points) / 100) * 10;
 }
 
-export type PriceRule = { startTime: string; endTime: string; pricePerHour: number };
+export type PriceRule = { startTime: string; endTime: string; pricePerHour: number; label?: string | null };
 
 export function calculatePriceWithRules(
   bookingStart: string,

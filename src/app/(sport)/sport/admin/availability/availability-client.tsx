@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { generateTimeSlots, formatDateISO, SPORT_TYPE_EMOJI } from '@/lib/booking';
+import { generateTimeSlots, formatDateISO, SPORT_TYPE_EMOJI, calculatePriceWithRules, type PriceRule } from '@/lib/booking';
 import { cn } from '@/lib/utils';
 import { DatePicker } from '@/components/sport/date-picker';
 
@@ -127,6 +127,7 @@ export function AvailabilityClient() {
   const [endTime, setEndTime] = useState('');
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [fieldPriceRules, setFieldPriceRules] = useState<Record<string, PriceRule[]>>({});
 
   // Fetch all active fields once
   useEffect(() => {
@@ -145,13 +146,18 @@ export function AvailabilityClient() {
       fieldList.map((f) =>
         fetch(`/api/sport/fields/${f.id}/availability?date=${date}`)
           .then((r) => r.json())
-          .then((d) => ({ id: f.id, bookedSlots: d.bookedSlots ?? {} }))
-          .catch(() => ({ id: f.id, bookedSlots: {} }))
+          .then((d) => ({ id: f.id, bookedSlots: d.bookedSlots ?? {}, priceRules: d.priceRules ?? [] }))
+          .catch(() => ({ id: f.id, bookedSlots: {}, priceRules: [] }))
       )
     );
     const map: Record<string, Record<string, string>> = {};
-    results.forEach(({ id, bookedSlots }) => { map[id] = bookedSlots; });
+    const ruleMap: Record<string, PriceRule[]> = {};
+    results.forEach(({ id, bookedSlots, priceRules }) => {
+      map[id] = bookedSlots;
+      ruleMap[id] = priceRules;
+    });
     setAvailability(map);
+    setFieldPriceRules(ruleMap);
     setLoadingAvail(false);
   }, []);
 
@@ -175,9 +181,10 @@ export function AvailabilityClient() {
 
   const rawDuration = startTime && endTime ? toMin(endTime) - toMin(startTime) : 0;
   const dialogDurationMin = rawDuration >= 0 ? rawDuration : rawDuration + 1440;
-  const dialogTotalHours = dialogDurationMin / 60;
-  const dialogPrice = dialog ? dialog.field.pricePerHour * dialogTotalHours : 0;
   const dialogFullSlot = startTime && endTime ? `${startTime}-${endTime}` : null;
+  const dialogPrice = dialog && startTime && endTime && dialogDurationMin > 0
+    ? calculatePriceWithRules(startTime, endTime, dialog.field.pricePerHour, fieldPriceRules[dialog.field.id] ?? [])
+    : 0;
 
   // Check if selected range overlaps any booked slot
   const hasConflict = (() => {
@@ -276,8 +283,21 @@ export function AvailabilityClient() {
                     <div>
                       <p className="font-medium text-gray-900 dark:text-white text-sm">{field.name}</p>
                       <p className="text-xs text-primary-600 dark:text-primary-400 font-medium">
-                        ฿{field.pricePerHour.toLocaleString()}/ชม. · {field.openTime}–{field.closeTime}
+                        {fieldPriceRules[field.id]?.length > 0
+                          ? `ราคาตามช่วงเวลา · ${field.openTime}–${field.closeTime}`
+                          : `฿${field.pricePerHour.toLocaleString()}/ชม. · ${field.openTime}–${field.closeTime}`}
                       </p>
+                      {(fieldPriceRules[field.id]?.length ?? 0) > 0 && (
+                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+                          {fieldPriceRules[field.id].map((r, i) => (
+                            <span key={i} className="text-xs text-gray-400">
+                              {r.startTime}–{r.endTime} ฿{r.pricePerHour.toLocaleString()}
+                              {r.label ? ` (${r.label})` : ''}
+                            </span>
+                          ))}
+                          <span className="text-xs text-gray-400">อื่นๆ ฿{field.pricePerHour.toLocaleString()}</span>
+                        </div>
+                      )}
                     </div>
                     <div className="ml-auto text-xs text-gray-400">
                       ว่าง {availableSlots.length}/{allSlots.length} ช่อง
