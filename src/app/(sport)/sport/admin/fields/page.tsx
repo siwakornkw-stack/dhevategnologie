@@ -49,8 +49,20 @@ export default async function AdminFieldsPage() {
                     )}
                   </div>
                   <p className="text-xs text-gray-400">
-                    {SPORT_TYPE_LABELS[field.sportType]} · ฿{field.pricePerHour.toLocaleString()}/ชม. · {field.openTime}–{field.closeTime}
+                    {SPORT_TYPE_LABELS[field.sportType]} ·{' '}
+                    {field.priceRules.length > 0 ? 'ราคาตามช่วงเวลา' : `฿${field.pricePerHour.toLocaleString()}/ชม.`}
+                    {' · '}{field.openTime}–{field.closeTime}
                   </p>
+                  {field.priceRules.length > 0 && (
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+                      {field.priceRules.map((r) => (
+                        <span key={r.id} className="text-xs text-gray-400">
+                          {r.startTime}–{r.endTime} ฿{r.pricePerHour.toLocaleString()}{r.label ? ` (${r.label})` : ''}
+                        </span>
+                      ))}
+                      <span className="text-xs text-gray-400">อื่นๆ ฿{field.pricePerHour.toLocaleString()}</span>
+                    </div>
+                  )}
                   {field.location && <p className="text-xs text-gray-400">📍 {field.location}</p>}
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">

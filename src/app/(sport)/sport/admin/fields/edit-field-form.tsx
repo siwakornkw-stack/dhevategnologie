@@ -265,13 +265,24 @@ export function EditFieldForm({ field }: { field: Field }) {
                     <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
                       ราคาตามช่วงเวลา <span className="text-gray-400 font-normal">(ถ้าไม่ตั้ง ใช้ราคาปกติ)</span>
                     </label>
-                    <button
-                      type="button"
-                      onClick={addPriceRule}
-                      className="text-xs px-2.5 py-1 rounded-lg bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-900/40 transition"
-                    >
-                      + เพิ่มช่วงราคา
-                    </button>
+                    <div className="flex gap-2">
+                      {priceRules.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setPriceRules([])}
+                          className="text-xs px-2.5 py-1 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition"
+                        >
+                          ล้างทั้งหมด
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={addPriceRule}
+                        className="text-xs px-2.5 py-1 rounded-lg bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-900/40 transition"
+                      >
+                        + เพิ่มช่วงราคา
+                      </button>
+                    </div>
                   </div>
                   {priceRules.length > 0 && (
                     <div className="space-y-2">
