@@ -128,6 +128,8 @@ export function AvailabilityClient() {
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [fieldPriceRules, setFieldPriceRules] = useState<Record<string, PriceRule[]>>({});
+  const [repeatWeekly, setRepeatWeekly] = useState(false);
+  const [repeatWeeks, setRepeatWeeks] = useState(4);
 
   // Fetch all active fields once
   useEffect(() => {
@@ -173,6 +175,8 @@ export function AvailabilityClient() {
     setStartTime(slotStart);
     setEndTime(clampedEnd);
     setNote('');
+    setRepeatWeekly(false);
+    setRepeatWeeks(4);
   }
 
   function closeDialog() {
@@ -213,19 +217,50 @@ export function AvailabilityClient() {
     if (!dialog || !dialogFullSlot || !isValidRange) return;
     setSubmitting(true);
     try {
-      const res = await fetch('/api/sport/admin/book', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fieldId: dialog.field.id,
-          date: selectedDate,
-          timeSlot: dialogFullSlot,
-          note: note.trim() || null,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'เกิดข้อผิดพลาด');
-      toast.success(`จองสำเร็จ! ${dialog.field.name} ${dialogFullSlot} น.`);
+      const weeks = repeatWeekly ? Math.max(1, Math.min(26, repeatWeeks)) : 1;
+      const dates: string[] = [];
+      const base = new Date(selectedDate);
+      for (let i = 0; i < weeks; i++) {
+        const d = new Date(base);
+        d.setDate(base.getDate() + i * 7);
+        dates.push(formatDateISO(d));
+      }
+
+      const results = await Promise.all(
+        dates.map((date) =>
+          fetch('/api/sport/admin/book', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fieldId: dialog.field.id,
+              date,
+              timeSlot: dialogFullSlot,
+              note: note.trim() || null,
+            }),
+          })
+            .then(async (res) => ({ date, ok: res.ok, data: await res.json() }))
+            .catch(() => ({ date, ok: false, data: { error: 'network error' } }))
+        )
+      );
+
+      const success = results.filter((r) => r.ok);
+      const failed = results.filter((r) => !r.ok);
+
+      if (success.length === 0) {
+        throw new Error(failed[0]?.data?.error ?? 'เกิดข้อผิดพลาด');
+      }
+
+      if (failed.length === 0) {
+        toast.success(
+          weeks === 1
+            ? `จองสำเร็จ! ${dialog.field.name} ${dialogFullSlot} น.`
+            : `จองสำเร็จ ${success.length} สัปดาห์ (${dialog.field.name} ${dialogFullSlot} น.)`
+        );
+      } else {
+        const failDates = failed.map((f) => f.date).join(', ');
+        toast.warning(`จองได้ ${success.length}/${weeks} สัปดาห์ ล้มเหลว: ${failDates}`);
+      }
+
       closeDialog();
       const r = await fetch(`/api/sport/fields/${dialog.field.id}/availability?date=${selectedDate}`);
       const d = await r.json();
@@ -417,7 +452,7 @@ export function AvailabilityClient() {
             )}
 
             {/* Note */}
-            <div className="mb-5">
+            <div className="mb-4">
               <label className="text-xs text-gray-500 mb-1 block">หมายเหตุ (ชื่อลูกค้า / เบอร์โทร)</label>
               <textarea
                 value={note}
@@ -426,6 +461,35 @@ export function AvailabilityClient() {
                 rows={2}
                 className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none"
               />
+            </div>
+
+            {/* Repeat weekly */}
+            <div className="mb-5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3">
+              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={repeatWeekly}
+                  onChange={(e) => setRepeatWeekly(e.target.checked)}
+                  className="w-4 h-4 accent-primary-600"
+                />
+                <span className="font-medium">จองซ้ำทุกสัปดาห์</span>
+              </label>
+              {repeatWeekly && (
+                <div className="mt-3 flex items-center gap-2">
+                  <label className="text-xs text-gray-500">จำนวนสัปดาห์</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={26}
+                    value={repeatWeeks}
+                    onChange={(e) => setRepeatWeeks(Math.max(1, Math.min(26, Number(e.target.value) || 1)))}
+                    className="w-20 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary-400"
+                  />
+                  <span className="text-xs text-gray-400">
+                    (รวมวันแรก, สูงสุด 26 สัปดาห์)
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Actions */}
