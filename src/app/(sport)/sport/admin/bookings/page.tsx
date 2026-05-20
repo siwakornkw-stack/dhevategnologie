@@ -6,6 +6,7 @@ import { SPORT_TYPE_EMOJI } from '@/lib/booking';
 import { AdminBookingActions, AdminCancelAction } from './admin-booking-actions';
 import { BookingSearch } from './booking-search';
 import { PendingBookingsSection } from './bulk-approve';
+import { BookingReport } from './booking-report';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { getTranslations } from 'next-intl/server';
@@ -108,6 +109,8 @@ export default async function AdminBookingsPage({ searchParams }: PageProps) {
           </Link>
         ))}
       </div>
+
+      <BookingReport />
 
       <PendingBookingsSection bookings={pending} />
 
