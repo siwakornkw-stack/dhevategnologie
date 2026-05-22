@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { SPORT_TYPE_EMOJI } from '@/lib/booking';
 import { BookingStatusBadge } from '@/components/sport/booking-status-badge';
 import { AdminBookingActions } from './admin-booking-actions';
+import { EditBookingButton } from './edit-booking-button';
 
 interface Booking {
   id: string;
@@ -131,8 +132,13 @@ export function PendingBookingsSection({ bookings }: { bookings: Booking[] }) {
                 {booking.paidAt && <span className="text-green-600 dark:text-green-400">✓ ชำระแล้ว</span>}
               </div>
               {booking.note && <p className="text-xs text-gray-400 mt-0.5 italic">💬 {booking.note}</p>}
-              <div className="mt-2">
+              <div className="mt-2 flex flex-wrap items-center gap-2">
                 <AdminBookingActions bookingId={booking.id} />
+                <EditBookingButton
+                  bookingId={booking.id}
+                  initialDate={new Date(booking.date).toISOString()}
+                  initialTimeSlot={booking.timeSlot}
+                />
               </div>
             </div>
           </div>

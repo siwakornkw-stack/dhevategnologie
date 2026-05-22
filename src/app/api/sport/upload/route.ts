@@ -31,7 +31,8 @@ export async function POST(req: NextRequest) {
 
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
-  const ext = file.name.split('.').pop() ?? 'jpg';
+  const rawExt = file.name.split('.').pop() ?? 'jpg';
+  const ext = rawExt.replace(/[^a-zA-Z0-9]/g, '').slice(0, 5).toLowerCase() || 'jpg';
   const prefix = session.user.role === 'ADMIN' ? 'field' : 'profile';
   const baseName = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 

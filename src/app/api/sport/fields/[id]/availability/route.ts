@@ -3,8 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { expandTimeSlot } from '@/lib/booking';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const decodedId = decodeURIComponent(id);
+  const { id: decodedId } = await params;
   const { searchParams } = new URL(req.url);
   const date = searchParams.get('date');
 

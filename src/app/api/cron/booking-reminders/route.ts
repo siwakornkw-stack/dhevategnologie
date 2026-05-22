@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
     where: {
       status: 'APPROVED',
       date: { gte: tomorrow, lt: dayAfter },
+      reminderSentAt: null,
     },
     include: {
       user: { select: { id: true, name: true, email: true, notifInApp: true, notifEmail: true } },
@@ -31,6 +32,12 @@ export async function GET(req: NextRequest) {
   });
 
   if (bookings.length === 0) return NextResponse.json({ sent: 0 });
+
+  // Mark as reminded up-front to prevent duplicate sends if cron retries
+  await prisma.booking.updateMany({
+    where: { id: { in: bookings.map((b) => b.id) }, reminderSentAt: null },
+    data: { reminderSentAt: new Date() },
+  });
 
   let sent = 0;
   await Promise.allSettled(

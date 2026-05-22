@@ -10,7 +10,27 @@ const PROFILE_RATE_LIMIT = { limit: 10, windowMs: 15 * 60 * 1000 };
 const schema = z.object({
   name: z.string().min(1).max(100).optional(),
   phone: z.string().regex(/^0[0-9]{8,9}$/, 'เบอร์โทรไม่ถูกต้อง').optional(),
-  image: z.string().url().optional(),
+  image: z.string().url().refine((u) => {
+    try {
+      const url = new URL(u);
+      if (url.protocol !== 'https:' && url.protocol !== 'http:') return false;
+      const host = url.hostname.toLowerCase();
+      const allowed = [
+        'res.cloudinary.com',
+        'lh3.googleusercontent.com',
+        'avatars.githubusercontent.com',
+        'graph.facebook.com',
+        'platform-lookaside.fbsbx.com',
+      ];
+      if (allowed.some((d) => host === d || host.endsWith('.' + d))) return true;
+      // Allow same-origin uploaded paths
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+      if (appUrl) {
+        try { if (host === new URL(appUrl).hostname) return true; } catch {}
+      }
+      return false;
+    } catch { return false; }
+  }, { message: 'URL รูปภาพไม่อยู่ในรายการที่อนุญาต' }).optional(),
   currentPassword: z.string().optional(),
   newPassword: z.string()
     .min(8, 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร')

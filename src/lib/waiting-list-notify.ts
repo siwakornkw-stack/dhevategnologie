@@ -22,7 +22,10 @@ export async function notifyWaitingList(fieldId: string, date: Date, timeSlot: s
 
   const bookingUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/sport/fields/${fieldId}`;
   const dateStr = date.toLocaleDateString('th-TH');
-  const fieldName = entries[0].field.name;
+  const escapeHtml = (s: string) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  const fieldName = escapeHtml(entries[0].field.name);
+  const safeTimeSlot = escapeHtml(timeSlot);
 
   await Promise.allSettled(
     entries.map(async (entry) => {
@@ -43,12 +46,12 @@ export async function notifyWaitingList(fieldId: string, date: Date, timeSlot: s
                 <h1 style="color:#fff;margin:8px 0 0;font-size:22px;">มีช่วงเวลาว่าง!</h1>
               </div>
               <div style="padding:24px 32px 32px;">
-                <p>สวัสดีคุณ <strong>${user.name ?? 'ลูกค้า'}</strong></p>
+                <p>สวัสดีคุณ <strong>${escapeHtml(user.name ?? 'ลูกค้า')}</strong></p>
                 <p>ช่วงเวลาที่คุณรออยู่มีการยกเลิกแล้ว จองได้ทันทีก่อนคนอื่น!</p>
                 <table style="width:100%;border-collapse:collapse;margin:16px 0;background:#f9fafb;border-radius:8px;overflow:hidden;">
                   <tr><td style="padding:10px 16px;color:#6b7280;font-size:14px;">สนาม</td><td style="padding:10px 16px;font-weight:600;">${fieldName}</td></tr>
                   <tr style="background:#fff;"><td style="padding:10px 16px;color:#6b7280;font-size:14px;">วันที่</td><td style="padding:10px 16px;font-weight:600;">${dateStr}</td></tr>
-                  <tr><td style="padding:10px 16px;color:#6b7280;font-size:14px;">เวลา</td><td style="padding:10px 16px;font-weight:600;">${timeSlot} น.</td></tr>
+                  <tr><td style="padding:10px 16px;color:#6b7280;font-size:14px;">เวลา</td><td style="padding:10px 16px;font-weight:600;">${safeTimeSlot} น.</td></tr>
                 </table>
                 <div style="text-align:center;margin:24px 0;">
                   <a href="${bookingUrl}" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:14px 32px;border-radius:999px;text-decoration:none;font-weight:600;font-size:15px;">จองเลย</a>

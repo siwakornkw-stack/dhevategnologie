@@ -7,6 +7,7 @@ import { verifySync as totpVerify } from 'otplib';
 import { prisma } from '@/lib/prisma';
 import { authConfig } from '@/lib/auth.config';
 import { z } from 'zod';
+import { rateLimit, AUTH_RATE_LIMIT } from '@/lib/rate-limit';
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -32,6 +33,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       async authorize(credentials) {
         const parsed = loginSchema.safeParse(credentials);
         if (!parsed.success) return null;
+
+        const rl = await rateLimit(`login:${parsed.data.email.toLowerCase()}`, AUTH_RATE_LIMIT);
+        if (!rl.success) throw new Error('LOGIN_RATE_LIMITED');
 
         const user = await prisma.user.findUnique({
           where: { email: parsed.data.email },

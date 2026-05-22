@@ -72,6 +72,21 @@ export async function POST(req: NextRequest) {
   if (hours <= 0 || isNaN(hours)) {
     return NextResponse.json({ error: 'ช่วงเวลาไม่ถูกต้อง' }, { status: 400 });
   }
+
+  // Validate slot is within field operating hours
+  const fieldOpen = toMin(field.openTime);
+  let fieldClose = toMin(field.closeTime);
+  if (fieldClose <= fieldOpen) fieldClose += 1440;
+  let slotStartMin = toMin(startTime);
+  let slotEndMin = toMin(endTime);
+  if (slotEndMin <= slotStartMin) slotEndMin += 1440;
+  if (slotStartMin < fieldOpen) { slotStartMin += 1440; slotEndMin += 1440; }
+  if (slotStartMin < fieldOpen || slotEndMin > fieldClose) {
+    return NextResponse.json(
+      { error: `เวลาต้องอยู่ในช่วง ${field.openTime}–${field.closeTime} น.` },
+      { status: 400 }
+    );
+  }
   const baseAmount = calculatePriceWithRules(startTime, endTime, field.pricePerHour, field.priceRules);
 
   const couponDiscount = calculateCouponDiscount(appliedCoupon, baseAmount);
@@ -86,7 +101,7 @@ export async function POST(req: NextRequest) {
   const discountAmount = couponDiscount + pointsDiscount;
   const totalAmount = Math.max(0, baseAmount - discountAmount);
 
-  // Conflict check + booking create inside a transaction to prevent race conditions
+  // Conflict check + coupon increment + booking create + points decrement: all atomic
   let booking;
   try {
     booking = await prisma.$transaction(async (tx) => {
@@ -110,34 +125,44 @@ export async function POST(req: NextRequest) {
           throw Object.assign(new Error('COUPON_INVALID'), { isCouponInvalid: true });
         }
       }
-      return tx.booking.create({
+
+      // Re-fetch user points inside tx to prevent race; conditionally decrement
+      if (pointsToRedeem > 0) {
+        const fresh = await tx.user.findUnique({ where: { id: session.user.id }, select: { points: true } });
+        if (!fresh || fresh.points < pointsToRedeem) {
+          throw Object.assign(new Error('POINTS_INSUFFICIENT'), { isPointsInsufficient: true });
+        }
+        await tx.user.update({
+          where: { id: session.user.id },
+          data: { points: { decrement: pointsToRedeem } },
+        });
+      }
+
+      const created = await tx.booking.create({
         data: {
           userId: session.user.id, fieldId, date: bookingDate, timeSlot: timeSlotRange, note,
           ...(appliedCoupon ? { couponCode: appliedCoupon.code, discountAmount } : { discountAmount: discountAmount || undefined }),
           ...(pointsToRedeem > 0 ? { pointsRedeemed: pointsToRedeem } : {}),
         },
       });
+
+      if (pointsToRedeem > 0) {
+        await tx.pointTransaction.create({
+          data: { userId: session.user.id, points: -pointsToRedeem, type: 'REDEEM', bookingId: created.id, note: `แลกแต้มสำหรับการจอง ${timeSlotRange}` },
+        });
+      }
+
+      return created;
     });
   } catch (e: unknown) {
     if (e && typeof e === 'object') {
       if ('isCouponInvalid' in e) return NextResponse.json({ error: 'คูปองนี้ไม่สามารถใช้ได้หรือหมดอายุแล้ว' }, { status: 400 });
       if ('isConflict' in e) return NextResponse.json({ error: 'ช่วงเวลานี้ถูกจองแล้ว' }, { status: 409 });
+      if ('isPointsInsufficient' in e) return NextResponse.json({ error: 'แต้มไม่เพียงพอ' }, { status: 400 });
     }
     console.error('[checkout] transaction error:', e);
     return NextResponse.json({ error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' }, { status: 500 });
   }
-
-  // Deduct redeemed points and increment coupon usage after booking is confirmed
-  const sideEffects: Promise<unknown>[] = [];
-  if (pointsToRedeem > 0) {
-    sideEffects.push(
-      prisma.user.update({ where: { id: session.user.id }, data: { points: { decrement: pointsToRedeem } } }),
-      prisma.pointTransaction.create({
-        data: { userId: session.user.id, points: -pointsToRedeem, type: 'REDEEM', bookingId: booking.id, note: `แลกแต้มสำหรับการจอง ${timeSlotRange}` },
-      }),
-    );
-  }
-  if (sideEffects.length > 0) await Promise.all(sideEffects);
 
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   const stripeEnabled = stripeKey && !stripeKey.startsWith('sk_test_your');
@@ -234,24 +259,23 @@ export async function POST(req: NextRequest) {
     notifyAdmins().catch(() => {});
     return NextResponse.json({ url: checkoutSession.url });
   } catch (err) {
-    // Rollback booking, restore points, and undo coupon usage
-    const rollback: Promise<unknown>[] = [
-      prisma.booking.update({ where: { id: booking.id }, data: { status: 'CANCELLED' } }),
-    ];
-    if (pointsToRedeem > 0) {
-      rollback.push(
-        prisma.user.update({ where: { id: session.user.id }, data: { points: { increment: pointsToRedeem } } }),
-        prisma.pointTransaction.create({
-          data: { userId: session.user.id, points: pointsToRedeem, type: 'EARN', bookingId: booking.id, note: 'คืนแต้มเนื่องจากการชำระเงินล้มเหลว' },
-        }),
-      );
+    // Atomic rollback: cancel booking, restore points, undo coupon usage
+    try {
+      await prisma.$transaction(async (tx) => {
+        await tx.booking.update({ where: { id: booking.id }, data: { status: 'CANCELLED' } });
+        if (pointsToRedeem > 0) {
+          await tx.user.update({ where: { id: session.user.id }, data: { points: { increment: pointsToRedeem } } });
+          await tx.pointTransaction.create({
+            data: { userId: session.user.id, points: pointsToRedeem, type: 'EARN', bookingId: booking.id, note: 'คืนแต้มเนื่องจากการชำระเงินล้มเหลว' },
+          });
+        }
+        if (appliedCoupon) {
+          await tx.coupon.update({ where: { code: appliedCoupon.code }, data: { usedCount: { decrement: 1 } } });
+        }
+      });
+    } catch (rollbackErr) {
+      console.error('[checkout] rollback failed — manual reconciliation needed:', { bookingId: booking.id, userId: session.user.id, pointsToRedeem, coupon: appliedCoupon?.code, rollbackErr });
     }
-    if (appliedCoupon) {
-      rollback.push(
-        prisma.coupon.update({ where: { code: appliedCoupon.code }, data: { usedCount: { decrement: 1 } } }),
-      );
-    }
-    await Promise.allSettled(rollback);
     const message = err instanceof Error ? err.message : 'Stripe error';
     return NextResponse.json({ error: `ระบบชำระเงินมีปัญหา: ${message}` }, { status: 502 });
   }

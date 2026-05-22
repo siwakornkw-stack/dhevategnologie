@@ -69,6 +69,9 @@ export async function PATCH(req: NextRequest) {
 
   const { id, isActive } = await req.json();
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
+  if (typeof isActive !== 'boolean') {
+    return NextResponse.json({ error: 'isActive ต้องเป็น boolean' }, { status: 400 });
+  }
   const coupon = await prisma.coupon.update({ where: { id }, data: { isActive } });
   prisma.auditLog.create({
     data: { adminId: session.user.id, action: 'COUPON_UPDATED', targetId: id, details: { isActive } },

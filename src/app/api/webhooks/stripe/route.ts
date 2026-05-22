@@ -25,23 +25,26 @@ export async function POST(req: NextRequest) {
     const bookingId = session.metadata?.bookingId;
     if (!bookingId) return NextResponse.json({ ok: true });
 
-    let booking;
-    try {
-      booking = await prisma.booking.update({
-        where: { id: bookingId },
-        data: {
-          stripePaymentIntentId: typeof session.payment_intent === 'string' ? session.payment_intent : null,
-          paidAt: new Date(),
-        },
-        include: {
-          user: { select: { name: true, email: true, notifEmail: true, notifInApp: true } },
-          field: { select: { name: true, pricePerHour: true } },
-        },
-      });
-    } catch {
-      // Booking already cancelled (e.g. by cron cleanup) — acknowledge webhook to stop retries
-      return NextResponse.json({ ok: true });
+    // Idempotency guard: only process if paidAt is still null (first delivery)
+    const updateResult = await prisma.booking.updateMany({
+      where: { id: bookingId, paidAt: null },
+      data: {
+        stripePaymentIntentId: typeof session.payment_intent === 'string' ? session.payment_intent : null,
+        paidAt: new Date(),
+      },
+    });
+    if (updateResult.count === 0) {
+      // Already processed or cancelled — acknowledge to stop retries
+      return NextResponse.json({ ok: true, duplicate: true });
     }
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        user: { select: { name: true, email: true, notifEmail: true, notifInApp: true } },
+        field: { select: { name: true, pricePerHour: true } },
+      },
+    });
+    if (!booking) return NextResponse.json({ ok: true });
 
     const amountPaid = session.amount_total ? session.amount_total / 100 : null;
     const discountAmount = booking.discountAmount ?? 0;

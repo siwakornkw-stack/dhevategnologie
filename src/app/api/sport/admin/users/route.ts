@@ -10,7 +10,8 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = req.nextUrl;
   const q = searchParams.get('q') ?? '';
-  const page = Math.min(1000, Math.max(1, parseInt(searchParams.get('page') ?? '1', 10)));
+  const pageRaw = parseInt(searchParams.get('page') ?? '1', 10);
+  const page = Math.min(1000, Math.max(1, Number.isFinite(pageRaw) ? pageRaw : 1));
   const PAGE_SIZE = 20;
 
   const where = q
@@ -47,6 +48,18 @@ export async function PATCH(req: NextRequest) {
   }
   if (userId === session.user.id) {
     return NextResponse.json({ error: 'ไม่สามารถแก้ไข role ตัวเองได้' }, { status: 400 });
+  }
+
+  // Prevent demoting the last remaining admin (system lock-out)
+  if (role === 'USER') {
+    const target = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+    if (!target) return NextResponse.json({ error: 'ไม่พบผู้ใช้' }, { status: 404 });
+    if (target.role === 'ADMIN') {
+      const adminCount = await prisma.user.count({ where: { role: 'ADMIN' } });
+      if (adminCount <= 1) {
+        return NextResponse.json({ error: 'ไม่สามารถลด role แอดมินคนสุดท้ายได้' }, { status: 400 });
+      }
+    }
   }
 
   const user = await prisma.user.update({

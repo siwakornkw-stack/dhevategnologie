@@ -68,9 +68,9 @@ export async function POST(req: NextRequest) {
     remaining.splice(idx, 1);
     await prisma.user.update({
       where: { id: session.user.id },
-      data: { twoFactorEnabled: false, twoFactorSecret: null, twoFactorBackupCodes: remaining },
+      data: { twoFactorBackupCodes: remaining },
     });
-    return NextResponse.json({ ok: true, enabled: false });
+    return NextResponse.json({ ok: true, enabled: user.twoFactorEnabled, remaining: remaining.length });
   }
 
   const valid = verifySync({ token: code, secret: user.twoFactorSecret });

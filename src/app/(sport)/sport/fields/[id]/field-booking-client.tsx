@@ -40,7 +40,7 @@ function formatDuration(hours: number): string {
   return `${whole > 0 ? `${whole}.` : ''}30 ชม.`;
 }
 
-export function FieldBookingClient({ fieldId, fieldName, pricePerHour, priceRules = [], openTime, closeTime, isLoggedIn, emailVerified = true, userPhone, couponSystemEnabled = true }: FieldBookingClientProps) {
+export function FieldBookingClient({ fieldId, fieldName, pricePerHour, priceRules = [], openTime, closeTime, isLoggedIn, userPhone, couponSystemEnabled = true }: FieldBookingClientProps) {
   const router = useRouter();
   const t = useTranslations('booking');
   const today = formatDateISO(new Date());

@@ -38,13 +38,36 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   return NextResponse.json(booking);
 }
 
+function toMinutes(t: string): number {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function parseSlot(ts: string): [number, number] | null {
+  const parts = ts.split('-');
+  if (parts.length !== 2) return null;
+  const s = toMinutes(parts[0]);
+  let e = toMinutes(parts[1]);
+  if (isNaN(s) || isNaN(e) || s === e) return null;
+  if (e < s) e += 1440;
+  return [s, e];
+}
+
+function overlaps(aStart: number, aEnd: number, bStart: number, bEnd: number): boolean {
+  return aStart < bEnd && aEnd > bStart;
+}
+
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { id } = await params;
   const body = await req.json();
-  const { status } = body as { status: BookingStatus };
+  const { status, date: newDate, timeSlot: newTimeSlot } = body as {
+    status?: BookingStatus;
+    date?: string;
+    timeSlot?: string;
+  };
 
   const booking = await prisma.booking.findUnique({ where: { id } });
   if (!booking) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -53,6 +76,121 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const isOwner = booking.userId === session.user.id;
 
   if (!isAdmin && !isOwner) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  // Admin-only: reschedule (change date/timeSlot) without touching status
+  if (!status && (newDate || newTimeSlot)) {
+    if (!isAdmin) return NextResponse.json({ error: 'Admin เท่านั้น' }, { status: 403 });
+    if (booking.status === 'CANCELLED' || booking.status === 'REJECTED') {
+      return NextResponse.json({ error: 'การจองนี้ถูกยกเลิก/ปฏิเสธแล้ว แก้ไม่ได้' }, { status: 422 });
+    }
+
+    const targetDateStr = newDate ?? booking.date.toISOString();
+    const targetSlot = newTimeSlot ?? booking.timeSlot;
+
+    const targetDate = new Date(targetDateStr);
+    if (isNaN(targetDate.getTime())) return NextResponse.json({ error: 'วันที่ไม่ถูกต้อง' }, { status: 400 });
+
+    const parsed = parseSlot(targetSlot);
+    if (!parsed) return NextResponse.json({ error: 'รูปแบบช่วงเวลาไม่ถูกต้อง' }, { status: 400 });
+    const [s, e] = parsed;
+    if (e - s < 5) return NextResponse.json({ error: 'ระยะเวลาขั้นต่ำ 5 นาที' }, { status: 400 });
+
+    const [field, blocked] = await Promise.all([
+      prisma.field.findUnique({
+        where: { id: booking.fieldId },
+        select: { openTime: true, closeTime: true },
+      }),
+      prisma.fieldBlockedDate.findFirst({ where: { fieldId: booking.fieldId, date: targetDate } }),
+    ]);
+    if (!field) return NextResponse.json({ error: 'ไม่พบสนาม' }, { status: 404 });
+    if (blocked) {
+      return NextResponse.json(
+        { error: `สนามปิดให้บริการในวันนี้${blocked.reason ? `: ${blocked.reason}` : ''}` },
+        { status: 409 }
+      );
+    }
+
+    const fieldOpen = toMinutes(field.openTime);
+    let fieldClose = toMinutes(field.closeTime);
+    if (fieldClose <= fieldOpen) fieldClose += 1440;
+    let slotStart = s;
+    let slotEnd = e;
+    if (slotStart < fieldOpen) { slotStart += 1440; slotEnd += 1440; }
+    if (slotStart < fieldOpen || slotEnd > fieldClose) {
+      return NextResponse.json(
+        { error: `เวลาต้องอยู่ในช่วง ${field.openTime}–${field.closeTime} น.` },
+        { status: 400 }
+      );
+    }
+
+    const prevDate = booking.date;
+    const prevTimeSlot = booking.timeSlot;
+
+    try {
+      const updated = await prisma.$transaction(async (tx) => {
+        const existing = await tx.booking.findMany({
+          where: {
+            fieldId: booking.fieldId,
+            date: targetDate,
+            status: { in: ['PENDING', 'APPROVED'] },
+            id: { not: id },
+          },
+          select: { timeSlot: true },
+        });
+        const conflict = existing.some((b) => {
+          const p = parseSlot(b.timeSlot);
+          return p ? overlaps(s, e, p[0], p[1]) : false;
+        });
+        if (conflict) throw new Error('conflict');
+
+        return tx.booking.update({
+          where: { id },
+          data: { date: targetDate, timeSlot: targetSlot },
+          include: {
+            field: { select: { name: true } },
+            user: { select: { email: true, name: true, notifEmail: true, notifInApp: true } },
+          },
+        });
+      });
+
+      // Notify user of reschedule + free up the old slot for waiting list
+      const dateLabel = updated.date.toLocaleDateString('th-TH');
+      const msgBody = `${updated.field.name} · ${dateLabel} เวลา ${updated.timeSlot} น. (เดิม ${prevDate.toLocaleDateString('th-TH')} ${prevTimeSlot})`;
+
+      const tasks: Promise<unknown>[] = [];
+      if (updated.user.notifInApp) {
+        tasks.push(
+          prisma.notification.create({
+            data: {
+              userId: updated.userId,
+              type: 'BOOKING_RESCHEDULED',
+              title: 'การจองถูกเปลี่ยนเวลา',
+              message: msgBody,
+              link: '/sport/bookings',
+            },
+          }).catch(() => {}),
+          sendPushToUser(updated.userId, {
+            title: 'การจองถูกเปลี่ยนเวลา',
+            message: msgBody,
+            link: '/sport/bookings',
+          }).catch(() => {}),
+        );
+      }
+      if (tasks.length > 0) await Promise.allSettled(tasks);
+
+      notifyWaitingList(booking.fieldId, prevDate, prevTimeSlot).catch(() => {});
+
+      return NextResponse.json(updated);
+    } catch (err) {
+      const msg = err instanceof Error && err.message === 'conflict'
+        ? 'ช่วงเวลานี้ถูกจองแล้ว'
+        : 'แก้ไขไม่สำเร็จ';
+      return NextResponse.json({ error: msg }, { status: 409 });
+    }
+  }
+
+  if (!status) return NextResponse.json({ error: 'Missing status' }, { status: 400 });
+
   if (!isAdmin && status !== 'CANCELLED') return NextResponse.json({ error: 'ผู้ใช้ทำได้แค่ยกเลิกเท่านั้น' }, { status: 403 });
 
   // State machine: validate the transition is allowed
@@ -135,11 +273,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           data: { userId: booking.userId, points: booking.pointsRedeemed, type: 'EARN', bookingId: id, note: 'คืนแต้มเนื่องจากการยกเลิก/ปฏิเสธการจอง' },
         });
       }
-      // Deduct earned points (if previously approved)
+      // Deduct earned points (if previously approved) — clamp to current balance to avoid negative
       if (booking.pointsEarned && booking.pointsEarned > 0) {
-        await tx.user.update({ where: { id: booking.userId }, data: { points: { decrement: booking.pointsEarned } } });
+        const cur = await tx.user.findUnique({ where: { id: booking.userId }, select: { points: true } });
+        const deduct = Math.min(booking.pointsEarned, cur?.points ?? 0);
+        if (deduct > 0) {
+          await tx.user.update({ where: { id: booking.userId }, data: { points: { decrement: deduct } } });
+        }
         await tx.pointTransaction.create({
-          data: { userId: booking.userId, points: -booking.pointsEarned, type: 'REDEEM', bookingId: id, note: 'หักแต้มเนื่องจากการยกเลิก/ปฏิเสธการจอง' },
+          data: { userId: booking.userId, points: -deduct, type: 'REDEEM', bookingId: id, note: 'หักแต้มเนื่องจากการยกเลิก/ปฏิเสธการจอง' },
         });
       }
       // Revert coupon usage count

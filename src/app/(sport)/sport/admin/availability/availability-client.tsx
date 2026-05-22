@@ -193,7 +193,7 @@ export function AvailabilityClient() {
   // Check if selected range overlaps any booked slot
   const hasConflict = (() => {
     if (!dialog || !startTime || !endTime || dialogDurationMin <= 0) return false;
-    let sMin = toMin(startTime);
+    const sMin = toMin(startTime);
     let eMin = toMin(endTime);
     if (eMin <= sMin) eMin += 1440;
     const booked = availability[dialog.field.id] ?? {};

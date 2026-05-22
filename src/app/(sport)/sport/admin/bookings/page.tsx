@@ -3,7 +3,8 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { BookingStatusBadge } from '@/components/sport/booking-status-badge';
 import { SPORT_TYPE_EMOJI } from '@/lib/booking';
-import { AdminBookingActions, AdminCancelAction } from './admin-booking-actions';
+import { AdminCancelAction } from './admin-booking-actions';
+import { EditBookingButton } from './edit-booking-button';
 import { BookingSearch } from './booking-search';
 import { PendingBookingsSection } from './bulk-approve';
 import { BookingReport } from './booking-report';
@@ -210,7 +211,16 @@ function BookingRow({ booking, showActions, paidLabel, noPhoneLabel, bookedOnLab
 
       <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 flex-shrink-0">
         <BookingStatusBadge status={booking.status} />
-        {showActions && <AdminCancelAction bookingId={booking.id} />}
+        {showActions && (
+          <>
+            <EditBookingButton
+              bookingId={booking.id}
+              initialDate={new Date(booking.date).toISOString()}
+              initialTimeSlot={booking.timeSlot}
+            />
+            <AdminCancelAction bookingId={booking.id} />
+          </>
+        )}
       </div>
     </div>
   );
