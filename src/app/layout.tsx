@@ -4,6 +4,7 @@ import { Onest } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 import { ToasterProvider } from './providers/toaster';
 import { PWARegister } from '@/components/pwa-register';
@@ -62,6 +63,7 @@ export default async function RootLayout({
             <div className="isolate flex flex-col flex-1">{children}</div>
             <PWARegister />
             <Analytics />
+            <SpeedInsights />
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>
