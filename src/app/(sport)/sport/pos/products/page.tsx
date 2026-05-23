@@ -13,6 +13,7 @@ type Product = {
   stockQty: number;
   stockUnit: string;
   lowStockAlert: number;
+  imageUrl: string | null;
   isActive: boolean;
 };
 
@@ -22,6 +23,8 @@ export default function ProductsPage() {
   const [q, setQ] = useState('');
   const [editing, setEditing] = useState<Product | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -35,6 +38,23 @@ export default function ProductsPage() {
     load();
   }, [q]);
 
+  async function uploadImage(file: File) {
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const r = await fetch('/api/sport/upload', { method: 'POST', body: fd });
+      const data = await r.json();
+      if (!r.ok) {
+        alert(data.error || 'อัปโหลดไม่สำเร็จ');
+        return;
+      }
+      setImageUrl(data.url);
+    } finally {
+      setUploading(false);
+    }
+  }
+
   async function save(form: FormData) {
     const payload = {
       name: form.get('name'),
@@ -45,6 +65,7 @@ export default function ProductsPage() {
       stockQty: form.get('stockQty'),
       stockUnit: form.get('stockUnit'),
       lowStockAlert: form.get('lowStockAlert'),
+      imageUrl,
       isActive: form.get('isActive') === 'on',
     };
     const url = editing ? `/api/sport/pos/products/${editing.id}` : `/api/sport/pos/products`;
@@ -57,6 +78,7 @@ export default function ProductsPage() {
     }
     setEditing(null);
     setShowForm(false);
+    setImageUrl(null);
     load();
   }
 
@@ -76,6 +98,7 @@ export default function ProductsPage() {
         <button
           onClick={() => {
             setEditing(null);
+            setImageUrl(null);
             setShowForm(true);
           }}
           className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700"
@@ -100,6 +123,33 @@ export default function ProductsPage() {
           }}
           className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 border rounded-xl bg-gray-50 dark:bg-gray-800 dark:border-gray-700"
         >
+          <div className="col-span-full flex items-center gap-3">
+            {imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={imageUrl} alt="preview" className="w-20 h-20 object-cover rounded-lg border dark:border-gray-700" />
+            ) : (
+              <div className="w-20 h-20 rounded-lg border-2 border-dashed dark:border-gray-700 flex items-center justify-center text-xs text-gray-400">ไม่มีรูป</div>
+            )}
+            <div className="flex flex-col gap-2">
+              <label className="px-3 py-1.5 text-xs rounded-lg border dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 inline-flex items-center gap-1">
+                {uploading ? 'กำลังอัปโหลด...' : 'เลือกรูป'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={uploading}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) uploadImage(f);
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+              {imageUrl && (
+                <button type="button" onClick={() => setImageUrl(null)} className="text-xs text-red-600 hover:underline text-left">ลบรูป</button>
+              )}
+            </div>
+          </div>
           <input name="name" required defaultValue={editing?.name || ''} placeholder="ชื่อ *" className="input col-span-2" />
           <input name="sku" defaultValue={editing?.sku || ''} placeholder="SKU" className="input" />
           <input name="category" defaultValue={editing?.category || ''} placeholder="หมวด" className="input" />
@@ -119,6 +169,7 @@ export default function ProductsPage() {
               onClick={() => {
                 setEditing(null);
                 setShowForm(false);
+                setImageUrl(null);
               }}
               className="px-4 py-2 text-sm rounded-lg border dark:border-gray-700"
             >
@@ -139,6 +190,7 @@ export default function ProductsPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-800 text-left text-xs text-gray-500">
               <tr>
+                <th className="px-4 py-2 w-16">รูป</th>
                 <th className="px-4 py-2">ชื่อ</th>
                 <th className="px-4 py-2">SKU</th>
                 <th className="px-4 py-2">หมวด</th>
@@ -152,6 +204,14 @@ export default function ProductsPage() {
             <tbody className="divide-y dark:divide-gray-800">
               {list.map((p) => (
                 <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40">
+                  <td className="px-4 py-2">
+                    {p.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.imageUrl} alt={p.name} className="w-10 h-10 object-cover rounded-md border dark:border-gray-700" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-md bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-300 text-xs">-</div>
+                    )}
+                  </td>
                   <td className="px-4 py-2 text-gray-900 dark:text-white">{p.name}</td>
                   <td className="px-4 py-2 text-gray-500">{p.sku || '-'}</td>
                   <td className="px-4 py-2 text-gray-500">{p.category || '-'}</td>
@@ -166,7 +226,7 @@ export default function ProductsPage() {
                     </span>
                   </td>
                   <td className="px-4 py-2 text-right space-x-2">
-                    <button onClick={() => { setEditing(p); setShowForm(true); }} className="text-primary-600 text-xs hover:underline">แก้</button>
+                    <button onClick={() => { setEditing(p); setImageUrl(p.imageUrl); setShowForm(true); }} className="text-primary-600 text-xs hover:underline">แก้</button>
                     <button onClick={() => remove(p.id)} className="text-red-600 text-xs hover:underline">ลบ</button>
                   </td>
                 </tr>

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-type Product = { id: string; name: string; sku: string | null; category: string | null; price: number; stockQty: number; stockUnit: string; isActive: boolean };
+type Product = { id: string; name: string; sku: string | null; category: string | null; price: number; stockQty: number; stockUnit: string; imageUrl: string | null; isActive: boolean };
 type Item = { id: string; productName: string; qty: number; unitPrice: number; discount: number };
 type Tab = { id: string; name: string; teamLabel: string | null; bookingId: string | null; status: string; parentTabId: string | null; items: Item[]; children?: { id: string; name: string; teamLabel: string | null; items: Item[] }[] };
 
@@ -116,11 +116,19 @@ export default function SalePage() {
                 key={p.id}
                 onClick={() => (quickOpen ? addQuick(p) : addToTab(p.id))}
                 disabled={p.stockQty <= 0}
-                className="p-3 rounded-xl border bg-white dark:bg-gray-900 dark:border-gray-700 hover:border-primary-500 text-left disabled:opacity-40"
+                className="rounded-xl border bg-white dark:bg-gray-900 dark:border-gray-700 hover:border-primary-500 text-left disabled:opacity-40 overflow-hidden"
               >
-                <div className="font-medium text-sm text-gray-900 dark:text-white truncate">{p.name}</div>
-                <div className="text-primary-600 font-bold mt-1">฿{p.price}</div>
-                <div className="text-[10px] text-gray-400">คงเหลือ {p.stockQty} {p.stockUnit}</div>
+                {p.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={p.imageUrl} alt={p.name} className="w-full h-24 object-cover" />
+                ) : (
+                  <div className="w-full h-24 bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-300 text-2xl">📦</div>
+                )}
+                <div className="p-3">
+                  <div className="font-medium text-sm text-gray-900 dark:text-white truncate">{p.name}</div>
+                  <div className="text-primary-600 font-bold mt-1">฿{p.price}</div>
+                  <div className="text-[10px] text-gray-400">คงเหลือ {p.stockQty} {p.stockUnit}</div>
+                </div>
               </button>
             ))}
             {filtered.length === 0 && <div className="col-span-full p-8 text-center text-gray-400 text-sm">ไม่พบสินค้า</div>}
