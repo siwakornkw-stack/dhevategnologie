@@ -113,12 +113,24 @@ function TimeSelect({
   );
 }
 
-export function AvailabilityClient() {
-  const today = formatDateISO(new Date());
+interface AvailabilityClientProps {
+  initialDate?: string;
+  initialFields?: Field[];
+  initialAvailability?: Record<string, Record<string, string>>;
+  initialPriceRules?: Record<string, PriceRule[]>;
+}
+
+export function AvailabilityClient({
+  initialDate,
+  initialFields = [],
+  initialAvailability = {},
+  initialPriceRules = {},
+}: AvailabilityClientProps = {}) {
+  const today = initialDate ?? formatDateISO(new Date());
   const [selectedDate, setSelectedDate] = useState(today);
-  const [fields, setFields] = useState<Field[]>([]);
-  const [availability, setAvailability] = useState<Record<string, Record<string, string>>>({});
-  const [loadingFields, setLoadingFields] = useState(true);
+  const [fields, setFields] = useState<Field[]>(initialFields);
+  const [availability, setAvailability] = useState<Record<string, Record<string, string>>>(initialAvailability);
+  const [loadingFields, setLoadingFields] = useState(initialFields.length === 0);
   const [loadingAvail, setLoadingAvail] = useState(false);
 
   // Dialog state
@@ -127,18 +139,20 @@ export function AvailabilityClient() {
   const [endTime, setEndTime] = useState('');
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [fieldPriceRules, setFieldPriceRules] = useState<Record<string, PriceRule[]>>({});
+  const [fieldPriceRules, setFieldPriceRules] = useState<Record<string, PriceRule[]>>(initialPriceRules);
   const [repeatWeekly, setRepeatWeekly] = useState(false);
   const [repeatWeeks, setRepeatWeeks] = useState(4);
+  const hasInitialAvail = Object.keys(initialAvailability).length > 0;
 
-  // Fetch all active fields once
+  // Fetch all active fields once (only if no SSR data)
   useEffect(() => {
+    if (initialFields.length > 0) return;
     fetch('/api/sport/fields')
       .then((r) => r.json())
       .then((data) => setFields(Array.isArray(data) ? data : data.fields ?? []))
       .catch(() => setFields([]))
       .finally(() => setLoadingFields(false));
-  }, []);
+  }, [initialFields.length]);
 
   // Fetch availability for all fields when date or fields change
   const fetchAvailability = useCallback(async (date: string, fieldList: Field[]) => {
@@ -164,8 +178,10 @@ export function AvailabilityClient() {
   }, []);
 
   useEffect(() => {
-    if (fields.length) fetchAvailability(selectedDate, fields);
-  }, [selectedDate, fields, fetchAvailability]);
+    if (!fields.length) return;
+    if (hasInitialAvail && selectedDate === today) return;
+    fetchAvailability(selectedDate, fields);
+  }, [selectedDate, fields, fetchAvailability, hasInitialAvail, today]);
 
   function openDialog(field: Field, slot: string) {
     const slotStart = slot.split('-')[0];
