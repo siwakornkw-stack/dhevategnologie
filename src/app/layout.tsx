@@ -10,6 +10,8 @@ import { PWARegister } from '@/components/pwa-register';
 
 const onest = Onest({
   subsets: ['latin'],
+  display: 'swap',
+  preload: true,
 });
 
 export const metadata: Metadata = {

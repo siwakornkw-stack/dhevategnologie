@@ -8,6 +8,7 @@ import { ViewToggle } from '@/components/sport/view-toggle';
 import { getTranslations } from 'next-intl/server';
 
 const PAGE_SIZE = 12;
+export const revalidate = 60;
 
 interface PageProps {
   searchParams: Promise<{ sport?: string; search?: string; minPrice?: string; maxPrice?: string; page?: string }>;
