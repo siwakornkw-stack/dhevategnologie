@@ -107,7 +107,9 @@ export function BackupClient({ initialFiles, configured, listError }: Props) {
         <div className="font-semibold">Backup ยังไม่ได้ตั้งค่า</div>
         <div className="text-sm">ตั้ง environment variables ใน Vercel:</div>
         <ul className="text-xs list-disc ml-6 font-mono">
-          <li>GOOGLE_SERVICE_ACCOUNT_JSON</li>
+          <li>GOOGLE_OAUTH_CLIENT_ID</li>
+          <li>GOOGLE_OAUTH_CLIENT_SECRET</li>
+          <li>GOOGLE_OAUTH_REFRESH_TOKEN</li>
           <li>GOOGLE_DRIVE_FOLDER_ID</li>
           <li>CRON_SECRET (ถ้ายังไม่มี)</li>
           <li>BACKUP_RETENTION_DAYS (option, default 30)</li>

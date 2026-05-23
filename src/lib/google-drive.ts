@@ -4,30 +4,19 @@ import { Readable } from 'node:stream';
 const BACKUP_MIME = 'application/gzip';
 
 function getDriveClient() {
-  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-  if (!raw) throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON not configured');
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
   const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error('GOOGLE_OAUTH_* env vars not configured');
+  }
   if (!folderId) throw new Error('GOOGLE_DRIVE_FOLDER_ID not configured');
 
-  let credentials: { client_email: string; private_key: string };
-  try {
-    credentials = JSON.parse(raw);
-  } catch {
-    throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON');
-  }
-  if (!credentials.client_email || !credentials.private_key) {
-    throw new Error('Service account JSON missing client_email or private_key');
-  }
-  // Handle escaped newlines from env var
-  credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
+  const oauth2 = new google.auth.OAuth2(clientId, clientSecret);
+  oauth2.setCredentials({ refresh_token: refreshToken });
 
-  const auth = new google.auth.JWT({
-    email: credentials.client_email,
-    key: credentials.private_key,
-    scopes: ['https://www.googleapis.com/auth/drive.file'],
-  });
-
-  return { drive: google.drive({ version: 'v3', auth }), folderId };
+  return { drive: google.drive({ version: 'v3', auth: oauth2 }), folderId };
 }
 
 export type DriveBackupFile = {
@@ -50,7 +39,6 @@ export async function uploadBackup(buffer: Buffer, filename: string): Promise<Dr
       body: Readable.from(buffer),
     },
     fields: 'id, name, size, createdTime',
-    supportsAllDrives: true,
   });
   return {
     id: res.data.id!,
@@ -71,8 +59,6 @@ export async function listBackups(): Promise<DriveBackupFile[]> {
       orderBy: 'createdTime desc',
       pageSize: 200,
       pageToken,
-      supportsAllDrives: true,
-      includeItemsFromAllDrives: true,
     });
     for (const f of res.data.files ?? []) {
       all.push({
@@ -90,7 +76,7 @@ export async function listBackups(): Promise<DriveBackupFile[]> {
 export async function downloadBackup(fileId: string): Promise<Buffer> {
   const { drive } = getDriveClient();
   const res = await drive.files.get(
-    { fileId, alt: 'media', supportsAllDrives: true },
+    { fileId, alt: 'media' },
     { responseType: 'arraybuffer' },
   );
   return Buffer.from(res.data as ArrayBuffer);
@@ -98,7 +84,7 @@ export async function downloadBackup(fileId: string): Promise<Buffer> {
 
 export async function deleteBackup(fileId: string): Promise<void> {
   const { drive } = getDriveClient();
-  await drive.files.delete({ fileId, supportsAllDrives: true });
+  await drive.files.delete({ fileId });
 }
 
 export async function cleanupOldBackups(retentionDays: number): Promise<{ deleted: number }> {
@@ -107,7 +93,6 @@ export async function cleanupOldBackups(retentionDays: number): Promise<{ delete
   const files = await listBackups();
   let deleted = 0;
   for (const f of files) {
-    // Never delete pre-restore safety snapshots
     if (f.name.startsWith('pre-restore-')) continue;
     if (new Date(f.createdTime).getTime() < cutoff) {
       try {
@@ -122,5 +107,10 @@ export async function cleanupOldBackups(retentionDays: number): Promise<{ delete
 }
 
 export function isBackupConfigured(): boolean {
-  return Boolean(process.env.GOOGLE_SERVICE_ACCOUNT_JSON && process.env.GOOGLE_DRIVE_FOLDER_ID);
+  return Boolean(
+    process.env.GOOGLE_OAUTH_CLIENT_ID &&
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET &&
+    process.env.GOOGLE_OAUTH_REFRESH_TOKEN &&
+    process.env.GOOGLE_DRIVE_FOLDER_ID,
+  );
 }
