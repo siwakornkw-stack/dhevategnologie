@@ -23,6 +23,12 @@ export function RouteLoadingOverlay() {
   }, [pathname, searchParams]);
 
   useEffect(() => {
+    if (!loading) return;
+    const id = setTimeout(() => setLoading(false), 8000);
+    return () => clearTimeout(id);
+  }, [loading]);
+
+  useEffect(() => {
     function onClick(e: MouseEvent) {
       if (e.defaultPrevented) return;
       if (e.button !== 0) return;
@@ -43,22 +49,15 @@ export function RouteLoadingOverlay() {
       setLoading(true);
     }
 
-    function onSubmit(e: SubmitEvent) {
-      if (e.defaultPrevented) return;
-      setLoading(true);
-    }
-
     function onPageHide() {
       setLoading(true);
     }
 
     document.addEventListener('click', onClick, true);
-    document.addEventListener('submit', onSubmit, true);
     window.addEventListener('beforeunload', onPageHide);
     window.addEventListener('pagehide', onPageHide);
     return () => {
       document.removeEventListener('click', onClick, true);
-      document.removeEventListener('submit', onSubmit, true);
       window.removeEventListener('beforeunload', onPageHide);
       window.removeEventListener('pagehide', onPageHide);
     };
