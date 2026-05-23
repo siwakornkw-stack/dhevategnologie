@@ -8,6 +8,6 @@ export default defineConfig({
     seed: "npx tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DATABASE_URL"] ?? "postgresql://postgres:password@localhost:5432/sport_booking",
+    url: process.env["DIRECT_URL"] ?? process.env["DATABASE_URL"] ?? "postgresql://postgres:password@localhost:5432/sport_booking",
   },
 });
