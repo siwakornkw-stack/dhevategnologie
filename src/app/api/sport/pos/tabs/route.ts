@@ -19,8 +19,13 @@ export async function GET(req: NextRequest) {
           : { status: status as 'OPEN' | 'MERGED' | 'CLOSED' | 'PAID' | 'VOID' }),
       ...(bookingId ? { bookingId } : {}),
     },
-    include: {
-      items: { where: { status: 'ACTIVE' } },
+    select: {
+      id: true, name: true, code: true, teamLabel: true, bookingId: true,
+      status: true, parentTabId: true, openedAt: true,
+      items: {
+        where: { status: 'ACTIVE' },
+        select: { id: true, productName: true, qty: true, unitPrice: true, discount: true },
+      },
       children: {
         select: {
           id: true, name: true, teamLabel: true,

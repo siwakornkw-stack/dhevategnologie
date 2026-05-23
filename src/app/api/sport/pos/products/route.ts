@@ -25,9 +25,16 @@ export async function GET(req: NextRequest) {
           }
         : {}),
     },
+    select: {
+      id: true, name: true, sku: true, category: true,
+      price: true, cost: true, stockQty: true, stockUnit: true,
+      lowStockAlert: true, imageUrl: true, isActive: true,
+    },
     orderBy: [{ category: 'asc' }, { name: 'asc' }],
   });
-  return NextResponse.json(products);
+  return NextResponse.json(products, {
+    headers: { 'Cache-Control': 'private, max-age=10, stale-while-revalidate=60' },
+  });
 }
 
 export async function POST(req: NextRequest) {

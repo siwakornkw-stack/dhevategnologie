@@ -18,13 +18,16 @@ export default function SalePage() {
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickCart, setQuickCart] = useState<{ productId: string; name: string; qty: number; price: number }[]>([]);
 
-  async function load() {
-    const [p, t] = await Promise.all([
-      fetch('/api/sport/pos/products').then((r) => r.json()),
-      fetch('/api/sport/pos/tabs?status=OPEN').then((r) => r.json()),
-    ]);
+  async function loadProducts() {
+    const p = await fetch('/api/sport/pos/products').then((r) => r.json());
     setProducts(Array.isArray(p) ? p : []);
+  }
+  async function loadTabs() {
+    const t = await fetch('/api/sport/pos/tabs?status=OPEN').then((r) => r.json());
     setTabs(Array.isArray(t) ? t.filter((x: Tab) => x.status === 'OPEN') : []);
+  }
+  async function load() {
+    await Promise.all([loadProducts(), loadTabs()]);
   }
   useEffect(() => { load(); }, []);
 
@@ -44,7 +47,7 @@ export default function SalePage() {
     });
     if (!r.ok) { alert('สร้างไม่สำเร็จ'); return; }
     const t = await r.json();
-    await load();
+    await loadTabs();
     setCurrentTabId(t.id);
   }
 
@@ -54,14 +57,14 @@ export default function SalePage() {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productId, qty: 1 }),
     });
     if (!r.ok) { const e = await r.json().catch(() => ({})); alert(e.error || 'เพิ่มไม่สำเร็จ'); return; }
-    load();
+    loadTabs();
   }
 
   async function voidItem(itemId: string) {
     if (!currentTabId) return;
     if (!confirm('ลบรายการนี้?')) return;
     const r = await fetch(`/api/sport/pos/tabs/${currentTabId}/items/${itemId}`, { method: 'DELETE' });
-    if (r.ok) load();
+    if (r.ok) loadTabs();
   }
 
   function addQuick(p: Product) {
@@ -195,7 +198,7 @@ export default function SalePage() {
       </div>
 
       {quickOpen && (
-        <QuickSaleModal cart={quickCart} setCart={setQuickCart} onClose={() => setQuickOpen(false)} onPaid={() => { setQuickOpen(false); setQuickCart([]); load(); }} />
+        <QuickSaleModal cart={quickCart} setCart={setQuickCart} onClose={() => setQuickOpen(false)} onPaid={() => { setQuickOpen(false); setQuickCart([]); loadProducts(); }} />
       )}
     </div>
   );

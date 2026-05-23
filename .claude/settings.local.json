@@ -127,7 +127,18 @@
       "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(list\\(d.keys\\(\\)\\)\\)\")",
       "Bash(node -e \"const d=require\\('./src/messages/th.json'\\); console.log\\(Object.keys\\(d\\)\\)\")",
       "Bash(node -e \"const d=require\\('/dev/stdin'\\); console.log\\('deps:', Object.keys\\(d.dependencies||{}\\).join\\(', '\\)\\)\")",
-      "Bash(node -e \"const fs=require\\('fs'\\); const d=JSON.parse\\(fs.readFileSync\\('/dev/stdin','utf8'\\)\\); console.log\\(JSON.stringify\\({...d.dependencies,...d.devDependencies},null,2\\)\\)\")"
+      "Bash(node -e \"const fs=require\\('fs'\\); const d=JSON.parse\\(fs.readFileSync\\('/dev/stdin','utf8'\\)\\); console.log\\(JSON.stringify\\({...d.dependencies,...d.devDependencies},null,2\\)\\)\")",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\Atlast\\\\ai-saas-starter-kit-nextjs-main\\\\src\" -Recurse | Where-Object { !$_.PSIsContainer } | Select-Object FullName | Format-Table -HideTableHeaders)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Atlast\\\\ai-saas-starter-kit-nextjs-main\" -Directory)",
+      "Bash(Remove-Item sentry.server.config.ts, sentry.client.config.ts)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Atlast\\\\ai-saas-starter-kit-nextjs-main\" -Recurse -Filter \"*.ts\" -Filter \"*.tsx\")",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Get-ChildItem -Path . -Force)",
+      "Bash(Remove-Item *)",
+      "PowerShell(git add *)",
+      "PowerShell(git push *)",
+      "Bash(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\Atlast\\\\ai-saas-starter-kit-nextjs-main\\\\src\\\\app\\\\api\\\\sport\\\\admin\\\\settings\")",
+      "Bash(Out-Null)"
     ]
   }
 }
