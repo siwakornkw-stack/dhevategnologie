@@ -376,6 +376,68 @@
   }
 }
 
+/* POS form controls */
+.input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgb(209 213 219);
+  background-color: #ffffff;
+  color: #111827;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color-scheme: light;
+}
+.input:focus {
+  outline: none;
+  border-color: rgb(99 102 241);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+[data-theme="dark"] .input {
+  background-color: #1f2937;
+  border-color: #374151;
+  color: #f9fafb;
+  color-scheme: dark;
+}
+[data-theme="dark"] .input option {
+  background-color: #1f2937;
+  color: #f9fafb;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  background-color: rgb(99 102 241);
+  color: #ffffff;
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: background-color 0.15s;
+}
+.btn:hover:not(:disabled) {
+  background-color: rgb(79 70 229);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-secondary {
+  background-color: rgb(229 231 235);
+  color: #111827;
+}
+.btn-secondary:hover:not(:disabled) {
+  background-color: rgb(209 213 219);
+}
+[data-theme="dark"] .btn-secondary {
+  background-color: #374151;
+  color: #f9fafb;
+}
+[data-theme="dark"] .btn-secondary:hover:not(:disabled) {
+  background-color: #4b5563;
+}
+
 /* Animation classes */
 .floating-1 {
   animation: float-y 3s ease-in-out infinite;
