@@ -6,7 +6,9 @@ export async function GET() {
   const session = await requirePosRole(['ADMIN', 'CASHIER']);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const settings = await getPosSettings();
-  return NextResponse.json(settings);
+  return NextResponse.json(settings, {
+    headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=120' },
+  });
 }
 
 export async function PATCH(req: NextRequest) {

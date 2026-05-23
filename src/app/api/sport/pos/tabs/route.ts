@@ -35,7 +35,9 @@ export async function GET(req: NextRequest) {
     },
     orderBy: { openedAt: 'desc' },
   });
-  return NextResponse.json(tabs);
+  return NextResponse.json(tabs, {
+    headers: { 'Cache-Control': 'private, max-age=2, stale-while-revalidate=10' },
+  });
 }
 
 export async function POST(req: NextRequest) {
