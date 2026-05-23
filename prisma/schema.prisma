@@ -9,6 +9,55 @@ datasource db {
 enum Role {
   USER
   ADMIN
+  CASHIER
+}
+
+enum StockMovementType {
+  IN
+  OUT
+  ADJUST
+  SALE
+  VOID
+}
+
+enum VatMode {
+  NONE
+  INCLUDED
+  EXCLUDED
+}
+
+enum TabStatus {
+  OPEN
+  MERGED
+  CLOSED
+  PAID
+  VOID
+}
+
+enum InvoiceType {
+  POS_QUICK
+  POS_TAB
+  BOOKING
+  MIXED
+}
+
+enum InvoiceStatus {
+  PAID
+  VOID
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER
+  QR
+  CARD
+  MIXED
+  OTHER
+}
+
+enum OrderItemStatus {
+  ACTIVE
+  VOID
 }
 
 enum SportType {
@@ -40,16 +89,16 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  points        Int           @default(0)
+  points Int @default(0)
 
-  referralCode          String?  @unique
-  referredById          String?
-  notifEmail            Boolean  @default(true)
-  notifInApp            Boolean  @default(true)
-  twoFactorSecret       String?
-  twoFactorEnabled      Boolean  @default(false)
-  twoFactorBackupCodes  String[] @default([])
-  passwordChangedAt     DateTime?
+  referralCode         String?   @unique
+  referredById         String?
+  notifEmail           Boolean   @default(true)
+  notifInApp           Boolean   @default(true)
+  twoFactorSecret      String?
+  twoFactorEnabled     Boolean   @default(false)
+  twoFactorBackupCodes String[]  @default([])
+  passwordChangedAt    DateTime?
 
   referredBy        User?              @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)
   referrals         User[]             @relation("Referrals")
@@ -109,7 +158,7 @@ model PointTransaction {
   id        String   @id @default(cuid())
   userId    String
   points    Int
-  type      String   // "EARN" | "REDEEM"
+  type      String // "EARN" | "REDEEM"
   bookingId String?
   note      String
   createdAt DateTime @default(now())
@@ -261,7 +310,7 @@ model Booking {
 model Coupon {
   id            String    @id @default(cuid())
   code          String    @unique
-  discountType  String    // "PERCENT" or "FIXED"
+  discountType  String // "PERCENT" or "FIXED"
   discountValue Float
   maxUses       Int?
   usedCount     Int       @default(0)
@@ -342,4 +391,160 @@ model SystemSetting {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
+}
+
+model PosProduct {
+  id            String    @id @default(cuid())
+  name          String
+  sku           String?   @unique
+  category      String?
+  price         Float
+  cost          Float     @default(0)
+  stockQty      Int       @default(0)
+  stockUnit     String    @default("ชิ้น")
+  lowStockAlert Int       @default(5)
+  imageUrl      String?
+  isActive      Boolean   @default(true)
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  movements PosStockMovement[]
+
+  @@index([category])
+  @@index([isActive])
+}
+
+model PosStockMovement {
+  id        String            @id @default(cuid())
+  productId String
+  type      StockMovementType
+  qty       Int
+  refType   String?
+  refId     String?
+  note      String?
+  userId    String?
+  createdAt DateTime          @default(now())
+
+  product PosProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, createdAt])
+  @@index([type])
+}
+
+model PosTab {
+  id          String    @id @default(cuid())
+  code        String?
+  name        String
+  status      TabStatus @default(OPEN)
+  bookingId   String?
+  teamLabel   String?
+  parentTabId String?
+  openedBy    String?
+  openedAt    DateTime  @default(now())
+  closedAt    DateTime?
+  note        String?
+
+  parentTab PosTab?        @relation("TabMerge", fields: [parentTabId], references: [id], onDelete: SetNull)
+  children  PosTab[]       @relation("TabMerge")
+  items     PosOrderItem[]
+
+  @@index([status])
+  @@index([bookingId])
+  @@index([parentTabId])
+}
+
+model PosOrderItem {
+  id          String          @id @default(cuid())
+  tabId       String
+  productId   String
+  productName String
+  qty         Int
+  unitPrice   Float
+  discount    Float           @default(0)
+  status      OrderItemStatus @default(ACTIVE)
+  note        String?
+  createdBy   String?
+  createdAt   DateTime        @default(now())
+
+  tab PosTab @relation(fields: [tabId], references: [id], onDelete: Cascade)
+
+  @@index([tabId])
+  @@index([productId])
+}
+
+model PosInvoice {
+  id              String        @id @default(cuid())
+  invoiceNo       String        @unique
+  type            InvoiceType
+  status          InvoiceStatus @default(PAID)
+  subtotalProduct Float         @default(0)
+  subtotalBooking Float         @default(0)
+  discount        Float         @default(0)
+  vatMode         VatMode
+  vatRate         Float
+  vatAmount       Float         @default(0)
+  total           Float
+  cashierId       String?
+  bookingIds      Json?
+  tabIds          Json?
+  itemsSnapshot   Json?
+  note            String?
+  voidReason      String?
+  voidedAt        DateTime?
+  voidedBy        String?
+  paidAt          DateTime      @default(now())
+  createdAt       DateTime      @default(now())
+
+  payments PosPayment[]
+  splits   PosInvoiceSplit[]
+
+  @@index([paidAt])
+  @@index([status])
+  @@index([type])
+}
+
+model PosPayment {
+  id           String        @id @default(cuid())
+  invoiceId    String
+  method       PaymentMethod
+  amount       Float
+  cashReceived Float?
+  changeAmount Float?
+  refNo        String?
+  paidAt       DateTime      @default(now())
+
+  invoice PosInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+}
+
+model PosInvoiceSplit {
+  id        String        @id @default(cuid())
+  invoiceId String
+  label     String
+  amount    Float
+  method    PaymentMethod
+  refNo     String?
+  paidAt    DateTime      @default(now())
+
+  invoice PosInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+}
+
+model PosSettings {
+  id                 String   @id @default("default")
+  shopName           String   @default("88ARENA")
+  taxId              String?
+  address            String?
+  vatMode            VatMode  @default(INCLUDED)
+  vatRate            Float    @default(7)
+  allowNegativeStock Boolean  @default(false)
+  printerType        String   @default("BROWSER")
+  paperSize          String   @default("80mm")
+  receiptHeader      String?
+  receiptFooter      String?
+  cashDrawerEnabled  Boolean  @default(false)
+  updatedAt          DateTime @updatedAt
 }

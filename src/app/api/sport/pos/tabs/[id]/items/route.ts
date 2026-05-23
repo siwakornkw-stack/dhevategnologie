@@ -1,0 +1,74 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { requirePosRole, getPosSettings } from '@/lib/pos';
+
+export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const session = await requirePosRole(['ADMIN', 'CASHIER']);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const { id: tabId } = await ctx.params;
+
+  const { productId, qty, note, unitPrice, discount } = await req.json();
+  const qtyNum = Number(qty);
+  if (!productId || !Number.isInteger(qtyNum) || qtyNum <= 0) {
+    return NextResponse.json({ error: 'productId + qty required' }, { status: 400 });
+  }
+
+  const settings = await getPosSettings();
+  const allowNegative = settings.allowNegativeStock;
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const tab = await tx.posTab.findUnique({ where: { id: tabId }, select: { status: true } });
+      if (!tab) throw new Error('TAB_NOT_FOUND');
+      if (tab.status !== 'OPEN') throw new Error('TAB_NOT_OPEN');
+
+      const product = await tx.posProduct.findUnique({ where: { id: productId } });
+      if (!product || product.deletedAt) throw new Error('PRODUCT_NOT_FOUND');
+      if (!product.isActive) throw new Error('PRODUCT_INACTIVE');
+
+      if (allowNegative) {
+        await tx.posProduct.update({ where: { id: productId }, data: { stockQty: { decrement: qtyNum } } });
+      } else {
+        const r = await tx.posProduct.updateMany({
+          where: { id: productId, stockQty: { gte: qtyNum } },
+          data: { stockQty: { decrement: qtyNum } },
+        });
+        if (r.count === 0) throw new Error('STOCK_INSUFFICIENT');
+      }
+      await tx.posStockMovement.create({
+        data: {
+          productId,
+          type: 'SALE',
+          qty: -qtyNum,
+          refType: 'TAB',
+          refId: tabId,
+          userId: session.user.id,
+        },
+      });
+      const item = await tx.posOrderItem.create({
+        data: {
+          tabId,
+          productId,
+          productName: product.name,
+          qty: qtyNum,
+          unitPrice: unitPrice !== undefined ? Number(unitPrice) : product.price,
+          discount: Number(discount) || 0,
+          note: note?.toString().slice(0, 200) || null,
+          createdBy: session.user.id,
+        },
+      });
+      // Post-check: tab still OPEN (catch concurrent void/checkout)
+      const after = await tx.posTab.findUnique({ where: { id: tabId }, select: { status: true } });
+      if (after?.status !== 'OPEN') throw new Error('TAB_NOT_OPEN');
+      return item;
+    });
+    return NextResponse.json(result, { status: 201 });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : 'add failed';
+    if (msg === 'STOCK_INSUFFICIENT') return NextResponse.json({ error: 'สต็อกไม่พอ' }, { status: 409 });
+    if (msg === 'TAB_NOT_OPEN') return NextResponse.json({ error: 'tab ปิดแล้ว' }, { status: 409 });
+    if (msg === 'PRODUCT_INACTIVE') return NextResponse.json({ error: 'สินค้าปิดขาย' }, { status: 409 });
+    if (msg === 'TAB_NOT_FOUND' || msg === 'PRODUCT_NOT_FOUND') return NextResponse.json({ error: 'not found' }, { status: 404 });
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}

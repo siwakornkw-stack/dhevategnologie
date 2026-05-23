@@ -26,7 +26,22 @@ export const authConfig: NextAuthConfig = {
       const isLoggedIn = !!auth?.user;
       const role = auth?.user?.role;
       const isAdminPath = nextUrl.pathname.startsWith('/sport/admin');
+      const isPosPath = nextUrl.pathname.startsWith('/sport/pos');
       const isBookingsPath = nextUrl.pathname.startsWith('/sport/bookings');
+      const posAdminPrefixes = ['/sport/pos/products', '/sport/pos/stock', '/sport/pos/settings', '/sport/pos/cashiers', '/sport/pos/report'];
+      const isPosAdminPath = posAdminPrefixes.some((p) => nextUrl.pathname.startsWith(p));
+
+      if (isPosAdminPath) {
+        if (!isLoggedIn) return Response.redirect(new URL(`/sport/auth/signin?callbackUrl=${nextUrl.pathname}`, nextUrl));
+        if (role !== 'ADMIN') return Response.redirect(new URL('/sport/pos', nextUrl));
+        return true;
+      }
+
+      if (isPosPath) {
+        if (!isLoggedIn) return Response.redirect(new URL(`/sport/auth/signin?callbackUrl=${nextUrl.pathname}`, nextUrl));
+        if (role !== 'ADMIN' && role !== 'CASHIER') return Response.redirect(new URL('/sport', nextUrl));
+        return true;
+      }
 
       if (isAdminPath) {
         if (!isLoggedIn) return Response.redirect(new URL(`/sport/auth/signin?callbackUrl=${nextUrl.pathname}`, nextUrl));

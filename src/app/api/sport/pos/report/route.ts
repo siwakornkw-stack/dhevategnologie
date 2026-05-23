@@ -1,0 +1,64 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { requirePosRole } from '@/lib/pos';
+
+export async function GET(req: NextRequest) {
+  const session = await requirePosRole(['ADMIN']);
+  if (!session) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+  const { searchParams } = new URL(req.url);
+  const from = searchParams.get('from') ? new Date(searchParams.get('from')!) : new Date(new Date().setHours(0, 0, 0, 0));
+  const to = searchParams.get('to') ? new Date(searchParams.get('to')!) : new Date();
+
+  const invoices = await prisma.posInvoice.findMany({
+    where: { paidAt: { gte: from, lte: to } },
+    include: { payments: true },
+  });
+
+  const paid = invoices.filter((i) => i.status === 'PAID');
+  const totalSales = paid.reduce((s, i) => s + i.total, 0);
+  const totalProduct = paid.reduce((s, i) => s + i.subtotalProduct, 0);
+  const totalBooking = paid.reduce((s, i) => s + i.subtotalBooking, 0);
+  const totalDiscount = paid.reduce((s, i) => s + i.discount, 0);
+  const totalVat = paid.reduce((s, i) => s + i.vatAmount, 0);
+  const voidCount = invoices.filter((i) => i.status === 'VOID').length;
+
+  const byMethod: Record<string, number> = {};
+  for (const inv of paid) {
+    for (const pay of inv.payments) {
+      byMethod[pay.method] = (byMethod[pay.method] || 0) + pay.amount;
+    }
+  }
+
+  // Top products
+  const productCount: Record<string, { qty: number; revenue: number; name: string }> = {};
+  for (const inv of paid) {
+    const snap = (inv.itemsSnapshot as Array<{ productId: string; productName: string; qty: number; unitPrice: number; discount: number }> | null) || [];
+    for (const it of snap) {
+      const k = it.productId;
+      if (!productCount[k]) productCount[k] = { qty: 0, revenue: 0, name: it.productName };
+      productCount[k].qty += it.qty;
+      productCount[k].revenue += it.unitPrice * it.qty - it.discount;
+    }
+  }
+  const topProducts = Object.entries(productCount)
+    .map(([id, v]) => ({ productId: id, ...v }))
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 20);
+
+  return NextResponse.json({
+    from,
+    to,
+    totals: {
+      invoiceCount: paid.length,
+      voidCount,
+      totalSales,
+      totalProduct,
+      totalBooking,
+      totalDiscount,
+      totalVat,
+    },
+    byMethod,
+    topProducts,
+  });
+}
