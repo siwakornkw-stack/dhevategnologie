@@ -67,6 +67,16 @@ export default function TabsPage() {
     load();
   }
 
+  async function unlinkBooking(tabId: string) {
+    if (!confirm('ยกเลิกการผูก booking?')) return;
+    const r = await fetch(`/api/sport/pos/tabs/${tabId}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bookingId: null }),
+    });
+    if (!r.ok) { const e = await r.json().catch(() => ({})); alert(e.error || 'ยกเลิกไม่สำเร็จ'); return; }
+    load();
+  }
+
   async function voidTab(id: string) {
     if (!confirm('ยกเลิก tab นี้? (สต็อกจะคืน)')) return;
     const r = await fetch(`/api/sport/pos/tabs/${id}`, { method: 'DELETE' });
@@ -106,7 +116,11 @@ export default function TabsPage() {
                   </div>
                 </div>
                 <code className="text-[10px] text-gray-400">{t.id}</code>
-                <button onClick={() => setLinkOpenId(linkOpenId === t.id ? null : t.id)} className="text-xs text-emerald-600 hover:underline">ผูก booking</button>
+                {t.bookingId ? (
+                  <button onClick={() => unlinkBooking(t.id)} className="text-xs text-amber-600 hover:underline">ยกเลิกผูก booking</button>
+                ) : (
+                  <button onClick={() => setLinkOpenId(linkOpenId === t.id ? null : t.id)} className="text-xs text-emerald-600 hover:underline">ผูก booking</button>
+                )}
                 <button onClick={() => router.push(`/sport/pos/checkout/${t.id}`)} className="px-3 py-1 rounded bg-primary-600 text-white text-xs">Checkout</button>
                 <button onClick={() => voidTab(t.id)} className="text-xs text-red-500 hover:underline">ยกเลิก</button>
               </div>
