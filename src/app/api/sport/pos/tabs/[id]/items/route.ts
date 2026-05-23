@@ -57,9 +57,6 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
           createdBy: session.user.id,
         },
       });
-      // Post-check: tab still OPEN (catch concurrent void/checkout)
-      const after = await tx.posTab.findUnique({ where: { id: tabId }, select: { status: true } });
-      if (after?.status !== 'OPEN') throw new Error('TAB_NOT_OPEN');
       return item;
     });
     return NextResponse.json(result, { status: 201 });

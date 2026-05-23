@@ -53,18 +53,44 @@ export default function SalePage() {
 
   async function addToTab(productId: string) {
     if (!currentTabId) { alert('เลือก Tab ก่อน หรือใช้ Quick Sale'); return; }
-    const r = await fetch(`/api/sport/pos/tabs/${currentTabId}/items`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productId, qty: 1 }),
-    });
-    if (!r.ok) { const e = await r.json().catch(() => ({})); alert(e.error || 'เพิ่มไม่สำเร็จ'); return; }
-    loadTabs();
+    const tabId = currentTabId;
+    const product = products.find((p) => p.id === productId);
+    if (!product) return;
+    const tempId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const optimistic: Item = { id: tempId, productName: product.name, qty: 1, unitPrice: product.price, discount: 0 };
+    setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: [...t.items, optimistic] } : t));
+    setProducts((ps) => ps.map((p) => p.id === productId ? { ...p, stockQty: p.stockQty - 1 } : p));
+    try {
+      const r = await fetch(`/api/sport/pos/tabs/${tabId}/items`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productId, qty: 1 }),
+      });
+      if (!r.ok) {
+        const e = await r.json().catch(() => ({}));
+        alert(e.error || 'เพิ่มไม่สำเร็จ');
+        setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: t.items.filter((i) => i.id !== tempId) } : t));
+        setProducts((ps) => ps.map((p) => p.id === productId ? { ...p, stockQty: p.stockQty + 1 } : p));
+        return;
+      }
+      const created: Item = await r.json();
+      setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: t.items.map((i) => i.id === tempId ? created : i) } : t));
+    } catch {
+      setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: t.items.filter((i) => i.id !== tempId) } : t));
+      setProducts((ps) => ps.map((p) => p.id === productId ? { ...p, stockQty: p.stockQty + 1 } : p));
+    }
   }
 
   async function voidItem(itemId: string) {
     if (!currentTabId) return;
     if (!confirm('ลบรายการนี้?')) return;
-    const r = await fetch(`/api/sport/pos/tabs/${currentTabId}/items/${itemId}`, { method: 'DELETE' });
-    if (r.ok) loadTabs();
+    const tabId = currentTabId;
+    const tab = tabs.find((t) => t.id === tabId);
+    const removed = tab?.items.find((i) => i.id === itemId);
+    setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: t.items.filter((i) => i.id !== itemId) } : t));
+    const r = await fetch(`/api/sport/pos/tabs/${tabId}/items/${itemId}`, { method: 'DELETE' });
+    if (!r.ok && removed) {
+      setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: [...t.items, removed] } : t));
+      alert('ลบไม่สำเร็จ');
+    }
   }
 
   function addQuick(p: Product) {
