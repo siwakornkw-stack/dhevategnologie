@@ -8,6 +8,8 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 import { ToasterProvider } from './providers/toaster';
 import { PWARegister } from '@/components/pwa-register';
+import { RouteLoadingOverlay } from '@/components/route-loading-overlay';
+import { Suspense } from 'react';
 
 const onest = Onest({
   subsets: ['latin'],
@@ -59,6 +61,9 @@ export default async function RootLayout({
             {/* ToasterProvider must render before the children components */}
             {/* https://github.com/emilkowalski/sonner/issues/168#issuecomment-1773734618 */}
             <ToasterProvider />
+            <Suspense fallback={null}>
+              <RouteLoadingOverlay />
+            </Suspense>
 
             <div className="isolate flex flex-col flex-1">{children}</div>
             <PWARegister />
