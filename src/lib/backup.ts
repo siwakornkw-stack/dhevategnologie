@@ -103,16 +103,19 @@ async function pruneOldBackups() {
   await del(old.map((b) => b.url));
 }
 
-export async function fetchBackup(url: string): Promise<BackupFile> {
-  const res = await fetch(url, { cache: 'no-store' });
+export async function getDownloadUrl(pathname: string): Promise<string> {
+  const meta = await head(pathname);
+  // For private blobs, head() returns a signed downloadUrl with TTL.
+  return meta.downloadUrl ?? meta.url;
+}
+
+export async function fetchBackupByPathname(pathname: string): Promise<BackupFile> {
+  const downloadUrl = await getDownloadUrl(pathname);
+  const res = await fetch(downloadUrl, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Fetch backup failed: ${res.status}`);
   const json = (await res.json()) as BackupFile;
   if (json.version !== 1 || !json.data) throw new Error('Invalid backup file');
   return json;
-}
-
-export async function getBlobByPathname(pathname: string) {
-  return head(pathname);
 }
 
 export async function restoreFromBackup(dump: BackupFile): Promise<{ inserted: Record<string, number> }> {

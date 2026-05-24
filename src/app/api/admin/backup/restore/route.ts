@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { fetchBackup, restoreFromBackup, type BackupFile } from '@/lib/backup';
+import { fetchBackupByPathname, restoreFromBackup, type BackupFile } from '@/lib/backup';
 import { z } from 'zod';
 
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
 
 const schema = z.object({
-  url: z.string().url().optional(),
+  pathname: z.string().optional(),
   confirm: z.literal('RESTORE'),
 });
 
@@ -38,10 +38,10 @@ export async function POST(req: NextRequest) {
     } else {
       const body = await req.json();
       const parsed = schema.parse(body);
-      if (!parsed.url) {
-        return NextResponse.json({ error: 'url required' }, { status: 400 });
+      if (!parsed.pathname || !parsed.pathname.startsWith('db-backups/')) {
+        return NextResponse.json({ error: 'invalid pathname' }, { status: 400 });
       }
-      dump = await fetchBackup(parsed.url);
+      dump = await fetchBackupByPathname(parsed.pathname);
     }
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Parse error';

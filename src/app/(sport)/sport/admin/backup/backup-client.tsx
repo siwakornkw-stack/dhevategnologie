@@ -23,7 +23,7 @@ export function BackupClient({
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, startTransition] = useTransition();
   const [restoreText, setRestoreText] = useState('');
-  const [restoreTarget, setRestoreTarget] = useState<string | null>(null);
+  const [restoreTarget, setRestoreTarget] = useState<{ pathname: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function refresh() {
@@ -64,7 +64,7 @@ export function BackupClient({
     });
   }
 
-  function restoreFromUrl(url: string) {
+  function restoreFromPathname(pathname: string) {
     if (restoreText !== 'RESTORE') {
       setError('Type RESTORE to confirm');
       return;
@@ -75,7 +75,7 @@ export function BackupClient({
       const r = await fetch('/api/admin/backup/restore', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ url, confirm: 'RESTORE' }),
+        body: JSON.stringify({ pathname, confirm: 'RESTORE' }),
       });
       const j = await r.json();
       if (!r.ok) {
@@ -170,14 +170,13 @@ export function BackupClient({
                   </p>
                 </div>
                 <a
-                  href={b.url}
-                  download
+                  href={`/api/admin/backup/download?pathname=${encodeURIComponent(b.pathname)}`}
                   className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
                   Download
                 </a>
                 <button
-                  onClick={() => setRestoreTarget(b.url)}
+                  onClick={() => setRestoreTarget({ pathname: b.pathname })}
                   className="text-xs px-3 py-1.5 rounded-lg bg-amber-600 text-white hover:bg-amber-700"
                 >
                   Restore
@@ -210,7 +209,7 @@ export function BackupClient({
           />
           <div className="flex gap-2">
             <button
-              onClick={() => restoreFromUrl(restoreTarget)}
+              onClick={() => restoreFromPathname(restoreTarget.pathname)}
               disabled={busy || restoreText !== 'RESTORE'}
               className="px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-medium hover:bg-amber-700 disabled:opacity-50"
             >
