@@ -103,16 +103,21 @@ async function pruneOldBackups() {
   await del(old.map((b) => b.url));
 }
 
-export async function getDownloadUrl(pathname: string): Promise<string> {
+function blobAuthHeaders(): HeadersInit {
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  if (!token) throw new Error('BLOB_READ_WRITE_TOKEN not set');
+  return { authorization: `Bearer ${token}` };
+}
+
+export async function fetchBlobResponse(pathname: string): Promise<Response> {
   const meta = await head(pathname);
-  // For private blobs, head() returns a signed downloadUrl with TTL.
-  return meta.downloadUrl ?? meta.url;
+  const res = await fetch(meta.url, { cache: 'no-store', headers: blobAuthHeaders() });
+  if (!res.ok) throw new Error(`Fetch blob failed: ${res.status}`);
+  return res;
 }
 
 export async function fetchBackupByPathname(pathname: string): Promise<BackupFile> {
-  const downloadUrl = await getDownloadUrl(pathname);
-  const res = await fetch(downloadUrl, { cache: 'no-store' });
-  if (!res.ok) throw new Error(`Fetch backup failed: ${res.status}`);
+  const res = await fetchBlobResponse(pathname);
   const json = (await res.json()) as BackupFile;
   if (json.version !== 1 || !json.data) throw new Error('Invalid backup file');
   return json;

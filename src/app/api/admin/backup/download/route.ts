@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { getDownloadUrl } from '@/lib/backup';
+import { fetchBlobResponse } from '@/lib/backup';
 
+export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
-// Returns a signed downloadUrl for a private blob, so admin can download via browser.
+// Streams a private blob to the admin browser using Bearer-auth server-side fetch.
 export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session || session.user.role !== 'ADMIN') {
@@ -15,8 +16,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'invalid pathname' }, { status: 400 });
   }
   try {
-    const url = await getDownloadUrl(pathname);
-    return NextResponse.redirect(url, 302);
+    const upstream = await fetchBlobResponse(pathname);
+    const filename = pathname.split('/').pop() ?? 'backup.json';
+    return new NextResponse(upstream.body, {
+      status: 200,
+      headers: {
+        'content-type': 'application/json',
+        'content-disposition': `attachment; filename="${filename}"`,
+        'cache-control': 'no-store',
+      },
+    });
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Failed';
     return NextResponse.json({ error: message }, { status: 500 });
