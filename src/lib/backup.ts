@@ -74,7 +74,7 @@ export async function createBackup(): Promise<{ url: string; pathname: string; s
   const ts = dump.createdAt.replace(/[:.]/g, '-');
   const pathname = `${BACKUP_PREFIX}backup-${ts}.json`;
   const res = await put(pathname, json, {
-    access: 'public',
+    access: 'private',
     contentType: 'application/json',
     addRandomSuffix: false,
     allowOverwrite: true,
