@@ -85,7 +85,8 @@ export function expandTimeSlot(ts: string): string[] {
   if (endM - startM <= 60) return [ts];
   const result: string[] = [];
   for (let m = startM; m < endM; m += 60) {
-    result.push(`${toTime(m % 1440)}-${toTime((m + 60) % 1440)}`);
+    const next = Math.min(m + 60, endM);
+    result.push(`${toTime(m % 1440)}-${toTime(next % 1440)}`);
   }
   return result;
 }
