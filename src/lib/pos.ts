@@ -30,13 +30,13 @@ export type VatBreakdown = {
   vatRate: number;
 };
 
-export async function nextInvoiceNo() {
+export async function nextInvoiceNo(tx: Tx = prisma) {
   const now = new Date();
   const y = now.getFullYear();
   const m = String(now.getMonth() + 1).padStart(2, '0');
   const d = String(now.getDate()).padStart(2, '0');
   const prefix = `INV-${y}${m}${d}-`;
-  const last = await prisma.posInvoice.findFirst({
+  const last = await tx.posInvoice.findFirst({
     where: { invoiceNo: { startsWith: prefix } },
     orderBy: { invoiceNo: 'desc' },
     select: { invoiceNo: true },

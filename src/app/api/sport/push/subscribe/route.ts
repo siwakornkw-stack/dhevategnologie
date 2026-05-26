@@ -11,9 +11,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid subscription' }, { status: 400 });
   }
 
+  const existing = await prisma.pushSubscription.findUnique({ where: { endpoint } });
+  if (existing && existing.userId !== session.user.id) {
+    return NextResponse.json({ error: 'Subscription belongs to another user' }, { status: 409 });
+  }
+
   await prisma.pushSubscription.upsert({
     where: { endpoint },
-    update: { userId: session.user.id, p256dh: keys.p256dh, auth: keys.auth },
+    update: { p256dh: keys.p256dh, auth: keys.auth },
     create: { userId: session.user.id, endpoint, p256dh: keys.p256dh, auth: keys.auth },
   });
 

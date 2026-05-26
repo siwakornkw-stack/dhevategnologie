@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
       let invoice;
       let attempts = 0;
       while (true) {
-        const invoiceNo = await nextInvoiceNo();
+        const invoiceNo = await nextInvoiceNo(tx);
         try {
           invoice = await tx.posInvoice.create({
             data: {
@@ -154,7 +154,7 @@ export async function POST(req: NextRequest) {
           if (attempts > 5) throw e;
         }
       }
-      const amount = Number(payment.amount) || finalTotal;
+      const amount = finalTotal;
       const cashReceived = payment.method === 'CASH' && payment.cashReceived !== undefined ? Number(payment.cashReceived) : null;
       const changeAmount = cashReceived !== null ? +(cashReceived - finalTotal).toFixed(2) : null;
       if (payment.method === 'CASH' && cashReceived !== null && cashReceived < finalTotal) {

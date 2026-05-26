@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { expandTimeSlot } from '@/lib/booking';
+import { rateLimit } from '@/lib/rate-limit';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const ip = req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? 'unknown';
+  const rl = await rateLimit(`availability:${ip}`, { limit: 60, windowMs: 60 * 1000 });
+  if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+
   const { id: decodedId } = await params;
   const { searchParams } = new URL(req.url);
   const date = searchParams.get('date');

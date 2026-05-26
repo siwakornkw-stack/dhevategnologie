@@ -4,7 +4,8 @@ import { requirePosRole } from '@/lib/pos';
 
 function csvEscape(v: unknown): string {
   if (v === null || v === undefined) return '';
-  const s = String(v);
+  const raw = String(v);
+  const s = /^[=+\-@\t\r]/.test(raw) ? '\t' + raw : raw;
   if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;
 }

@@ -144,7 +144,7 @@ export async function POST(req: NextRequest) {
       let invoice;
       let invAttempts = 0;
       while (true) {
-        const invoiceNo = await nextInvoiceNo();
+        const invoiceNo = await nextInvoiceNo(tx);
         try {
           invoice = await tx.posInvoice.create({ data: {
             invoiceNo, type, status: 'PAID',
@@ -202,7 +202,7 @@ export async function POST(req: NextRequest) {
           data: {
             invoiceId: invoice.id,
             method: p.method as 'CASH' | 'TRANSFER' | 'QR' | 'CARD' | 'OTHER',
-            amount: Number(p.amount) || finalTotal,
+            amount: finalTotal,
             cashReceived,
             changeAmount,
             refNo: p.refNo || null,

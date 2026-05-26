@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePosRole, audit } from '@/lib/pos';
+import { rateLimit } from '@/lib/rate-limit';
 
 export async function GET(req: NextRequest) {
   const session = await requirePosRole(['ADMIN', 'CASHIER']);
@@ -12,6 +13,7 @@ export async function GET(req: NextRequest) {
 
   const users = await prisma.user.findMany({
     where: {
+      role: 'USER',
       OR: [
         { name: { contains: q, mode: 'insensitive' } },
         { email: { contains: q, mode: 'insensitive' } },
@@ -29,6 +31,9 @@ export async function POST(req: NextRequest) {
   const session = await requirePosRole(['ADMIN', 'CASHIER']);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  const rl = await rateLimit(`pos-customer-create:${session.user.id}`, { limit: 10, windowMs: 60 * 1000 });
+  if (!rl.success) return NextResponse.json({ error: 'สร้างลูกค้าบ่อยเกินไป' }, { status: 429 });
+
   const body = await req.json().catch(() => ({}));
   const name = typeof body.name === 'string' ? body.name.trim().slice(0, 100) : '';
   const phone = typeof body.phone === 'string' ? body.phone.trim().slice(0, 30) : '';
@@ -43,14 +48,14 @@ export async function POST(req: NextRequest) {
 
   if (phone) {
     const existing = await prisma.user.findFirst({
-      where: { phone },
+      where: { phone, role: 'USER' },
       select: { id: true, name: true, email: true, phone: true, points: true },
     });
     if (existing) return NextResponse.json({ ...existing, _existing: true });
   }
   if (emailIn) {
-    const existing = await prisma.user.findUnique({
-      where: { email: emailIn },
+    const existing = await prisma.user.findFirst({
+      where: { email: emailIn, role: 'USER' },
       select: { id: true, name: true, email: true, phone: true, points: true },
     });
     if (existing) return NextResponse.json({ ...existing, _existing: true });
