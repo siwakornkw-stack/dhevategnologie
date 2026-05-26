@@ -123,7 +123,7 @@ export function TabsClient({ initialTabs = [], initialBookings = [] }: TabsClien
                   </div>
                 </div>
                 <code className="text-[10px] text-gray-400">{t.id}</code>
-                {t.bookingId ? (
+                {t.bookingId || t.teamLabel ? (
                   <button onClick={() => unlinkBooking(t.id)} className="text-xs text-amber-600 hover:underline">ยกเลิกผูก booking</button>
                 ) : (
                   <button onClick={() => setLinkOpenId(linkOpenId === t.id ? null : t.id)} className="text-xs text-emerald-600 hover:underline">ผูก booking</button>

@@ -51,8 +51,13 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       const b = await prisma.booking.findUnique({ where: { id: body.bookingId }, select: { id: true, paidAt: true } });
       if (!b) return NextResponse.json({ error: 'booking not found' }, { status: 404 });
       if (b.paidAt) return NextResponse.json({ error: 'booking จ่ายแล้ว' }, { status: 409 });
+      data.bookingId = body.bookingId;
+    } else {
+      // Unlinking booking — also clear teamLabel (set during booking link) unless caller
+      // explicitly sent a new teamLabel in the same PATCH.
+      data.bookingId = null;
+      if (body.teamLabel === undefined) data.teamLabel = null;
     }
-    data.bookingId = body.bookingId || null;
   }
 
   const tab = await prisma.posTab.findUnique({ where: { id }, select: { status: true } });
