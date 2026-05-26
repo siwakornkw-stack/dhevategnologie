@@ -1,14 +1,21 @@
-export function generateTimeSlots(openTime: string, closeTime: string): string[] {
+export function generateTimeSlots(openTime: string, closeTime: string, stepMin: number = 60): string[] {
   const slots: string[] = [];
-  const [openH] = openTime.split(':').map(Number);
-  const [closeH] = closeTime.split(':').map(Number);
-  if (openH === closeH) return slots;
-  const closeHAdj = closeH < openH ? closeH + 24 : closeH;
+  const [openH, openM = 0] = openTime.split(':').map(Number);
+  const [closeH, closeM = 0] = closeTime.split(':').map(Number);
+  const openMin = openH * 60 + openM;
+  let closeMin = closeH * 60 + closeM;
+  if (closeMin === openMin) return slots;
+  if (closeMin < openMin) closeMin += 1440;
+  if (stepMin <= 0) return slots;
 
-  for (let h = openH; h < closeHAdj; h++) {
-    const start = `${String(h % 24).padStart(2, '0')}:00`;
-    const end = `${String((h + 1) % 24).padStart(2, '0')}:00`;
-    slots.push(`${start}-${end}`);
+  const fmt = (totalMin: number) => {
+    const t = ((totalMin % 1440) + 1440) % 1440;
+    return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+  };
+
+  for (let m = openMin; m < closeMin; m += stepMin) {
+    const end = Math.min(m + stepMin, closeMin);
+    slots.push(`${fmt(m)}-${fmt(end)}`);
   }
   return slots;
 }
