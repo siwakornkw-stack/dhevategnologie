@@ -10,6 +10,10 @@ type Settings = {
   vatMode: 'NONE' | 'INCLUDED' | 'EXCLUDED';
   vatRate: number;
   allowNegativeStock: boolean;
+  requireShift: boolean;
+  pointsEarnPerBaht: number;
+  pointsValueBaht: number;
+  serviceChargeRate: number;
   printerType: 'BROWSER' | 'ESCPOS';
   paperSize: string;
   receiptHeader: string | null;
@@ -38,6 +42,10 @@ export function SettingsClient({ initialSettings = null }: SettingsClientProps =
       vatMode: form.get('vatMode'),
       vatRate: Number(form.get('vatRate')),
       allowNegativeStock: form.get('allowNegativeStock') === 'on',
+      requireShift: form.get('requireShift') === 'on',
+      pointsEarnPerBaht: Number(form.get('pointsEarnPerBaht')) || 0,
+      pointsValueBaht: Number(form.get('pointsValueBaht')) || 0,
+      serviceChargeRate: Number(form.get('serviceChargeRate')) || 0,
       printerType: form.get('printerType'),
       paperSize: form.get('paperSize'),
       receiptHeader: form.get('receiptHeader'),
@@ -84,11 +92,29 @@ export function SettingsClient({ initialSettings = null }: SettingsClientProps =
         </section>
 
         <section className="space-y-2">
-          <div className="text-sm font-semibold">Stock</div>
+          <div className="text-sm font-semibold">Stock / Shift</div>
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="allowNegativeStock" defaultChecked={s.allowNegativeStock} />
             อนุญาต stock ติดลบ (ปกติ: ปิด)
           </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="requireShift" defaultChecked={s.requireShift} />
+            บังคับเปิดกะก่อนขาย (ปกติ: ปิด)
+          </label>
+        </section>
+
+        <section className="space-y-2">
+          <div className="text-sm font-semibold">Loyalty Points</div>
+          <label className="text-xs text-gray-500">แต้มต่อ 1 บาท (0 = ปิด earn). เช่น 0.04 = ใช้ 25 บาทได้ 1 แต้ม</label>
+          <input name="pointsEarnPerBaht" type="number" step="0.01" min="0" defaultValue={s.pointsEarnPerBaht} className="input w-full" />
+          <label className="text-xs text-gray-500">มูลค่า 1 แต้ม (บาท) (0 = ปิด redeem)</label>
+          <input name="pointsValueBaht" type="number" step="0.01" min="0" defaultValue={s.pointsValueBaht} className="input w-full" />
+        </section>
+
+        <section className="space-y-2">
+          <div className="text-sm font-semibold">Service Charge</div>
+          <label className="text-xs text-gray-500">อัตรา % บนยอด subtotal ก่อน VAT (0 = ปิด)</label>
+          <input name="serviceChargeRate" type="number" step="0.01" min="0" max="100" defaultValue={s.serviceChargeRate} className="input w-full" />
         </section>
 
         <section className="space-y-2">

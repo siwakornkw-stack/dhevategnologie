@@ -15,8 +15,8 @@ export async function GET(req: NextRequest) {
       ...(status === 'ALL'
         ? {}
         : status === 'OPEN'
-          ? { OR: [{ status: 'OPEN' }, { status: 'MERGED' }] }
-          : { status: status as 'OPEN' | 'MERGED' | 'CLOSED' | 'PAID' | 'VOID' }),
+          ? { OR: [{ status: 'OPEN' }, { status: 'HELD' }, { status: 'MERGED' }] }
+          : { status: status as 'OPEN' | 'HELD' | 'MERGED' | 'CLOSED' | 'PAID' | 'VOID' }),
       ...(bookingId ? { bookingId } : {}),
     },
     select: {

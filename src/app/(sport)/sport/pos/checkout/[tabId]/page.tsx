@@ -12,8 +12,10 @@ type Tab = {
   booking: { id: string; timeSlot: string; field: { name: string; pricePerHour: number }; user: { name: string | null }; paidAt: string | null; discountAmount: number | null } | null;
   bookingSubtotal: number;
 };
-type Settings = { vatMode: 'NONE' | 'INCLUDED' | 'EXCLUDED'; vatRate: number };
+type Settings = { vatMode: 'NONE' | 'INCLUDED' | 'EXCLUDED'; vatRate: number; pointsEarnPerBaht: number; pointsValueBaht: number; serviceChargeRate: number };
 type Split = { label: string; amount: number; method: string; refNo?: string };
+type CustomerHit = { id: string; name: string | null; email: string | null; phone: string | null; points: number };
+type CustomerInfo = { id?: string | null; name?: string; taxId?: string; address?: string; phone?: string; points?: number };
 
 function calcVat(itemsTotal: number, mode: string, rate: number) {
   const r = rate / 100;
@@ -36,6 +38,15 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
   const [cashReceived, setCashReceived] = useState('');
   const [refNo, setRefNo] = useState('');
   const [busy, setBusy] = useState(false);
+  const [taxInvoice, setTaxInvoice] = useState(false);
+  const [cust, setCust] = useState<CustomerInfo>({});
+  const [custSearch, setCustSearch] = useState('');
+  const [custHits, setCustHits] = useState<CustomerHit[]>([]);
+  const [pointsToRedeem, setPointsToRedeem] = useState('');
+  const [couponInput, setCouponInput] = useState('');
+  const [coupon, setCoupon] = useState<{ code: string; discountType: string; discountValue: number } | null>(null);
+  const [couponMsg, setCouponMsg] = useState<string | null>(null);
+  const [couponBusy, setCouponBusy] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -82,17 +93,55 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
   const subtotalBooking = includeBooking && tab.booking && !tab.booking.paidAt ? tab.bookingSubtotal : 0;
 
   const discNum = Number(discount) || 0;
-  const base = Math.max(subtotalProduct + subtotalBooking - discNum, 0);
-  const { subtotal, vat, total } = calcVat(base, settings.vatMode, settings.vatRate);
+  const subtotalAll = subtotalProduct + subtotalBooking;
+  const baseForCoupon = Math.max(subtotalAll - discNum, 0);
+  const couponDiscount = !coupon ? 0
+    : coupon.discountType === 'PERCENT' ? Math.round((baseForCoupon * coupon.discountValue) / 100)
+    : Math.min(coupon.discountValue, baseForCoupon);
+  const base = Math.max(subtotalAll - discNum - couponDiscount, 0);
+  const scRate = settings.serviceChargeRate || 0;
+  const serviceCharge = scRate > 0 ? +(base * scRate / 100).toFixed(2) : 0;
+  const { subtotal, vat, total: grossTotal } = calcVat(base + serviceCharge, settings.vatMode, settings.vatRate);
+
+  const ptValue = settings.pointsValueBaht || 0;
+  const ptReqRaw = Math.max(0, Math.floor(Number(pointsToRedeem) || 0));
+  const ptMaxByBalance = cust.id ? cust.points || 0 : 0;
+  const ptMaxByCart = ptValue > 0 ? Math.floor(grossTotal / ptValue) : 0;
+  const ptUsed = Math.min(ptReqRaw, ptMaxByBalance, ptMaxByCart);
+  const redeemValue = +(ptUsed * ptValue).toFixed(2);
+  const total = +Math.max(grossTotal - redeemValue, 0).toFixed(2);
+  const earnPreview = cust.id && settings.pointsEarnPerBaht > 0 ? Math.floor(total * settings.pointsEarnPerBaht) : 0;
+
   const splitSum = splits.reduce((s, x) => s + Number(x.amount || 0), 0);
   const change = Math.max((Number(cashReceived) || 0) - total, 0);
 
+  async function searchCust(q: string) {
+    setCustSearch(q);
+    if (q.trim().length < 2) { setCustHits([]); return; }
+    const r = await fetch(`/api/sport/pos/customers?q=${encodeURIComponent(q.trim())}`);
+    if (r.ok) setCustHits(await r.json());
+  }
+
+  function pickCust(u: CustomerHit) {
+    setCust({ id: u.id, name: u.name || '', phone: u.phone || '', taxId: cust.taxId, address: cust.address, points: u.points });
+    setCustHits([]);
+    setCustSearch(u.name || u.phone || u.email || '');
+  }
+
   async function submit() {
     setBusy(true);
+    const customerPayload = taxInvoice && (cust.name || cust.taxId || cust.phone)
+      ? { id: cust.id || null, name: cust.name || null, taxId: cust.taxId || null, address: cust.address || null, phone: cust.phone || null }
+      : cust.id
+        ? { id: cust.id, name: cust.name || null, phone: cust.phone || null }
+        : null;
     const body: Record<string, unknown> = {
       tabId,
       includeBooking,
       discount: discNum,
+      ...(coupon ? { couponCode: coupon.code } : {}),
+      ...(customerPayload ? { customer: customerPayload } : {}),
+      ...(cust.id && ptUsed > 0 ? { pointsToRedeem: ptUsed } : {}),
       ...(splitMode
         ? { splits }
         : {
@@ -154,12 +203,115 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
             <span>ส่วนลด</span>
             <input type="number" value={discount} onChange={(e) => setDiscount(e.target.value)} className="w-24 px-2 py-1 border rounded text-right dark:bg-gray-800 dark:border-gray-700" />
           </div>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span>Coupon</span>
+              <input
+                value={couponInput}
+                onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponMsg(null); }}
+                disabled={!!coupon || couponBusy}
+                placeholder="CODE"
+                className="flex-1 px-2 py-1 border rounded uppercase dark:bg-gray-800 dark:border-gray-700 disabled:opacity-50"
+              />
+              {!coupon ? (
+                <button
+                  type="button"
+                  disabled={couponBusy || !couponInput.trim()}
+                  onClick={async () => {
+                    setCouponBusy(true); setCouponMsg(null);
+                    const code = couponInput.trim().toUpperCase();
+                    const r = await fetch(`/api/sport/coupons/validate?code=${encodeURIComponent(code)}`);
+                    setCouponBusy(false);
+                    if (!r.ok) { const e = await r.json().catch(() => ({})); setCouponMsg(e.error || 'คูปองไม่ถูกต้อง'); return; }
+                    const c = await r.json();
+                    setCoupon({ code: c.code, discountType: c.discountType, discountValue: c.discountValue });
+                  }}
+                  className="px-3 py-1 bg-primary-600 text-white rounded text-xs disabled:opacity-50"
+                >{couponBusy ? '...' : 'ใช้'}</button>
+              ) : (
+                <button type="button" onClick={() => { setCoupon(null); setCouponInput(''); setCouponMsg(null); }} className="px-3 py-1 border rounded text-xs dark:border-gray-700">ลบ</button>
+              )}
+            </div>
+            {couponMsg && <div className="text-xs text-red-500">{couponMsg}</div>}
+            {coupon && couponDiscount > 0 && (
+              <div className="flex justify-between text-emerald-600 text-xs"><span>คูปอง {coupon.code} ({coupon.discountType === 'PERCENT' ? `${coupon.discountValue}%` : `฿${coupon.discountValue}`})</span><span>-{couponDiscount.toFixed(2)}</span></div>
+            )}
+          </div>
+          {serviceCharge > 0 && (
+            <div className="flex justify-between text-gray-500"><span>Service Charge {scRate}%</span><span>{serviceCharge.toFixed(2)}</span></div>
+          )}
           {settings.vatMode !== 'NONE' && (
             <div className="flex justify-between text-gray-500"><span>VAT {settings.vatRate}% ({settings.vatMode === 'INCLUDED' ? 'incl' : 'excl'})</span><span>{vat.toFixed(2)}</span></div>
           )}
           {settings.vatMode === 'EXCLUDED' && <div className="flex justify-between text-xs text-gray-400"><span>Pre-VAT</span><span>{subtotal.toFixed(2)}</span></div>}
+          {redeemValue > 0 && (
+            <div className="flex justify-between text-orange-600"><span>ส่วนลดจากแต้ม ({ptUsed} pt)</span><span>-{redeemValue.toFixed(2)}</span></div>
+          )}
           <div className="flex justify-between text-lg font-bold border-t dark:border-gray-800 pt-2"><span>TOTAL</span><span>฿{total.toFixed(2)}</span></div>
+          {earnPreview > 0 && <div className="text-xs text-green-600 text-right">+ จะได้รับ {earnPreview} แต้ม</div>}
         </div>
+      </div>
+
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border dark:border-gray-700/50 p-4 space-y-2">
+        <div className="text-sm font-semibold">ลูกค้า (optional)</div>
+        <div className="relative">
+          <input
+            value={custSearch}
+            onChange={(e) => searchCust(e.target.value)}
+            placeholder="ค้นหา ชื่อ/อีเมล/เบอร์"
+            className="w-full px-2 py-1 border rounded text-sm dark:bg-gray-800 dark:border-gray-700"
+          />
+          {custHits.length > 0 && (
+            <div className="absolute z-10 left-0 right-0 mt-1 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded shadow max-h-48 overflow-y-auto">
+              {custHits.map((u) => (
+                <button key={u.id} onClick={() => pickCust(u)}
+                  className="block w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 dark:hover:bg-gray-700">
+                  {u.name || '-'} <span className="text-gray-400">{u.phone || u.email || ''}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {cust.id && (
+            <div className="text-xs text-gray-500 mt-1">
+              เลือก member: {cust.name} · แต้มคงเหลือ <b>{cust.points ?? 0}</b> ·{' '}
+              <button onClick={() => { setCust({}); setCustSearch(''); setPointsToRedeem(''); }} className="text-red-500">ล้าง</button>
+            </div>
+          )}
+        </div>
+        {cust.id && ptValue > 0 && (cust.points ?? 0) > 0 && (
+          <div className="flex items-center gap-2 text-sm border-t dark:border-gray-800 pt-2">
+            <span className="text-gray-500">ใช้แต้ม</span>
+            <input
+              type="number"
+              min="0"
+              max={Math.min(cust.points ?? 0, ptMaxByCart)}
+              value={pointsToRedeem}
+              onChange={(e) => setPointsToRedeem(e.target.value)}
+              placeholder="0"
+              className="w-24 px-2 py-1 border rounded text-right dark:bg-gray-800 dark:border-gray-700"
+            />
+            <button
+              type="button"
+              onClick={() => setPointsToRedeem(String(Math.min(cust.points ?? 0, ptMaxByCart)))}
+              className="text-xs text-primary-600 hover:underline"
+            >
+              สูงสุด
+            </button>
+            <span className="text-xs text-gray-400">1 แต้ม = {ptValue.toFixed(2)}฿ · ใช้ได้ {Math.min(cust.points ?? 0, ptMaxByCart)} แต้ม</span>
+          </div>
+        )}
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={taxInvoice} onChange={(e) => setTaxInvoice(e.target.checked)} />
+          ใบกำกับภาษีเต็มรูป
+        </label>
+        {taxInvoice && (
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <input value={cust.name || ''} onChange={(e) => setCust({ ...cust, name: e.target.value })} placeholder="ชื่อลูกค้า" className="px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-700" />
+            <input value={cust.taxId || ''} onChange={(e) => setCust({ ...cust, taxId: e.target.value })} placeholder="เลขผู้เสียภาษี (13 หลัก)" className="px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-700" />
+            <input value={cust.phone || ''} onChange={(e) => setCust({ ...cust, phone: e.target.value })} placeholder="เบอร์โทร" className="px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-700" />
+            <input value={cust.address || ''} onChange={(e) => setCust({ ...cust, address: e.target.value })} placeholder="ที่อยู่" className="px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-700 col-span-2" />
+          </div>
+        )}
       </div>
 
       <div className="bg-white dark:bg-gray-900 rounded-2xl border dark:border-gray-700/50 p-4 space-y-3">

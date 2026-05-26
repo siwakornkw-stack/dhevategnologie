@@ -1,8 +1,10 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 export const metadata = { title: 'POS' };
+export const dynamic = 'force-dynamic';
 
 export default async function PosHubPage() {
   const session = await auth();
@@ -12,15 +14,25 @@ export default async function PosHubPage() {
 
   const isAdmin = role === 'ADMIN';
 
+  const lowStockRows = await prisma.$queryRaw<{ c: bigint }[]>`
+    SELECT COUNT(*)::bigint AS c FROM "PosProduct"
+    WHERE "deletedAt" IS NULL AND "isActive" = true
+      AND "lowStockAlert" > 0 AND "stockQty" <= "lowStockAlert"
+  `.catch(() => [{ c: BigInt(0) }]);
+  const lowStockCount = Number(lowStockRows[0]?.c || 0);
+
   const items: { href: string; title: string; desc: string; admin?: boolean }[] = [
     { href: '/sport/pos/sale', title: 'ขายหน้าร้าน', desc: 'POS ขายของ + Quick Sale' },
     { href: '/sport/pos/tabs', title: 'Tabs / โต๊ะ', desc: 'จัดการบิลที่เปิดอยู่' },
-    { href: '/sport/pos/invoices', title: 'บิลย้อนหลัง', desc: 'ดู / พิมพ์ซ้ำ / void' },
+    { href: '/sport/pos/shift', title: 'กะ (Shift)', desc: 'เปิด-ปิดกะ + X/Z report' },
+    { href: '/sport/pos/invoices', title: 'บิลย้อนหลัง', desc: 'ดู / พิมพ์ซ้ำ / refund / void' },
+    { href: '/sport/pos/customers', title: 'ลูกค้า', desc: 'ค้นลูกค้า + แต้ม + ประวัติซื้อ' },
     { href: '/sport/pos/products', title: 'สินค้า', desc: 'เพิ่ม/แก้สินค้า + ราคา', admin: true },
     { href: '/sport/pos/stock', title: 'Stock', desc: 'รับเข้า/ปรับ + log', admin: true },
     { href: '/sport/pos/settings', title: 'ตั้งค่า POS', desc: 'VAT, ร้าน, ใบเสร็จ', admin: true },
     { href: '/sport/pos/cashiers', title: 'Cashiers', desc: 'จัดการพนักงานคิดเงิน', admin: true },
     { href: '/sport/pos/report', title: 'รายงานยอดขาย', desc: 'สรุปยอด + top สินค้า', admin: true },
+    { href: '/sport/pos/audit', title: 'Audit Log', desc: 'ตรวจสอบทุก action ใน POS', admin: true },
   ];
 
   return (
@@ -31,6 +43,15 @@ export default async function PosHubPage() {
           role: <span className="font-mono">{role}</span>
         </p>
       </div>
+
+      {lowStockCount > 0 && (
+        <Link
+          href="/sport/pos/stock"
+          className="block px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 text-sm text-amber-800 dark:text-amber-200 hover:border-amber-500"
+        >
+          <b>เตือน:</b> มีสินค้า {lowStockCount} รายการ stock ต่ำกว่าจุดเตือน → ดู/รับเข้าสต๊อก
+        </Link>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {items.map((it) => {
           const disabled = it.admin && !isAdmin;

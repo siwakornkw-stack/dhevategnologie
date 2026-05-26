@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requirePosRole, getPosSettings, calcVat, nextInvoiceNo } from '@/lib/pos';
-import { calculatePriceWithRules } from '@/lib/booking';
+import { requirePosRole, getPosSettings, calcVat, nextInvoiceNo, getActiveShift, audit, earnPoints, redeemPoints } from '@/lib/pos';
+import { calculatePriceWithRules, isCouponUsable, calculateCouponDiscount } from '@/lib/booking';
+import { isCouponSystemEnabled } from '@/lib/settings';
 
 type SplitInput = { label: string; amount: number; method: string; refNo?: string };
 type PaymentInput = { method: string; amount?: number; cashReceived?: number; refNo?: string };
@@ -10,10 +11,19 @@ export async function POST(req: NextRequest) {
   const session = await requirePosRole(['ADMIN', 'CASHIER']);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { tabId, includeBooking, discount, payment, splits, note } = await req.json();
+  const { tabId, includeBooking, discount, payment, splits, note, customer, pointsToRedeem, couponCode } = await req.json();
   if (!tabId) return NextResponse.json({ error: 'tabId required' }, { status: 400 });
 
+  const redeemReq = Math.max(0, Math.floor(Number(pointsToRedeem) || 0));
+
   const settings = await getPosSettings();
+
+  const cust = customer && typeof customer === 'object' ? customer : null;
+  const customerId = cust?.id ? String(cust.id).slice(0, 50) : null;
+  const customerName = cust?.name ? String(cust.name).slice(0, 200) : null;
+  const customerTaxId = cust?.taxId ? String(cust.taxId).slice(0, 50) : null;
+  const customerAddress = cust?.address ? String(cust.address).slice(0, 500) : null;
+  const customerPhone = cust?.phone ? String(cust.phone).slice(0, 50) : null;
 
   try {
     const result = await prisma.$transaction(async (tx) => {
@@ -56,23 +66,76 @@ export async function POST(req: NextRequest) {
       }
 
       const discNum = Number(discount) || 0;
-      const itemsTotal = Math.max(subtotalProduct + subtotalBooking - discNum, 0);
-      const vat = calcVat(itemsTotal, settings.vatMode, settings.vatRate);
+      const subtotalAll = subtotalProduct + subtotalBooking;
+
+      let couponDiscount = 0;
+      let appliedCouponCode: string | null = null;
+      const rawCode = typeof couponCode === 'string' ? couponCode.trim().toUpperCase().slice(0, 50) : '';
+      if (rawCode) {
+        const couponEnabled = await isCouponSystemEnabled();
+        if (!couponEnabled) throw new Error('COUPON_DISABLED');
+        const c = await tx.coupon.findUnique({ where: { code: rawCode } });
+        if (!c || !isCouponUsable(c)) throw new Error('COUPON_INVALID');
+        const baseForCoupon = Math.max(subtotalAll - discNum, 0);
+        couponDiscount = calculateCouponDiscount({ discountType: c.discountType, discountValue: c.discountValue }, baseForCoupon);
+        if (couponDiscount > 0) {
+          const upd = await tx.$executeRaw`
+            UPDATE "Coupon" SET "usedCount" = "usedCount" + 1
+            WHERE code = ${rawCode} AND "isActive" = true
+            AND ("maxUses" IS NULL OR "usedCount" < "maxUses")
+            AND ("expiresAt" IS NULL OR "expiresAt" > NOW())
+          `;
+          if (upd === 0) throw new Error('COUPON_INVALID');
+          appliedCouponCode = rawCode;
+        }
+      }
+      const combinedDiscount = +(discNum + couponDiscount).toFixed(2);
+
+      const itemsTotal = Math.max(subtotalAll - combinedDiscount, 0);
+      const scRate = settings.serviceChargeRate || 0;
+      const serviceCharge = scRate > 0 ? +(itemsTotal * scRate / 100).toFixed(2) : 0;
+      const vat = calcVat(itemsTotal + serviceCharge, settings.vatMode, settings.vatRate);
+
+      const productIds = Array.from(new Set(allItems.map((i) => i.productId).filter((x): x is string => !!x)));
+      const costMap = new Map<string, number>();
+      if (productIds.length > 0) {
+        const prods = await tx.posProduct.findMany({ where: { id: { in: productIds } }, select: { id: true, cost: true } });
+        for (const p of prods) costMap.set(p.id, p.cost);
+      }
+      const totalCost = +allItems.reduce((s, i) => s + (i.productId ? (costMap.get(i.productId) || 0) * i.qty : 0), 0).toFixed(2);
+
+      // Loyalty redeem (member only)
+      let pointsRedeemed = 0;
+      let pointsRedeemValue = 0;
+      if (redeemReq > 0 && customerId) {
+        const ptValue = settings.pointsValueBaht || 0;
+        if (ptValue <= 0) throw new Error('POINTS_REDEEM_DISABLED');
+        const maxByVat = Math.floor(vat.total / ptValue);
+        pointsRedeemed = Math.min(redeemReq, maxByVat);
+        pointsRedeemValue = +(pointsRedeemed * ptValue).toFixed(2);
+      }
+      const finalTotal = +Math.max(vat.total - pointsRedeemValue, 0).toFixed(2);
 
       // Payment validation
       if (Array.isArray(splits) && splits.length > 0) {
         const sumSplit = (splits as SplitInput[]).reduce((s, x) => s + Number(x.amount), 0);
-        if (Math.abs(sumSplit - vat.total) > 0.01) throw new Error('SPLIT_MISMATCH');
+        if (Math.abs(sumSplit - finalTotal) > 0.01) throw new Error('SPLIT_MISMATCH');
       } else {
         if (!payment) throw new Error('PAYMENT_REQUIRED');
         const p = payment as PaymentInput;
         if (!['CASH', 'TRANSFER', 'QR', 'CARD', 'OTHER'].includes(p.method)) throw new Error('PAYMENT_METHOD_INVALID');
-        if (p.method === 'CASH' && p.cashReceived !== undefined && Number(p.cashReceived) < vat.total) {
+        if (p.method === 'CASH' && p.cashReceived !== undefined && Number(p.cashReceived) < finalTotal) {
           throw new Error('CASH_INSUFFICIENT');
         }
       }
 
       const type = subtotalBooking > 0 && subtotalProduct > 0 ? 'MIXED' : subtotalBooking > 0 ? 'BOOKING' : 'POS_TAB';
+
+      const activeShift = await getActiveShift(session.user.id, tx);
+      if (settings.requireShift && !activeShift) throw new Error('SHIFT_REQUIRED');
+
+      const earnRate = settings.pointsEarnPerBaht || 0;
+      const pointsEarned = customerId && earnRate > 0 ? Math.floor(finalTotal * earnRate) : 0;
 
       let invoice;
       let invAttempts = 0;
@@ -81,13 +144,23 @@ export async function POST(req: NextRequest) {
         try {
           invoice = await tx.posInvoice.create({ data: {
             invoiceNo, type, status: 'PAID',
-            subtotalProduct, subtotalBooking, discount: discNum,
-            vatMode: settings.vatMode, vatRate: settings.vatRate, vatAmount: vat.vatAmount, total: vat.total,
+            subtotalProduct, subtotalBooking, discount: combinedDiscount,
+            vatMode: settings.vatMode, vatRate: settings.vatRate, vatAmount: vat.vatAmount, total: finalTotal,
+            refundedAmount: 0,
+            serviceCharge, totalCost,
+            pointsEarned, pointsRedeemed, pointsRedeemValue,
             cashierId: session.user.id,
+            shiftId: activeShift?.id || null,
+            customerId, customerName, customerTaxId, customerAddress, customerPhone,
             bookingIds: bookingIds.length ? bookingIds : undefined,
             tabIds: allTabs.map((t) => t.id),
             itemsSnapshot: allItems.map((i) => ({ tabName: i.tabName, productId: i.productId, productName: i.productName, qty: i.qty, unitPrice: i.unitPrice, discount: i.discount })),
-            note: note?.toString().slice(0, 500) || null,
+            note: (() => {
+              const base = note?.toString().slice(0, 400) || '';
+              if (!appliedCouponCode) return base || null;
+              const tag = `[COUPON:${appliedCouponCode} -${couponDiscount.toFixed(2)}]`;
+              return (base ? `${base} ${tag}` : tag).slice(0, 500);
+            })(),
           }});
           break;
         } catch (e) {
@@ -120,17 +193,24 @@ export async function POST(req: NextRequest) {
       } else {
         const p = payment as PaymentInput;
         const cashReceived = p.method === 'CASH' && p.cashReceived !== undefined ? Number(p.cashReceived) : null;
-        const changeAmount = cashReceived !== null ? +(cashReceived - vat.total).toFixed(2) : null;
+        const changeAmount = cashReceived !== null ? +(cashReceived - finalTotal).toFixed(2) : null;
         await tx.posPayment.create({
           data: {
             invoiceId: invoice.id,
             method: p.method as 'CASH' | 'TRANSFER' | 'QR' | 'CARD' | 'OTHER',
-            amount: Number(p.amount) || vat.total,
+            amount: Number(p.amount) || finalTotal,
             cashReceived,
             changeAmount,
             refNo: p.refNo || null,
           },
         });
+      }
+
+      if (customerId && pointsRedeemed > 0) {
+        await redeemPoints(tx, customerId, pointsRedeemed, invoice.invoiceNo);
+      }
+      if (customerId && pointsEarned > 0) {
+        await earnPoints(tx, customerId, pointsEarned, invoice.invoiceNo);
       }
 
       // Close tabs (atomic guard: only if still open/merged)
@@ -151,11 +231,17 @@ export async function POST(req: NextRequest) {
 
       return invoice;
     });
+    audit(session.user.id, 'POS_CHECKOUT', result.id, { invoiceNo: result.invoiceNo, total: result.total, shiftId: result.shiftId });
     return NextResponse.json(result, { status: 201 });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'checkout failed';
+    if (msg === 'SHIFT_REQUIRED') return NextResponse.json({ error: 'ต้องเปิดกะก่อนขาย' }, { status: 409 });
+    if (msg === 'POINTS_INSUFFICIENT') return NextResponse.json({ error: 'แต้มไม่พอ' }, { status: 400 });
+    if (msg === 'POINTS_REDEEM_DISABLED') return NextResponse.json({ error: 'ระบบ redeem ปิดอยู่' }, { status: 400 });
     if (msg === 'SPLIT_MISMATCH') return NextResponse.json({ error: 'ผลรวม split ไม่เท่ากับยอดบิล' }, { status: 400 });
     if (msg === 'CASH_INSUFFICIENT') return NextResponse.json({ error: 'เงินสดไม่พอ' }, { status: 400 });
+    if (msg === 'COUPON_DISABLED') return NextResponse.json({ error: 'ระบบคูปองปิดอยู่' }, { status: 403 });
+    if (msg === 'COUPON_INVALID') return NextResponse.json({ error: 'คูปองไม่ถูกต้องหรือหมดอายุ' }, { status: 400 });
     if (msg === 'TAB_NOT_OPEN') return NextResponse.json({ error: 'tab ปิดแล้ว' }, { status: 409 });
     if (msg === 'TAB_NOT_FOUND') return NextResponse.json({ error: 'ไม่พบ tab' }, { status: 404 });
     if (msg === 'TAB_RACE') return NextResponse.json({ error: 'tab ถูกปิดโดยอีกหน้าจอ' }, { status: 409 });

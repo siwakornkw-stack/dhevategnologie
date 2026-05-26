@@ -8,8 +8,11 @@ type Split = { label: string; amount: number; method: string; refNo: string | nu
 type Invoice = {
   invoiceNo: string; type: string; status: string;
   subtotalProduct: number; subtotalBooking: number; discount: number;
+  serviceCharge: number;
+  pointsEarned: number; pointsRedeemed: number; pointsRedeemValue: number;
   vatMode: string; vatRate: number; vatAmount: number; total: number;
   paidAt: string; voidedAt: string | null; voidReason: string | null;
+  customerName: string | null; customerTaxId: string | null; customerAddress: string | null; customerPhone: string | null;
   itemsSnapshot: SnapItem[] | null;
   payments: Payment[]; splits: Split[];
 };
@@ -62,10 +65,23 @@ export default function ReceiptPrintPage({ params }: { params: Promise<{ id: str
         {settings.taxId && <div className="center">Tax ID {settings.taxId}</div>}
         {settings.address && <div className="center">{settings.address}</div>}
         {settings.receiptHeader && <div className="center">{settings.receiptHeader}</div>}
+        {inv.customerTaxId && (
+          <div className="center" style={{ fontWeight: 'bold', marginTop: 4 }}>*** ใบกำกับภาษีเต็มรูป ***</div>
+        )}
         <hr />
         <div>Invoice: {inv.invoiceNo}</div>
         <div>{new Date(inv.paidAt).toLocaleString('th-TH')}</div>
         {inv.status === 'VOID' && <div style={{ color: 'red', fontWeight: 'bold' }}>*** VOID ***</div>}
+        {(inv.customerName || inv.customerTaxId || inv.customerPhone || inv.customerAddress) && (
+          <>
+            <hr />
+            <div style={{ fontWeight: 'bold' }}>ลูกค้า:</div>
+            {inv.customerName && <div>{inv.customerName}</div>}
+            {inv.customerTaxId && <div>เลขผู้เสียภาษี: {inv.customerTaxId}</div>}
+            {inv.customerPhone && <div>โทร: {inv.customerPhone}</div>}
+            {inv.customerAddress && <div>{inv.customerAddress}</div>}
+          </>
+        )}
         <hr />
         <table>
           <tbody>
@@ -90,8 +106,11 @@ export default function ReceiptPrintPage({ params }: { params: Promise<{ id: str
             <tr><td>Subtotal สินค้า</td><td className="right">{inv.subtotalProduct.toFixed(2)}</td></tr>
             {inv.subtotalBooking > 0 && <tr><td>Subtotal สนาม</td><td className="right">{inv.subtotalBooking.toFixed(2)}</td></tr>}
             {inv.discount > 0 && <tr><td>ส่วนลด</td><td className="right">-{inv.discount.toFixed(2)}</td></tr>}
+            {inv.serviceCharge > 0 && <tr><td>Service Charge</td><td className="right">{inv.serviceCharge.toFixed(2)}</td></tr>}
             {inv.vatMode !== 'NONE' && <tr><td>VAT {inv.vatRate}% ({inv.vatMode === 'INCLUDED' ? 'incl' : 'excl'})</td><td className="right">{inv.vatAmount.toFixed(2)}</td></tr>}
+            {inv.pointsRedeemValue > 0 && <tr><td>ใช้แต้ม ({inv.pointsRedeemed} pt)</td><td className="right">-{inv.pointsRedeemValue.toFixed(2)}</td></tr>}
             <tr style={{ fontWeight: 'bold', fontSize: '13px' }}><td>TOTAL</td><td className="right">{inv.total.toFixed(2)}</td></tr>
+            {inv.pointsEarned > 0 && <tr><td colSpan={2} style={{ fontSize: '10px', color: '#666', paddingTop: '2px' }}>+ ได้รับ {inv.pointsEarned} แต้ม</td></tr>}
           </tbody>
         </table>
         <hr />

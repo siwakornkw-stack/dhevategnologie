@@ -12,8 +12,10 @@ export async function GET(req: NextRequest) {
   const status = searchParams.get('status');
   const limit = Math.min(Number(searchParams.get('limit')) || 100, 500);
 
+  const customerId = searchParams.get('customerId');
   const where: Record<string, unknown> = {};
   if (status === 'PAID' || status === 'VOID') where.status = status;
+  if (customerId) where.customerId = customerId;
   const isCashier = session.user.role === 'CASHIER';
   const todayMin = new Date();
   todayMin.setHours(0, 0, 0, 0);

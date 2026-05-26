@@ -4,21 +4,27 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 type Report = {
-  totals: { invoiceCount: number; voidCount: number; totalSales: number; totalProduct: number; totalBooking: number; totalDiscount: number; totalVat: number };
+  totals: {
+    invoiceCount: number; voidCount: number;
+    totalSales: number; totalProduct: number; totalBooking: number;
+    totalDiscount: number; totalVat: number;
+    totalServiceCharge: number; totalCost: number; grossProfit: number; marginPct: number;
+  };
   byMethod: Record<string, number>;
   topProducts: { productId: string; name: string; qty: number; revenue: number }[];
 };
 
 function todayIso() {
-  const d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString().slice(0, 10);
-}
-function nowIso() {
-  return new Date().toISOString().slice(0, 16);
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 export default function PosReportPage() {
   const [from, setFrom] = useState(todayIso());
-  const [to, setTo] = useState(nowIso().slice(0, 10));
+  const [to, setTo] = useState(todayIso());
   const [data, setData] = useState<Report | null>(null);
 
   async function load() {
@@ -38,9 +44,17 @@ export default function PosReportPage() {
         <h1 className="text-2xl font-bold">รายงานยอดขาย</h1>
       </div>
 
-      <div className="flex gap-2 text-sm">
+      <div className="flex gap-2 text-sm flex-wrap items-center">
         <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700" />
         <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700" />
+        <a
+          href={(() => {
+            const f = new Date(from); f.setHours(0, 0, 0, 0);
+            const t = new Date(to); t.setHours(23, 59, 59, 999);
+            return `/api/sport/pos/report/csv?from=${f.toISOString()}&to=${t.toISOString()}`;
+          })()}
+          className="px-3 py-2 rounded bg-primary-600 text-white text-xs"
+        >ดาวน์โหลด CSV (ภพ.30)</a>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -50,6 +64,9 @@ export default function PosReportPage() {
         <Stat label="ยอดสนาม" value={`฿${data.totals.totalBooking.toFixed(2)}`} />
         <Stat label="ส่วนลดรวม" value={`฿${data.totals.totalDiscount.toFixed(2)}`} />
         <Stat label="VAT รวม" value={`฿${data.totals.totalVat.toFixed(2)}`} />
+        <Stat label="Service Charge" value={`฿${data.totals.totalServiceCharge.toFixed(2)}`} />
+        <Stat label="ทุนสินค้า" value={`฿${data.totals.totalCost.toFixed(2)}`} />
+        <Stat label={`กำไรขั้นต้น (${data.totals.marginPct.toFixed(1)}%)`} value={`฿${data.totals.grossProfit.toFixed(2)}`} />
         <Stat label="Void" value={data.totals.voidCount.toString()} />
       </div>
 

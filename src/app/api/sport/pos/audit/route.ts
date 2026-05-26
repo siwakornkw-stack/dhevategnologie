@@ -1,0 +1,49 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { requirePosRole } from '@/lib/pos';
+
+const POS_ACTIONS = [
+  'POS_CHECKOUT',
+  'POS_QUICK_SALE',
+  'POS_INVOICE_VOID',
+  'POS_REFUND',
+  'POS_SHIFT_OPEN',
+  'POS_SHIFT_CLOSE',
+  'POS_PRODUCT_UPDATE',
+  'POS_PRODUCT_DELETE',
+  'POS_STOCK_IN',
+  'POS_STOCK_OUT',
+  'POS_STOCK_ADJUST',
+  'POS_SETTINGS_UPDATE',
+];
+
+export async function GET(req: NextRequest) {
+  const session = await requirePosRole(['ADMIN']);
+  if (!session) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+  const { searchParams } = new URL(req.url);
+  const action = searchParams.get('action');
+  const adminId = searchParams.get('adminId');
+  const targetId = searchParams.get('targetId');
+  const from = searchParams.get('from');
+  const to = searchParams.get('to');
+  const limit = Math.min(Number(searchParams.get('limit')) || 100, 500);
+
+  const where: Record<string, unknown> = {};
+  if (action) where.action = action;
+  else where.action = { in: POS_ACTIONS };
+  if (adminId) where.adminId = adminId;
+  if (targetId) where.targetId = targetId;
+  const range: Record<string, Date> = {};
+  if (from) range.gte = new Date(from);
+  if (to) range.lte = new Date(to);
+  if (Object.keys(range).length) where.createdAt = range;
+
+  const logs = await prisma.auditLog.findMany({
+    where,
+    include: { admin: { select: { id: true, name: true, email: true } } },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+  });
+  return NextResponse.json(logs);
+}

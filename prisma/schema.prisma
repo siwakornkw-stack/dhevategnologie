@@ -28,6 +28,7 @@ enum VatMode {
 
 enum TabStatus {
   OPEN
+  HELD
   MERGED
   CLOSED
   PAID
@@ -58,6 +59,16 @@ enum PaymentMethod {
 enum OrderItemStatus {
   ACTIVE
   VOID
+}
+
+enum ShiftStatus {
+  OPEN
+  CLOSED
+}
+
+enum CashMovementType {
+  PAY_IN
+  PAY_OUT
 }
 
 enum SportType {
@@ -485,7 +496,19 @@ model PosInvoice {
   vatRate         Float
   vatAmount       Float         @default(0)
   total           Float
+  refundedAmount  Float         @default(0)
+  serviceCharge   Float         @default(0)
+  totalCost       Float         @default(0)
+  pointsEarned    Int           @default(0)
+  pointsRedeemed  Int           @default(0)
+  pointsRedeemValue Float       @default(0)
   cashierId       String?
+  shiftId         String?
+  customerId      String?
+  customerName    String?
+  customerTaxId   String?
+  customerAddress String?
+  customerPhone   String?
   bookingIds      Json?
   tabIds          Json?
   itemsSnapshot   Json?
@@ -498,10 +521,13 @@ model PosInvoice {
 
   payments PosPayment[]
   splits   PosInvoiceSplit[]
+  refunds  PosRefund[]
+  shift    PosShift?         @relation(fields: [shiftId], references: [id], onDelete: SetNull)
 
   @@index([paidAt])
   @@index([status])
   @@index([type])
+  @@index([shiftId])
 }
 
 model PosPayment {
@@ -533,6 +559,48 @@ model PosInvoiceSplit {
   @@index([invoiceId])
 }
 
+model PosShift {
+  id            String      @id @default(cuid())
+  shiftNo       String      @unique
+  cashierId     String
+  status        ShiftStatus @default(OPEN)
+  openingFloat  Float       @default(0)
+  openingNote   String?
+  openedAt      DateTime    @default(now())
+  closedAt      DateTime?
+  closedBy      String?
+  countedCash   Float?
+  closingNote   String?
+
+  invoices       PosInvoice[]
+  refunds        PosRefund[]
+  cashMovements  PosCashMovement[]
+
+  @@index([status])
+  @@index([openedAt])
+  @@index([cashierId])
+}
+
+model PosRefund {
+  id            String        @id @default(cuid())
+  refundNo      String        @unique
+  invoiceId     String
+  shiftId       String?
+  cashierId     String?
+  method        PaymentMethod
+  amount        Float
+  reason        String?
+  itemsSnapshot Json?
+  createdAt     DateTime      @default(now())
+
+  invoice PosInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  shift   PosShift?  @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+
+  @@index([invoiceId])
+  @@index([shiftId])
+  @@index([createdAt])
+}
+
 model PosSettings {
   id                 String   @id @default("default")
   shopName           String   @default("88ARENA")
@@ -541,10 +609,29 @@ model PosSettings {
   vatMode            VatMode  @default(INCLUDED)
   vatRate            Float    @default(7)
   allowNegativeStock Boolean  @default(false)
+  requireShift       Boolean  @default(false)
+  pointsEarnPerBaht  Float    @default(0)
+  pointsValueBaht    Float    @default(1)
+  serviceChargeRate  Float    @default(0)
   printerType        String   @default("BROWSER")
   paperSize          String   @default("80mm")
   receiptHeader      String?
   receiptFooter      String?
   cashDrawerEnabled  Boolean  @default(false)
   updatedAt          DateTime @updatedAt
+}
+
+model PosCashMovement {
+  id        String           @id @default(cuid())
+  shiftId   String
+  type      CashMovementType
+  amount    Float
+  reason    String?
+  userId    String?
+  createdAt DateTime         @default(now())
+
+  shift PosShift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+
+  @@index([shiftId])
+  @@index([createdAt])
 }

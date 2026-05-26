@@ -29,7 +29,7 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
   }
   async function loadTabs() {
     const t = await fetch('/api/sport/pos/tabs?status=OPEN').then((r) => r.json());
-    setTabs(Array.isArray(t) ? t.filter((x: Tab) => x.status === 'OPEN') : []);
+    setTabs(Array.isArray(t) ? t.filter((x: Tab) => x.status === 'OPEN' || x.status === 'HELD') : []);
   }
   async function load() {
     await Promise.all([loadProducts(), loadTabs()]);
@@ -60,6 +60,8 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
 
   async function addToTab(productId: string) {
     if (!currentTabId) { alert('เลือก Tab ก่อน หรือใช้ Quick Sale'); return; }
+    const current = tabs.find((t) => t.id === currentTabId);
+    if (current?.status === 'HELD') { alert('Tab ถูกพักไว้ กดเรียกคืนก่อน'); return; }
     const tabId = currentTabId;
     const product = products.find((p) => p.id === productId);
     if (!product) return;
@@ -84,6 +86,19 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
       setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: t.items.filter((i) => i.id !== tempId) } : t));
       setProducts((ps) => ps.map((p) => p.id === productId ? { ...p, stockQty: p.stockQty + 1 } : p));
     }
+  }
+
+  async function holdTab() {
+    if (!currentTabId) return;
+    const r = await fetch(`/api/sport/pos/tabs/${currentTabId}/hold`, { method: 'POST' });
+    if (!r.ok) { const e = await r.json().catch(() => ({})); alert(e.error || 'พักไม่สำเร็จ'); return; }
+    await loadTabs();
+  }
+  async function resumeTab() {
+    if (!currentTabId) return;
+    const r = await fetch(`/api/sport/pos/tabs/${currentTabId}/resume`, { method: 'POST' });
+    if (!r.ok) { const e = await r.json().catch(() => ({})); alert(e.error || 'เรียกคืนไม่สำเร็จ'); return; }
+    await loadTabs();
   }
 
   async function voidItem(itemId: string) {
@@ -126,11 +141,22 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
           >
             <option value="">-- เลือก Tab --</option>
             {tabs.map((t) => (
-              <option key={t.id} value={t.id}>{t.name}{t.teamLabel ? ` / ${t.teamLabel}` : ''}</option>
+              <option key={t.id} value={t.id}>{t.status === 'HELD' ? '[พัก] ' : ''}{t.name}{t.teamLabel ? ` / ${t.teamLabel}` : ''}</option>
             ))}
           </select>
           <button onClick={createTab} className="px-3 py-2 rounded-lg bg-primary-600 text-white text-sm">+ Tab ใหม่</button>
           <button onClick={() => { setQuickCart([]); setQuickOpen(true); }} className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm">Quick Sale</button>
+          <button
+            onClick={async () => {
+              const r = await fetch('/api/sport/pos/invoices?limit=1');
+              if (!r.ok) { alert('โหลดบิลล่าสุดไม่สำเร็จ'); return; }
+              const arr = await r.json();
+              const last = Array.isArray(arr) ? arr[0] : null;
+              if (!last?.id) { alert('ไม่มีบิลย้อนหลัง'); return; }
+              window.open(`/sport/pos/invoices/${last.id}/print`, '_blank');
+            }}
+            className="px-3 py-2 rounded-lg border dark:border-gray-700 text-sm"
+          >พิมพ์บิลล่าสุด</button>
         </div>
       </div>
 
@@ -138,7 +164,18 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
         {/* Left: products */}
         <div className="lg:col-span-2 space-y-3">
           <div className="flex gap-2">
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหา ชื่อ / SKU"
+            <input value={q} onChange={(e) => setQ(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key !== 'Enter') return;
+                const term = q.trim().toLowerCase();
+                if (!term) return;
+                const exact = products.find((p) => p.isActive && (p.sku || '').toLowerCase() === term);
+                if (!exact) return;
+                if (exact.stockQty <= 0) { alert('สินค้าหมดสต๊อก'); return; }
+                if (quickOpen) addQuick(exact); else addToTab(exact.id);
+                setQ('');
+              }}
+              placeholder="ค้นหา / สแกน barcode (SKU) แล้วกด Enter"
               className="flex-1 px-3 py-2 rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900" />
             <select value={cat} onChange={(e) => setCat(e.target.value)}
               className="px-3 py-2 rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900">
@@ -177,7 +214,17 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
             <div className="text-center text-gray-400 py-8 text-sm">เลือก Tab หรือกด Quick Sale</div>
           ) : (
             <>
-              <div className="font-semibold text-gray-900 dark:text-white">{currentTab.name}</div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="font-semibold text-gray-900 dark:text-white">
+                  {currentTab.name}
+                  {currentTab.status === 'HELD' && <span className="ml-2 inline-block px-2 py-0.5 text-[10px] rounded bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">พัก</span>}
+                </div>
+                {currentTab.status === 'OPEN' ? (
+                  <button onClick={holdTab} className="px-2 py-1 text-[11px] rounded border dark:border-gray-700 text-amber-600">พัก</button>
+                ) : currentTab.status === 'HELD' ? (
+                  <button onClick={resumeTab} className="px-2 py-1 text-[11px] rounded bg-amber-500 text-white">เรียกคืน</button>
+                ) : null}
+              </div>
               {currentTab.teamLabel && <div className="text-xs text-gray-500">ทีม: {currentTab.teamLabel}</div>}
               {currentTab.bookingId && <div className="text-xs text-emerald-600 mt-1">🔗 ผูก booking</div>}
               <div className="mt-3 space-y-2 max-h-[40vh] overflow-y-auto">
@@ -220,10 +267,10 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
               </div>
               <button
                 onClick={() => router.push(`/sport/pos/checkout/${currentTab.id}`)}
-                disabled={allCurrentItems.length === 0 && !currentTab.bookingId}
+                disabled={(allCurrentItems.length === 0 && !currentTab.bookingId) || currentTab.status === 'HELD'}
                 className="w-full mt-3 py-3 bg-primary-600 text-white rounded-xl font-semibold disabled:opacity-50"
               >
-                Checkout →
+                {currentTab.status === 'HELD' ? 'พักอยู่ — เรียกคืนก่อน' : 'Checkout →'}
               </button>
             </>
           )}
@@ -237,6 +284,8 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
   );
 }
 
+type QuickCustomer = { id: string; name: string | null; phone: string | null; email: string | null; points: number };
+
 function QuickSaleModal({ cart, setCart, onClose, onPaid }: {
   cart: { productId: string; name: string; qty: number; price: number }[];
   setCart: (c: { productId: string; name: string; qty: number; price: number }[]) => void;
@@ -248,9 +297,72 @@ function QuickSaleModal({ cart, setCart, onClose, onPaid }: {
   const [discount, setDiscount] = useState<string>('0');
   const [refNo, setRefNo] = useState<string>('');
   const [busy, setBusy] = useState(false);
+  const [pointsValueBaht, setPointsValueBaht] = useState(0);
+  const [pointsEarnPerBaht, setPointsEarnPerBaht] = useState(0);
+  const [vatMode, setVatMode] = useState<'NONE' | 'INCLUDED' | 'EXCLUDED'>('NONE');
+  const [vatRate, setVatRate] = useState(0);
+  const [serviceChargeRate, setServiceChargeRate] = useState(0);
+  const [custQ, setCustQ] = useState('');
+  const [custHits, setCustHits] = useState<QuickCustomer[]>([]);
+  const [cust, setCust] = useState<QuickCustomer | null>(null);
+  const [pointsToRedeem, setPointsToRedeem] = useState('');
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createName, setCreateName] = useState('');
+  const [createPhone, setCreatePhone] = useState('');
+  const [createBusy, setCreateBusy] = useState(false);
+  const [taxOpen, setTaxOpen] = useState(false);
+  const [txName, setTxName] = useState('');
+  const [txTaxId, setTxTaxId] = useState('');
+  const [txAddr, setTxAddr] = useState('');
+  const [txPhone, setTxPhone] = useState('');
+  const [couponInput, setCouponInput] = useState('');
+  const [coupon, setCoupon] = useState<{ code: string; discountType: string; discountValue: number } | null>(null);
+  const [couponMsg, setCouponMsg] = useState<string | null>(null);
+  const [couponBusy, setCouponBusy] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/sport/pos/settings').then((r) => r.ok ? r.json() : null).then((s) => {
+      if (s) {
+        setPointsValueBaht(s.pointsValueBaht || 0);
+        setPointsEarnPerBaht(s.pointsEarnPerBaht || 0);
+        setVatMode(s.vatMode || 'NONE');
+        setVatRate(s.vatRate || 0);
+        setServiceChargeRate(s.serviceChargeRate || 0);
+      }
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (cust) return;
+    const handle = setTimeout(async () => {
+      if (custQ.trim().length < 2) { setCustHits([]); return; }
+      const r = await fetch(`/api/sport/pos/customers?q=${encodeURIComponent(custQ.trim())}`);
+      if (r.ok) setCustHits(await r.json());
+    }, 250);
+    return () => clearTimeout(handle);
+  }, [custQ, cust]);
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
-  const total = Math.max(subtotal - (Number(discount) || 0), 0);
+  const manualDiscount = Number(discount) || 0;
+  const baseForCoupon = Math.max(subtotal - manualDiscount, 0);
+  const couponDiscount = !coupon ? 0
+    : coupon.discountType === 'PERCENT' ? Math.round((baseForCoupon * coupon.discountValue) / 100)
+    : Math.min(coupon.discountValue, baseForCoupon);
+  const baseTotal = Math.max(subtotal - manualDiscount - couponDiscount, 0);
+  const serviceCharge = serviceChargeRate > 0 ? +(baseTotal * serviceChargeRate / 100).toFixed(2) : 0;
+  const beforeVat = baseTotal + serviceCharge;
+  const vatRateNum = vatRate / 100;
+  const vatAmount = vatMode === 'NONE' ? 0
+    : vatMode === 'INCLUDED' ? +(beforeVat * vatRateNum / (1 + vatRateNum)).toFixed(2)
+    : +(beforeVat * vatRateNum).toFixed(2);
+  const grossTotal = vatMode === 'EXCLUDED' ? +(beforeVat + vatAmount).toFixed(2) : beforeVat;
+  const ptReqRaw = Math.max(0, Math.floor(Number(pointsToRedeem) || 0));
+  const ptMaxBalance = cust?.points || 0;
+  const ptMaxByTotal = pointsValueBaht > 0 ? Math.floor(grossTotal / pointsValueBaht) : 0;
+  const ptUsed = cust && pointsValueBaht > 0 ? Math.min(ptReqRaw, ptMaxBalance, ptMaxByTotal) : 0;
+  const redeemValue = +(ptUsed * pointsValueBaht).toFixed(2);
+  const total = +Math.max(grossTotal - redeemValue, 0).toFixed(2);
+  const earnPreview = cust && pointsEarnPerBaht > 0 ? Math.floor(total * pointsEarnPerBaht) : 0;
   const change = Math.max((Number(cashReceived) || 0) - total, 0);
 
   async function pay() {
@@ -267,6 +379,19 @@ function QuickSaleModal({ cart, setCart, onClose, onPaid }: {
           cashReceived: method === 'CASH' ? Number(cashReceived) || total : undefined,
           refNo: refNo || undefined,
         },
+        ...(cust || taxOpen
+          ? {
+              customer: {
+                ...(cust ? { id: cust.id } : {}),
+                name: (taxOpen && txName.trim()) || cust?.name || undefined,
+                phone: (taxOpen && txPhone.trim()) || cust?.phone || undefined,
+                ...(taxOpen && txTaxId.trim() ? { taxId: txTaxId.trim() } : {}),
+                ...(taxOpen && txAddr.trim() ? { address: txAddr.trim() } : {}),
+              },
+            }
+          : {}),
+        ...(cust && ptUsed > 0 ? { pointsToRedeem: ptUsed } : {}),
+        ...(coupon ? { couponCode: coupon.code } : {}),
       }),
     });
     setBusy(false);
@@ -298,12 +423,134 @@ function QuickSaleModal({ cart, setCart, onClose, onPaid }: {
           }
         </div>
         <div className="border-t dark:border-gray-800 pt-3 space-y-2 text-sm">
+          {!cust ? (
+            <div className="space-y-1">
+              <input
+                value={custQ}
+                onChange={(e) => setCustQ(e.target.value)}
+                placeholder="ค้นลูกค้า (ชื่อ/เบอร์/อีเมล) — option"
+                className="w-full px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-700 text-xs"
+              />
+              {custHits.length > 0 && (
+                <div className="max-h-32 overflow-auto border dark:border-gray-700 rounded">
+                  {custHits.map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => { setCust(c); setCustQ(''); setCustHits([]); }}
+                      className="w-full text-left px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-gray-800 border-b dark:border-gray-700 last:border-0"
+                    >
+                      {c.name || '(ไม่มีชื่อ)'} · {c.phone || c.email || '-'} <span className="text-primary-600">({c.points} pt)</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {!createOpen ? (
+                <button type="button" onClick={() => { setCreateOpen(true); setCreateName(custQ); setCreatePhone(''); }} className="text-[11px] text-primary-600 hover:underline">+ สมัครลูกค้าใหม่</button>
+              ) : (
+                <div className="border dark:border-gray-700 rounded p-2 space-y-1">
+                  <input value={createName} onChange={(e) => setCreateName(e.target.value)} placeholder="ชื่อ (option)" className="w-full px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-700 text-xs" />
+                  <input value={createPhone} onChange={(e) => setCreatePhone(e.target.value)} placeholder="เบอร์โทร *" className="w-full px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-700 text-xs" />
+                  <div className="flex gap-1">
+                    <button type="button" disabled={createBusy || !createPhone.trim()} onClick={async () => {
+                      setCreateBusy(true);
+                      const r = await fetch('/api/sport/pos/customers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: createName.trim(), phone: createPhone.trim() }) });
+                      setCreateBusy(false);
+                      if (!r.ok) { const e = await r.json().catch(() => ({})); alert(e.error || 'สมัครไม่สำเร็จ'); return; }
+                      const u = await r.json();
+                      setCust({ id: u.id, name: u.name, phone: u.phone, email: u.email, points: u.points || 0 });
+                      setCustQ(''); setCustHits([]); setCreateOpen(false); setCreateName(''); setCreatePhone('');
+                    }} className="flex-1 px-2 py-1 bg-primary-600 text-white rounded text-xs disabled:opacity-50">{createBusy ? '...' : 'สมัคร'}</button>
+                    <button type="button" disabled={createBusy} onClick={() => { setCreateOpen(false); setCreateName(''); setCreatePhone(''); }} className="px-2 py-1 border rounded text-xs disabled:opacity-50">ยกเลิก</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-xs bg-primary-50 dark:bg-primary-900/20 px-2 py-1 rounded">
+              <div className="flex-1">
+                <div className="font-medium">{cust.name || '(ไม่มีชื่อ)'}</div>
+                <div className="text-gray-500">{cust.phone || cust.email || '-'} · {cust.points} pt</div>
+              </div>
+              <button onClick={() => { setCust(null); setPointsToRedeem(''); }} className="text-red-500">✕</button>
+            </div>
+          )}
+          <div className="text-[11px]">
+            <button
+              type="button"
+              onClick={() => setTaxOpen((v) => !v)}
+              className="text-gray-500 hover:underline"
+            >
+              {taxOpen ? '▾' : '▸'} ใบกำกับเต็มรูปแบบ (taxId/ที่อยู่)
+            </button>
+            {taxOpen && (
+              <div className="mt-1 space-y-1">
+                <input value={txName} onChange={(e) => setTxName(e.target.value)} placeholder="ชื่อบริษัท/ผู้ซื้อ"
+                  className="w-full px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-700 text-xs" />
+                <input value={txTaxId} onChange={(e) => setTxTaxId(e.target.value)} placeholder="เลขผู้เสียภาษี"
+                  className="w-full px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-700 text-xs" />
+                <input value={txAddr} onChange={(e) => setTxAddr(e.target.value)} placeholder="ที่อยู่"
+                  className="w-full px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-700 text-xs" />
+                <input value={txPhone} onChange={(e) => setTxPhone(e.target.value)} placeholder="โทร"
+                  className="w-full px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-700 text-xs" />
+              </div>
+            )}
+          </div>
           <div className="flex justify-between"><span>Subtotal</span><span>{subtotal.toFixed(2)}</span></div>
           <div className="flex justify-between items-center">
             <span>ส่วนลด</span>
             <input type="number" value={discount} onChange={(e) => setDiscount(e.target.value)} className="w-24 px-2 py-1 border rounded text-right dark:bg-gray-800 dark:border-gray-700" />
           </div>
+          <div className="space-y-1">
+            <div className="flex items-center gap-1">
+              <span className="text-xs">Coupon</span>
+              <input
+                value={couponInput}
+                onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponMsg(null); }}
+                disabled={!!coupon || couponBusy}
+                placeholder="CODE"
+                className="flex-1 px-2 py-1 border rounded text-xs uppercase dark:bg-gray-800 dark:border-gray-700 disabled:opacity-50"
+              />
+              {!coupon ? (
+                <button
+                  type="button"
+                  disabled={couponBusy || !couponInput.trim()}
+                  onClick={async () => {
+                    setCouponBusy(true); setCouponMsg(null);
+                    const code = couponInput.trim().toUpperCase();
+                    const r = await fetch(`/api/sport/coupons/validate?code=${encodeURIComponent(code)}`);
+                    setCouponBusy(false);
+                    if (!r.ok) { const e = await r.json().catch(() => ({})); setCouponMsg(e.error || 'คูปองไม่ถูกต้อง'); return; }
+                    const c = await r.json();
+                    setCoupon({ code: c.code, discountType: c.discountType, discountValue: c.discountValue });
+                  }}
+                  className="px-2 py-1 text-xs bg-primary-600 text-white rounded disabled:opacity-50"
+                >{couponBusy ? '...' : 'ใช้'}</button>
+              ) : (
+                <button type="button" onClick={() => { setCoupon(null); setCouponInput(''); setCouponMsg(null); }} className="px-2 py-1 text-xs border rounded dark:border-gray-700">ลบ</button>
+              )}
+            </div>
+            {couponMsg && <div className="text-[11px] text-red-500">{couponMsg}</div>}
+            {coupon && couponDiscount > 0 && (
+              <div className="flex justify-between text-emerald-600 text-xs"><span>คูปอง {coupon.code} ({coupon.discountType === 'PERCENT' ? `${coupon.discountValue}%` : `฿${coupon.discountValue}`})</span><span>-{couponDiscount.toFixed(2)}</span></div>
+            )}
+          </div>
+          {serviceCharge > 0 && <div className="flex justify-between text-gray-500"><span>SC {serviceChargeRate}%</span><span>{serviceCharge.toFixed(2)}</span></div>}
+          {vatMode === 'EXCLUDED' && vatAmount > 0 && <div className="flex justify-between text-gray-500"><span>VAT {vatRate}%</span><span>{vatAmount.toFixed(2)}</span></div>}
+          {vatMode === 'INCLUDED' && vatAmount > 0 && <div className="flex justify-between text-gray-400 text-[10px]"><span>(VAT รวม {vatRate}%)</span><span>{vatAmount.toFixed(2)}</span></div>}
+          {cust && pointsValueBaht > 0 && (
+            <div className="flex justify-between items-center">
+              <span>ใช้แต้ม (max {Math.min(ptMaxBalance, ptMaxByTotal)})</span>
+              <input
+                type="number" min={0} max={Math.min(ptMaxBalance, ptMaxByTotal)}
+                value={pointsToRedeem}
+                onChange={(e) => setPointsToRedeem(e.target.value)}
+                className="w-24 px-2 py-1 border rounded text-right dark:bg-gray-800 dark:border-gray-700"
+              />
+            </div>
+          )}
+          {ptUsed > 0 && <div className="flex justify-between text-emerald-600"><span>หัก redeem</span><span>-{redeemValue.toFixed(2)}</span></div>}
           <div className="flex justify-between font-bold text-lg"><span>TOTAL</span><span>{total.toFixed(2)}</span></div>
+          {earnPreview > 0 && <div className="text-[10px] text-gray-400 text-right">จะได้ {earnPreview} pt</div>}
           <div className="flex gap-2 flex-wrap">
             {(['CASH', 'QR', 'TRANSFER', 'CARD'] as const).map((m) => (
               <button key={m} onClick={() => setMethod(m)} className={`px-3 py-1 rounded text-xs ${method === m ? 'bg-primary-600 text-white' : 'border dark:border-gray-700'}`}>{m}</button>

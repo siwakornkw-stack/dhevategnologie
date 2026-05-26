@@ -21,6 +21,10 @@ export async function GET(req: NextRequest) {
   const totalBooking = paid.reduce((s, i) => s + i.subtotalBooking, 0);
   const totalDiscount = paid.reduce((s, i) => s + i.discount, 0);
   const totalVat = paid.reduce((s, i) => s + i.vatAmount, 0);
+  const totalServiceCharge = paid.reduce((s, i) => s + (i.serviceCharge || 0), 0);
+  const totalCost = paid.reduce((s, i) => s + (i.totalCost || 0), 0);
+  const grossProfit = totalProduct - totalCost;
+  const marginPct = totalProduct > 0 ? (grossProfit / totalProduct) * 100 : 0;
   const voidCount = invoices.filter((i) => i.status === 'VOID').length;
 
   const byMethod: Record<string, number> = {};
@@ -57,6 +61,10 @@ export async function GET(req: NextRequest) {
       totalBooking,
       totalDiscount,
       totalVat,
+      totalServiceCharge,
+      totalCost,
+      grossProfit,
+      marginPct,
     },
     byMethod,
     topProducts,

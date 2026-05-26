@@ -33,6 +33,22 @@ export async function PATCH(req: NextRequest) {
     data.vatRate = n;
   }
   if (body.allowNegativeStock !== undefined) data.allowNegativeStock = !!body.allowNegativeStock;
+  if (body.requireShift !== undefined) data.requireShift = !!body.requireShift;
+  if (body.pointsEarnPerBaht !== undefined) {
+    const n = Number(body.pointsEarnPerBaht);
+    if (!Number.isFinite(n) || n < 0) return NextResponse.json({ error: 'pointsEarnPerBaht invalid' }, { status: 400 });
+    data.pointsEarnPerBaht = n;
+  }
+  if (body.pointsValueBaht !== undefined) {
+    const n = Number(body.pointsValueBaht);
+    if (!Number.isFinite(n) || n < 0) return NextResponse.json({ error: 'pointsValueBaht invalid' }, { status: 400 });
+    data.pointsValueBaht = n;
+  }
+  if (body.serviceChargeRate !== undefined) {
+    const n = Number(body.serviceChargeRate);
+    if (!Number.isFinite(n) || n < 0 || n > 100) return NextResponse.json({ error: 'serviceChargeRate invalid' }, { status: 400 });
+    data.serviceChargeRate = n;
+  }
   if (body.printerType !== undefined) {
     if (!['BROWSER', 'ESCPOS'].includes(body.printerType)) {
       return NextResponse.json({ error: 'printerType invalid' }, { status: 400 });

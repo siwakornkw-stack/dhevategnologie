@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react';
 type Invoice = {
   id: string; invoiceNo: string; type: string; status: string;
   total: number; subtotalProduct: number; subtotalBooking: number; vatAmount: number;
+  refundedAmount: number;
   paidAt: string; voidedAt: string | null;
 };
 
@@ -80,12 +81,20 @@ export default function InvoicesPage() {
                   <td className="px-4 py-2 text-right">{inv.subtotalProduct.toFixed(2)}</td>
                   <td className="px-4 py-2 text-right">{inv.subtotalBooking.toFixed(2)}</td>
                   <td className="px-4 py-2 text-right text-gray-500">{inv.vatAmount.toFixed(2)}</td>
-                  <td className="px-4 py-2 text-right font-semibold">{inv.total.toFixed(2)}</td>
+                  <td className="px-4 py-2 text-right font-semibold">
+                    {inv.total.toFixed(2)}
+                    {inv.refundedAmount > 0 && (
+                      <div className="text-[10px] text-amber-600">-{inv.refundedAmount.toFixed(2)} คืน</div>
+                    )}
+                  </td>
                   <td className="px-4 py-2">
                     <span className={`text-xs px-2 py-0.5 rounded ${inv.status === 'PAID' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{inv.status}</span>
                   </td>
-                  <td className="px-4 py-2 text-right space-x-2">
+                  <td className="px-4 py-2 text-right space-x-2 whitespace-nowrap">
                     <a href={`/sport/pos/invoices/${inv.id}/print`} target="_blank" className="text-primary-600 text-xs hover:underline">พิมพ์</a>
+                    {inv.status === 'PAID' && isAdmin && (inv.total - (inv.refundedAmount || 0) > 0.01) && (
+                      <Link href={`/sport/pos/invoices/${inv.id}/refund`} className="text-amber-600 text-xs hover:underline">refund</Link>
+                    )}
                     {inv.status === 'PAID' && isAdmin && (
                       <button onClick={() => voidInvoice(inv.id)} className="text-red-600 text-xs hover:underline">void</button>
                     )}

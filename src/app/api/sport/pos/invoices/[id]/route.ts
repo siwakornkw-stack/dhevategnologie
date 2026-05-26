@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requirePosRole } from '@/lib/pos';
+import { requirePosRole, reversePoints } from '@/lib/pos';
 
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const session = await requirePosRole(['ADMIN', 'CASHIER']);
@@ -27,6 +27,7 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
       const inv = await tx.posInvoice.findUnique({ where: { id } });
       if (!inv) throw new Error('NOT_FOUND');
       if (inv.status === 'VOID') throw new Error('ALREADY_VOID');
+      if (inv.refundedAmount > 0) throw new Error('HAS_REFUND');
 
       // Reverse stock from itemsSnapshot
       const snap = (inv.itemsSnapshot as Array<{ productId: string; qty: number; productName?: string }> | null) || [];
@@ -57,6 +58,18 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
         }).catch(() => {});
       }
 
+      if (inv.customerId && (inv.pointsEarned > 0 || inv.pointsRedeemed > 0)) {
+        await reversePoints(tx, inv.customerId, inv.pointsEarned, inv.pointsRedeemed, inv.invoiceNo);
+      }
+
+      const couponMatch = inv.note?.match(/\[COUPON:([A-Z0-9_-]+)\s+-[\d.]+\]/);
+      if (couponMatch) {
+        await tx.coupon.updateMany({
+          where: { code: couponMatch[1], usedCount: { gt: 0 } },
+          data: { usedCount: { decrement: 1 } },
+        });
+      }
+
       await tx.posInvoice.update({
         where: { id },
         data: { status: 'VOID', voidedAt: new Date(), voidedBy: session.user.id, voidReason: reason },
@@ -68,6 +81,9 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
     return NextResponse.json({ ok: true });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'void failed';
+    if (msg === 'NOT_FOUND') return NextResponse.json({ error: 'ไม่พบบิล' }, { status: 404 });
+    if (msg === 'ALREADY_VOID') return NextResponse.json({ error: 'บิล void ไปแล้ว' }, { status: 409 });
+    if (msg === 'HAS_REFUND') return NextResponse.json({ error: 'บิลนี้มี refund แล้ว ต้อง refund เต็มจำนวนแทนการ void' }, { status: 409 });
     return NextResponse.json({ error: msg }, { status: 409 });
   }
 }
