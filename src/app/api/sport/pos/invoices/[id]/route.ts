@@ -70,10 +70,11 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
         });
       }
 
-      await tx.posInvoice.update({
-        where: { id },
+      const upd = await tx.posInvoice.updateMany({
+        where: { id, status: { not: 'VOID' }, refundedAmount: 0 },
         data: { status: 'VOID', voidedAt: new Date(), voidedBy: session.user.id, voidReason: reason },
       });
+      if (upd.count !== 1) throw new Error('VOID_RACE');
     });
     prisma.auditLog
       .create({ data: { adminId: session.user.id, action: 'POS_INVOICE_VOID', targetId: id, details: { reason } } })
@@ -84,6 +85,7 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
     if (msg === 'NOT_FOUND') return NextResponse.json({ error: 'ไม่พบบิล' }, { status: 404 });
     if (msg === 'ALREADY_VOID') return NextResponse.json({ error: 'บิล void ไปแล้ว' }, { status: 409 });
     if (msg === 'HAS_REFUND') return NextResponse.json({ error: 'บิลนี้มี refund แล้ว ต้อง refund เต็มจำนวนแทนการ void' }, { status: 409 });
+    if (msg === 'VOID_RACE') return NextResponse.json({ error: 'บิลถูกแก้ไขโดยผู้ใช้อื่น' }, { status: 409 });
     return NextResponse.json({ error: msg }, { status: 409 });
   }
 }

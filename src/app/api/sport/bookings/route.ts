@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
       field: { select: { id: true, name: true, sportType: true, imageUrl: true, location: true } },
     },
     orderBy: { createdAt: 'desc' },
+    take: 200,
   });
 
   return NextResponse.json(bookings);

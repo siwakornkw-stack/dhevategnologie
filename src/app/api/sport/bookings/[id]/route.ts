@@ -7,6 +7,7 @@ import { notifyLineBookingStatus } from '@/lib/line-notify';
 import { stripe } from '@/lib/stripe';
 import { notifyWaitingList } from '@/lib/waiting-list-notify';
 import { sendPushToUser } from '@/lib/web-push';
+import { calculatePriceWithRules } from '@/lib/booking';
 
 const REFERRAL_BONUS = 50;
 const CANCEL_DEADLINE_HOURS = 2;
@@ -222,23 +223,27 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   // --- Atomic transaction: status change + all financial side-effects ---
-  const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
-
   const updated = await prisma.$transaction(async (tx) => {
     const b = await tx.booking.update({
       where: { id },
       data: { status },
       include: {
-        field: { select: { name: true, pricePerHour: true } },
+        field: {
+          select: {
+            name: true,
+            pricePerHour: true,
+            priceRules: { select: { startTime: true, endTime: true, pricePerHour: true } },
+          },
+        },
         user: { select: { name: true, email: true, notifEmail: true, notifInApp: true, referredById: true } },
       },
     });
 
     if (status === 'APPROVED') {
       const [s, e] = booking.timeSlot.split('-');
-      const hrs = Math.max(0, (toMin(e) - toMin(s)) / 60);
-      const paidAmount = b.field.pricePerHour * hrs - (booking.discountAmount ?? 0);
-      const pointsEarned = Math.floor(Math.max(0, paidAmount) / 10);
+      const base = calculatePriceWithRules(s, e, b.field.pricePerHour, b.field.priceRules || []);
+      const paidAmount = Math.max(0, base - (booking.discountAmount ?? 0));
+      const pointsEarned = Math.floor(paidAmount / 10);
 
       if (pointsEarned > 0) {
         await tx.user.update({ where: { id: b.userId }, data: { points: { increment: pointsEarned } } });

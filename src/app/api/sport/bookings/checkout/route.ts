@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { stripe } from '@/lib/stripe';
 import { rateLimit, BOOKING_RATE_LIMIT } from '@/lib/rate-limit';
-import { expandTimeSlot, calculateCouponDiscount, isCouponUsable, calculatePriceWithRules } from '@/lib/booking';
+import { hasSlotConflict, calculateCouponDiscount, isCouponUsable, calculatePriceWithRules } from '@/lib/booking';
 import { isCouponSystemEnabled } from '@/lib/settings';
 import { sendBookingCreatedEmail } from '@/lib/email';
 import { notifyLineNewBooking } from '@/lib/line-notify';
@@ -109,9 +109,7 @@ export async function POST(req: NextRequest) {
         where: { fieldId, date: bookingDate, status: { in: ['PENDING', 'APPROVED'] } },
         select: { timeSlot: true },
       });
-      const takenSlots = new Set(existingBookings.flatMap((b) => expandTimeSlot(b.timeSlot)));
-      const incomingSlots = slotsArray.flatMap((s) => expandTimeSlot(s));
-      if (incomingSlots.some((s) => takenSlots.has(s))) {
+      if (hasSlotConflict(existingBookings.map((b) => b.timeSlot), slotsArray)) {
         throw Object.assign(new Error('CONFLICT'), { isConflict: true });
       }
       if (appliedCoupon) {

@@ -21,7 +21,11 @@ export async function GET() {
     data: { adminId: session.user.id, action: 'USERS_EXPORTED', details: { count: users.length } },
   }).catch(() => {});
 
-  const escape = (val: unknown) => `"${String(val ?? '').replace(/"/g, '""')}"`;
+  const escape = (val: unknown) => {
+    const s = String(val ?? '');
+    const safe = /^[=+\-@\t\r]/.test(s) ? '\t' + s : s;
+    return `"${safe.replace(/"/g, '""')}"`;
+  };
 
   const header = ['ID', 'ชื่อ', 'อีเมล', 'เบอร์โทร', 'Role', 'ยืนยันอีเมล', 'การจอง', 'สมัครเมื่อ'].map(escape).join(',');
   const rows = users.map((u) => [

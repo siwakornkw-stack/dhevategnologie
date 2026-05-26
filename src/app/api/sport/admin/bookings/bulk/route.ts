@@ -5,6 +5,7 @@ import { stripe } from '@/lib/stripe';
 import { sendBookingApprovedEmail, sendBookingRejectedEmail } from '@/lib/email';
 import { sendPushToUser } from '@/lib/web-push';
 import { notifyLineBulkStatus } from '@/lib/line-notify';
+import { calculatePriceWithRules } from '@/lib/booking';
 
 const REFERRAL_BONUS = 50;
 
@@ -23,19 +24,25 @@ export async function POST(req: NextRequest) {
     where: { id: { in: ids }, status: 'PENDING' },
     include: {
       user: { select: { name: true, email: true, notifEmail: true, notifInApp: true, referredById: true } },
-      field: { select: { name: true, pricePerHour: true } },
+      field: {
+        select: {
+          name: true,
+          pricePerHour: true,
+          priceRules: { select: { startTime: true, endTime: true, pricePerHour: true } },
+        },
+      },
     },
   });
 
   if (bookings.length === 0) return NextResponse.json({ updated: 0 });
 
-  await prisma.booking.updateMany({
-    where: { id: { in: bookings.map((b) => b.id) } },
+  const upd = await prisma.booking.updateMany({
+    where: { id: { in: bookings.map((b) => b.id) }, status: 'PENDING' },
     data: { status },
   });
+  if (upd.count === 0) return NextResponse.json({ updated: 0 });
 
   if (status === 'APPROVED') {
-    const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + (m || 0); };
     prisma.auditLog.create({
       data: { adminId: session.user.id, action: 'BOOKINGS_APPROVED', details: { ids: bookings.map((b) => b.id) } },
     }).catch(() => {});
@@ -43,8 +50,8 @@ export async function POST(req: NextRequest) {
     await Promise.all(
       bookings.map(async (booking) => {
         const [s, e] = booking.timeSlot.split('-');
-        const hrs = Math.max(0, (toMin(e) - toMin(s)) / 60);
-        const paidAmount = Math.max(0, booking.field.pricePerHour * hrs - (booking.discountAmount ?? 0));
+        const base = calculatePriceWithRules(s, e, booking.field.pricePerHour, booking.field.priceRules || []);
+        const paidAmount = Math.max(0, base - (booking.discountAmount ?? 0));
         const pointsEarned = Math.floor(paidAmount / 10);
 
         // Points award + referral bonus must be atomic so partial failures roll back.

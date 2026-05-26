@@ -81,6 +81,41 @@ const toTime = (m: number): string =>
   `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 
 /**
+ * Parse a timeslot string "HH:MM-HH:MM" into minute pair [start, end].
+ * Returns null on invalid input. Overnight ranges (end <= start) wrap +1440.
+ */
+export function parseSlotRange(ts: string): [number, number] | null {
+  if (typeof ts !== 'string') return null;
+  const parts = ts.split('-');
+  if (parts.length !== 2) return null;
+  const s = toMinutes(parts[0]);
+  let e = toMinutes(parts[1]);
+  if (isNaN(s) || isNaN(e) || s === e) return null;
+  if (e < s) e += 1440;
+  return [s, e];
+}
+
+/** Half-open interval overlap: [aStart, aEnd) ∩ [bStart, bEnd) != empty */
+export function rangesOverlap(aStart: number, aEnd: number, bStart: number, bEnd: number): boolean {
+  return aStart < bEnd && aEnd > bStart;
+}
+
+/**
+ * Detect whether any incoming slot overlaps any existing booked slot.
+ * Uses minute-based half-open interval overlap, so partial 15-min slots
+ * correctly conflict with hourly slots.
+ */
+export function hasSlotConflict(existingTimeSlots: string[], incomingTimeSlots: string[]): boolean {
+  const existing = existingTimeSlots
+    .map(parseSlotRange)
+    .filter((r): r is [number, number] => r !== null);
+  const incoming = incomingTimeSlots
+    .map(parseSlotRange)
+    .filter((r): r is [number, number] => r !== null);
+  return incoming.some(([is, ie]) => existing.some(([es, ee]) => rangesOverlap(is, ie, es, ee)));
+}
+
+/**
  * Expand a range like "08:00-10:00" into hourly slots ["08:00-09:00","09:00-10:00"].
  * A single-hour range is returned as-is.
  */

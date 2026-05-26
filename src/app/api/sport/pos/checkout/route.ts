@@ -27,6 +27,10 @@ export async function POST(req: NextRequest) {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
+      if (customerId) {
+        const c = await tx.user.findUnique({ where: { id: customerId }, select: { id: true, role: true } });
+        if (!c || c.role !== 'USER') throw new Error('CUSTOMER_INVALID');
+      }
       const master = await tx.posTab.findUnique({
         where: { id: tabId },
         include: {
@@ -242,6 +246,7 @@ export async function POST(req: NextRequest) {
     if (msg === 'CASH_INSUFFICIENT') return NextResponse.json({ error: 'เงินสดไม่พอ' }, { status: 400 });
     if (msg === 'COUPON_DISABLED') return NextResponse.json({ error: 'ระบบคูปองปิดอยู่' }, { status: 403 });
     if (msg === 'COUPON_INVALID') return NextResponse.json({ error: 'คูปองไม่ถูกต้องหรือหมดอายุ' }, { status: 400 });
+    if (msg === 'CUSTOMER_INVALID') return NextResponse.json({ error: 'ลูกค้าไม่ถูกต้อง' }, { status: 400 });
     if (msg === 'TAB_NOT_OPEN') return NextResponse.json({ error: 'tab ปิดแล้ว' }, { status: 409 });
     if (msg === 'TAB_NOT_FOUND') return NextResponse.json({ error: 'ไม่พบ tab' }, { status: 404 });
     if (msg === 'TAB_RACE') return NextResponse.json({ error: 'tab ถูกปิดโดยอีกหน้าจอ' }, { status: 409 });

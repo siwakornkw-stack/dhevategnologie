@@ -31,6 +31,10 @@ export async function POST(req: NextRequest) {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
+      if (customerId) {
+        const c = await tx.user.findUnique({ where: { id: customerId }, select: { id: true, role: true } });
+        if (!c || c.role !== 'USER') throw new Error('CUSTOMER_INVALID');
+      }
       const ids = (items as Item[]).map((i) => i.productId);
       const products = await tx.posProduct.findMany({ where: { id: { in: ids } } });
       const map = new Map(products.map((p) => [p.id, p]));
@@ -47,7 +51,9 @@ export async function POST(req: NextRequest) {
         if (!Number.isInteger(q) || q <= 0) throw new Error('QTY_INVALID');
         const unitPrice = it.unitPrice !== undefined ? Number(it.unitPrice) : p.price;
         const lineDiscount = Number(it.discount) || 0;
-        const line = unitPrice * q - lineDiscount;
+        if (!Number.isFinite(unitPrice) || unitPrice < 0) throw new Error('PRICE_INVALID');
+        if (!Number.isFinite(lineDiscount) || lineDiscount < 0) throw new Error('DISCOUNT_INVALID');
+        const line = Math.max(0, unitPrice * q - lineDiscount);
         itemsTotal += line;
         totalCost += (p.cost || 0) * q;
         snapshot.push({ productId: p.id, productName: p.name, qty: q, unitPrice, discount: lineDiscount });
@@ -64,7 +70,7 @@ export async function POST(req: NextRequest) {
         pendingMovements.push({ productId: p.id, qty: q });
       }
 
-      const discNum = Number(discount) || 0;
+      const discNum = Math.max(0, Number(discount) || 0);
 
       let couponDiscount = 0;
       let appliedCouponCode: string | null = null;
@@ -197,6 +203,9 @@ export async function POST(req: NextRequest) {
     if (msg === 'PRODUCT_NOT_FOUND') return NextResponse.json({ error: 'ไม่พบสินค้า (อาจถูกลบ)' }, { status: 404 });
     if (msg === 'PRODUCT_INACTIVE') return NextResponse.json({ error: 'สินค้าปิดขาย' }, { status: 409 });
     if (msg === 'QTY_INVALID') return NextResponse.json({ error: 'qty ไม่ถูกต้อง' }, { status: 400 });
+    if (msg === 'PRICE_INVALID') return NextResponse.json({ error: 'ราคาไม่ถูกต้อง' }, { status: 400 });
+    if (msg === 'DISCOUNT_INVALID') return NextResponse.json({ error: 'ส่วนลดไม่ถูกต้อง' }, { status: 400 });
+    if (msg === 'CUSTOMER_INVALID') return NextResponse.json({ error: 'ลูกค้าไม่ถูกต้อง' }, { status: 400 });
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
