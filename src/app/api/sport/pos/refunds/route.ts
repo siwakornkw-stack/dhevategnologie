@@ -100,12 +100,14 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Atomic guard: refundedAmount cannot exceed total
+      // Atomic guard: refundedAmount + amount must not exceed total.
+      // No positive tolerance — tolerance on the upper bound would allow
+      // total refunds to exceed the invoice amount under repeated rounding.
       const guard = await tx.posInvoice.updateMany({
         where: {
           id: inv.id,
           status: 'PAID',
-          refundedAmount: { lte: inv.total - amount + 0.01 },
+          refundedAmount: { lte: inv.total - amount },
         },
         data: { refundedAmount: { increment: amount } },
       });

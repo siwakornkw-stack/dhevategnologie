@@ -35,8 +35,16 @@ export async function GET(req: NextRequest) {
   if (adminId) where.adminId = adminId;
   if (targetId) where.targetId = targetId;
   const range: Record<string, Date> = {};
-  if (from) range.gte = new Date(from);
-  if (to) range.lte = new Date(to);
+  if (from) {
+    const d = new Date(from);
+    if (isNaN(d.getTime())) return NextResponse.json({ error: 'Invalid from date' }, { status: 400 });
+    range.gte = d;
+  }
+  if (to) {
+    const d = new Date(to);
+    if (isNaN(d.getTime())) return NextResponse.json({ error: 'Invalid to date' }, { status: 400 });
+    range.lte = d;
+  }
   if (Object.keys(range).length) where.createdAt = range;
 
   const logs = await prisma.auditLog.findMany({

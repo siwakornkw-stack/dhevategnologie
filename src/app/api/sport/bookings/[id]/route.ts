@@ -203,12 +203,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   // Cancellation deadline: users cannot cancel APPROVED bookings within CANCEL_DEADLINE_HOURS of start
-  // PENDING bookings (payment not completed) are always cancellable
+  // PENDING bookings (payment not completed) are always cancellable.
+  // booking.date stores UTC midnight of the Bangkok day; timeSlot is Bangkok local time.
+  // Compute booking start in UTC as that day's UTC midnight + (hours - 7) to match Asia/Bangkok (UTC+7).
   if (!isAdmin && status === 'CANCELLED' && booking.status === 'APPROVED') {
     const [startStr] = booking.timeSlot.split('-');
     const [h, m] = startStr.split(':').map(Number);
+    const BANGKOK_UTC_OFFSET_HOURS = 7;
     const bookingStart = new Date(booking.date);
-    bookingStart.setHours(h, m, 0, 0);
+    bookingStart.setUTCHours(h - BANGKOK_UTC_OFFSET_HOURS, m, 0, 0);
     const hoursUntil = (bookingStart.getTime() - Date.now()) / 3_600_000;
     if (hoursUntil < CANCEL_DEADLINE_HOURS) {
       return NextResponse.json(
@@ -245,25 +248,30 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         await tx.booking.update({ where: { id }, data: { pointsEarned } });
       }
 
-      // Referral bonus on user's first approved booking
-      const prevApproved = await tx.booking.count({
-        where: { userId: b.userId, status: 'APPROVED', id: { not: id } },
-      });
-      if (prevApproved === 0 && b.user.referredById) {
+      // Referral bonus on user's first approved booking.
+      // Atomic claim: updateMany sets referralBonusGrantedAt only if still null,
+      // so concurrent approvals can only grant the bonus once.
+      if (b.user.referredById) {
         const referrerId = b.user.referredById;
-        await tx.user.update({ where: { id: referrerId }, data: { points: { increment: REFERRAL_BONUS } } });
-        await tx.pointTransaction.create({
-          data: { userId: referrerId, points: REFERRAL_BONUS, type: 'EARN', note: 'โบนัสแนะนำเพื่อน' },
+        const claimed = await tx.user.updateMany({
+          where: { id: b.userId, referralBonusGrantedAt: null },
+          data: { referralBonusGrantedAt: new Date() },
         });
-        await tx.notification.create({
-          data: {
-            userId: referrerId,
-            type: 'REFERRAL_BONUS',
-            title: 'ได้รับโบนัสแนะนำเพื่อน',
-            message: `คุณได้รับ ${REFERRAL_BONUS} แต้มจากการที่เพื่อนจองสนามครั้งแรก`,
-            link: '/sport/profile',
-          },
-        });
+        if (claimed.count === 1) {
+          await tx.user.update({ where: { id: referrerId }, data: { points: { increment: REFERRAL_BONUS } } });
+          await tx.pointTransaction.create({
+            data: { userId: referrerId, points: REFERRAL_BONUS, type: 'EARN', note: 'โบนัสแนะนำเพื่อน' },
+          });
+          await tx.notification.create({
+            data: {
+              userId: referrerId,
+              type: 'REFERRAL_BONUS',
+              title: 'ได้รับโบนัสแนะนำเพื่อน',
+              message: `คุณได้รับ ${REFERRAL_BONUS} แต้มจากการที่เพื่อนจองสนามครั้งแรก`,
+              link: '/sport/profile',
+            },
+          });
+        }
       }
     } else if (status === 'REJECTED' || status === 'CANCELLED') {
       // Restore redeemed points

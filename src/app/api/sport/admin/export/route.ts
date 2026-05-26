@@ -40,15 +40,22 @@ export async function GET(req: NextRequest) {
     where.field = { sportType: sportType as Prisma.EnumSportTypeFilter };
   }
 
+  const MAX_ROWS = 5000;
   const bookings = await prisma.booking.findMany({
     where,
     orderBy: { date: 'desc' },
-    take: 10000,
+    take: MAX_ROWS + 1,
     include: {
       user: { select: { name: true, email: true, phone: true } },
       field: { select: { name: true, sportType: true, pricePerHour: true } },
     },
   });
+  if (bookings.length > MAX_ROWS) {
+    return NextResponse.json(
+      { error: `รายการมากเกินไป (>${MAX_ROWS}) — กรุณาแคบช่วงวันที่หรือใส่ filter เพิ่ม` },
+      { status: 413 },
+    );
+  }
 
   prisma.auditLog.create({
     data: { adminId: session.user.id, action: 'BOOKINGS_EXPORTED', details: { count: bookings.length, filters: { from, to, status, sportType } } },
