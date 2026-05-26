@@ -88,9 +88,14 @@ export function SportHeader() {
                       {t('myBookings')}
                     </Link>
                     {isAdmin && (
-                      <Link href="/sport/admin" onClick={() => setMenuOpen(false)} className="block px-4 py-2 text-sm text-primary-600 dark:text-primary-400 font-medium hover:bg-gray-50 dark:hover:bg-gray-800">
-                        {t('adminDashboard')}
-                      </Link>
+                      <>
+                        <Link href="/sport/admin" onClick={() => setMenuOpen(false)} className="block px-4 py-2 text-sm text-primary-600 dark:text-primary-400 font-medium hover:bg-gray-50 dark:hover:bg-gray-800">
+                          {t('adminDashboard')}
+                        </Link>
+                        <Link href="/sport/admin/help" onClick={() => setMenuOpen(false)} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">
+                          📖 {t('help')}
+                        </Link>
+                      </>
                     )}
                     <button
                       onClick={() => { signOut({ callbackUrl: '/sport' }); setMenuOpen(false); }}
@@ -145,9 +150,14 @@ export function SportHeader() {
             {t('mobile.profile')}
           </Link>
           {isAdmin && (
-            <Link href="/sport/admin" className="flex-1 text-center py-2 text-xs text-primary-600 dark:text-primary-400 font-medium">
-              {t('mobile.admin')}
-            </Link>
+            <>
+              <Link href="/sport/admin" className="flex-1 text-center py-2 text-xs text-primary-600 dark:text-primary-400 font-medium">
+                {t('mobile.admin')}
+              </Link>
+              <Link href="/sport/admin/help" className="flex-1 text-center py-2 text-xs text-gray-600 dark:text-gray-400">
+                {t('mobile.help')}
+              </Link>
+            </>
           )}
         </div>
       )}

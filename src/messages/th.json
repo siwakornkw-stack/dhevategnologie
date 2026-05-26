@@ -29,6 +29,7 @@
     "chat": "แชท",
     "profile": "โปรไฟล์",
     "adminDashboard": "Admin Dashboard",
+    "help": "วิธีใช้งาน",
     "emailUnverified": "อีเมลยังไม่ได้รับการยืนยัน — กรุณาตรวจสอบกล่องจดหมายของคุณ",
     "resendVerification": "ส่งอีกครั้ง",
     "mobile": {
@@ -36,7 +37,8 @@
       "bookings": "📋 การจอง",
       "chat": "💬 แชท",
       "profile": "👤 โปรไฟล์",
-      "admin": "⚙️ Admin"
+      "admin": "⚙️ Admin",
+      "help": "📖 วิธีใช้"
     }
   },
   "language": {

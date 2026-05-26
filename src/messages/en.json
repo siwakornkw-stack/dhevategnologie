@@ -29,6 +29,7 @@
     "chat": "Chat",
     "profile": "Profile",
     "adminDashboard": "Admin Dashboard",
+    "help": "User Guide",
     "emailUnverified": "Email not yet verified — please check your inbox",
     "resendVerification": "Resend",
     "mobile": {
@@ -36,7 +37,8 @@
       "bookings": "📋 Bookings",
       "chat": "💬 Chat",
       "profile": "👤 Profile",
-      "admin": "⚙️ Admin"
+      "admin": "⚙️ Admin",
+      "help": "📖 Guide"
     }
   },
   "language": {
