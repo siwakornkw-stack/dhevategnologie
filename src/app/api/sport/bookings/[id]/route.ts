@@ -304,6 +304,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           data: { usedCount: { decrement: 1 } },
         });
       }
+      // Detach any open PosTab still linked to this booking so team label / link don't dangle.
+      // Skip CLOSED/PAID/VOID tabs to preserve historical association on finalized bills.
+      await tx.posTab.updateMany({
+        where: { bookingId: id, status: { in: ['OPEN', 'HELD'] } },
+        data: { bookingId: null, teamLabel: null },
+      });
     }
 
     return b;
