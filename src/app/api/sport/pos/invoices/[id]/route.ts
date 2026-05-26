@@ -57,13 +57,14 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
         });
       }
 
-      // Reopen booking if any
+      // Reopen booking only if still APPROVED + paidAt matches (was paid via this invoice).
+      // Skip if rebooked/cancelled to avoid silently regressing other state.
       const bookingIds = (inv.bookingIds as string[] | null) || [];
       for (const bid of bookingIds) {
-        await tx.booking.update({
-          where: { id: bid },
+        await tx.booking.updateMany({
+          where: { id: bid, status: 'APPROVED', paidAt: { not: null } },
           data: { paidAt: null, status: 'PENDING' },
-        }).catch(() => {});
+        });
       }
 
       if (inv.customerId && (inv.pointsEarned > 0 || inv.pointsRedeemed > 0)) {

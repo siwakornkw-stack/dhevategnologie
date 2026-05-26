@@ -1,10 +1,13 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit, AI_RATE_LIMIT } from '@/lib/rate-limit';
+import { auth } from '@/lib/auth';
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ chatId: string }> }) {
-  const ip = req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? 'unknown';
-  const rl = await rateLimit(`ai-chat-read:${ip}`, AI_RATE_LIMIT);
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ chatId: string }> }) {
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const rl = await rateLimit(`ai-chat-read:${session.user.id}`, AI_RATE_LIMIT);
   if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
 
   const { chatId } = await params;
@@ -12,9 +15,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ chat
     return NextResponse.json({ messages: [] });
   }
 
-  const session = await prisma.aiChatSession.findUnique({
+  const chat = await prisma.aiChatSession.findUnique({
     where: { id: chatId },
-    include: {
+    select: {
+      userId: true,
       messages: {
         orderBy: { createdAt: 'asc' },
         select: { id: true, role: true, content: true },
@@ -23,9 +27,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ chat
     },
   });
 
-  if (!session) {
-    return NextResponse.json({ messages: [] });
+  if (!chat) return NextResponse.json({ messages: [] });
+  if (chat.userId && chat.userId !== session.user.id) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  return NextResponse.json({ messages: session.messages });
+  return NextResponse.json({ messages: chat.messages });
 }

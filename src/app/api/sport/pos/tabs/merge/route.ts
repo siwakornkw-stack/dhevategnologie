@@ -14,17 +14,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'masterId ห้ามอยู่ใน childIds' }, { status: 400 });
   }
 
+  const isAdmin = session.user.role === 'ADMIN';
+
   try {
     await prisma.$transaction(async (tx) => {
-      const master = await tx.posTab.findUnique({ where: { id: masterId }, select: { status: true } });
+      const master = await tx.posTab.findUnique({
+        where: { id: masterId },
+        select: { status: true, openedBy: true },
+      });
       if (!master) throw new Error('MASTER_NOT_FOUND');
       if (master.status !== 'OPEN') throw new Error('MASTER_NOT_OPEN');
+      if (!isAdmin && master.openedBy !== session.user.id) throw new Error('MASTER_FORBIDDEN');
 
       const children = await tx.posTab.findMany({ where: { id: { in: childIds } } });
       if (children.length !== childIds.length) throw new Error('CHILD_NOT_FOUND');
       for (const c of children) {
         if (c.status !== 'OPEN') throw new Error('CHILD_NOT_OPEN');
         if (c.parentTabId) throw new Error('ALREADY_MERGED');
+        if (!isAdmin && c.openedBy !== session.user.id) throw new Error('CHILD_FORBIDDEN');
       }
       await tx.posTab.updateMany({
         where: { id: { in: childIds } },
@@ -34,6 +41,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'merge failed';
+    if (msg === 'MASTER_FORBIDDEN' || msg === 'CHILD_FORBIDDEN') {
+      return NextResponse.json({ error: 'ไม่ใช่ tab ของคุณ' }, { status: 403 });
+    }
     return NextResponse.json({ error: msg }, { status: 409 });
   }
 }

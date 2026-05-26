@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { requirePosRole, audit } from '@/lib/pos';
 import { rateLimit } from '@/lib/rate-limit';
@@ -46,32 +47,45 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'email format ไม่ถูกต้อง' }, { status: 400 });
   }
 
-  if (phone) {
-    const existing = await prisma.user.findFirst({
-      where: { phone, role: 'USER' },
-      select: { id: true, name: true, email: true, phone: true, points: true },
-    });
-    if (existing) return NextResponse.json({ ...existing, _existing: true });
-  }
-  if (emailIn) {
-    const existing = await prisma.user.findFirst({
-      where: { email: emailIn, role: 'USER' },
-      select: { id: true, name: true, email: true, phone: true, points: true },
-    });
-    if (existing) return NextResponse.json({ ...existing, _existing: true });
-  }
-
   const email = emailIn || `walkin+${phone}-${Date.now()}@88arena.local`;
   try {
-    const created = await prisma.user.create({
-      data: { name: name || null, phone: phone || null, email, role: 'USER' },
-      select: { id: true, name: true, email: true, phone: true, points: true },
-    });
-    audit(session.user.id, 'POS_CUSTOMER_CREATE', created.id, { name, phone, viaEmail: !!emailIn });
-    return NextResponse.json(created, { status: 201 });
+    const result = await prisma.$transaction(
+      async (tx) => {
+        if (phone) {
+          const dupPhone = await tx.user.findFirst({
+            where: { phone, role: 'USER' },
+            select: { id: true, name: true, email: true, phone: true, points: true },
+          });
+          if (dupPhone) return { ...dupPhone, _existing: true as const };
+        }
+        if (emailIn) {
+          const dupEmail = await tx.user.findFirst({
+            where: { email: emailIn, role: 'USER' },
+            select: { id: true, name: true, email: true, phone: true, points: true },
+          });
+          if (dupEmail) return { ...dupEmail, _existing: true as const };
+        }
+        const created = await tx.user.create({
+          data: { name: name || null, phone: phone || null, email, role: 'USER' },
+          select: { id: true, name: true, email: true, phone: true, points: true },
+        });
+        return { ...created, _created: true as const };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+
+    if ('_created' in result) {
+      audit(session.user.id, 'POS_CUSTOMER_CREATE', result.id, { name, phone, viaEmail: !!emailIn });
+      const { _created: _c, ...payload } = result;
+      void _c;
+      return NextResponse.json(payload, { status: 201 });
+    }
+    return NextResponse.json(result);
   } catch (e: unknown) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+      return NextResponse.json({ error: 'มีลูกค้านี้แล้ว' }, { status: 409 });
+    }
     const msg = e instanceof Error ? e.message : 'create failed';
-    if (msg.includes('Unique')) return NextResponse.json({ error: 'มีลูกค้านี้แล้ว' }, { status: 409 });
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

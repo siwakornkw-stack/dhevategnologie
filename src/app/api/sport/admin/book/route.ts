@@ -28,10 +28,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { fieldId, date, timeSlot, note } = await req.json();
+  const { fieldId, date, timeSlot, note, customerId } = await req.json();
 
   if (!fieldId || !date || !timeSlot) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+  }
+
+  let bookingUserId = session.user.id;
+  if (customerId && typeof customerId === 'string') {
+    const customer = await prisma.user.findUnique({
+      where: { id: customerId },
+      select: { id: true, role: true },
+    });
+    if (!customer || customer.role !== 'USER') {
+      return NextResponse.json({ error: 'ลูกค้าไม่ถูกต้อง' }, { status: 400 });
+    }
+    bookingUserId = customer.id;
   }
 
   const incoming = parseSlot(timeSlot);
@@ -96,7 +108,7 @@ export async function POST(req: NextRequest) {
 
         return tx.booking.create({
           data: {
-            userId: session.user.id,
+            userId: bookingUserId,
             fieldId,
             date: bookingDate,
             timeSlot,

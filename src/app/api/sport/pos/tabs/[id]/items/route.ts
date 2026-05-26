@@ -12,6 +12,22 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   if (!productId || !Number.isInteger(qtyNum) || qtyNum <= 0) {
     return NextResponse.json({ error: 'productId + qty required' }, { status: 400 });
   }
+  const isAdmin = session.user.role === 'ADMIN';
+  const discountNum = Math.max(0, Number(discount) || 0);
+  if (!Number.isFinite(discountNum)) {
+    return NextResponse.json({ error: 'discount ไม่ถูกต้อง' }, { status: 400 });
+  }
+  let unitPriceOverride: number | null = null;
+  if (unitPrice !== undefined) {
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'unitPrice override ต้องเป็น ADMIN' }, { status: 403 });
+    }
+    const n = Number(unitPrice);
+    if (!Number.isFinite(n) || n < 0) {
+      return NextResponse.json({ error: 'unitPrice ไม่ถูกต้อง' }, { status: 400 });
+    }
+    unitPriceOverride = n;
+  }
 
   const settings = await getPosSettings();
   const allowNegative = settings.allowNegativeStock;
@@ -45,14 +61,17 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
           userId: session.user.id,
         },
       });
+      const finalUnitPrice = unitPriceOverride !== null ? unitPriceOverride : product.price;
+      const maxDiscount = finalUnitPrice * qtyNum;
+      if (discountNum > maxDiscount) throw new Error('DISCOUNT_TOO_LARGE');
       const item = await tx.posOrderItem.create({
         data: {
           tabId,
           productId,
           productName: product.name,
           qty: qtyNum,
-          unitPrice: unitPrice !== undefined ? Number(unitPrice) : product.price,
-          discount: Number(discount) || 0,
+          unitPrice: finalUnitPrice,
+          discount: discountNum,
           note: note?.toString().slice(0, 200) || null,
           createdBy: session.user.id,
         },
@@ -62,6 +81,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     return NextResponse.json(result, { status: 201 });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'add failed';
+    if (msg === 'DISCOUNT_TOO_LARGE') return NextResponse.json({ error: 'ส่วนลดเกินราคารวม' }, { status: 400 });
     if (msg === 'STOCK_INSUFFICIENT') return NextResponse.json({ error: 'สต็อกไม่พอ' }, { status: 409 });
     if (msg === 'TAB_NOT_OPEN') return NextResponse.json({ error: 'tab ปิดแล้ว' }, { status: 409 });
     if (msg === 'PRODUCT_INACTIVE') return NextResponse.json({ error: 'สินค้าปิดขาย' }, { status: 409 });

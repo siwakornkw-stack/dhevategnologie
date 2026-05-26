@@ -3,14 +3,17 @@ import { PROMPT } from '@/lib/ai/prompts';
 import { prisma } from '@/lib/prisma';
 import { rateLimit, AI_RATE_LIMIT } from '@/lib/rate-limit';
 import { errorHandler, getMostRecentUserMessage } from '@/lib/utils';
+import { auth } from '@/lib/auth';
 import { createIdGenerator, streamText } from 'ai';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const maxDuration = 50;
 
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? 'unknown';
-  const rl = await rateLimit(`ai-chat:${ip}`, AI_RATE_LIMIT);
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const rl = await rateLimit(`ai-chat:${session.user.id}`, AI_RATE_LIMIT);
   if (!rl.success) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }
@@ -31,11 +34,18 @@ export async function POST(req: NextRequest) {
     }
 
     if (chatId && typeof chatId === 'string') {
+      const existing = await prisma.aiChatSession.findUnique({
+        where: { id: chatId },
+        select: { userId: true },
+      });
+      if (existing && existing.userId && existing.userId !== session.user.id) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
       const content = typeof userMessage.content === 'string' ? userMessage.content : '';
       prisma.aiChatSession.upsert({
         where: { id: chatId },
         update: { updatedAt: new Date() },
-        create: { id: chatId },
+        create: { id: chatId, userId: session.user.id },
       }).then(() =>
         prisma.aiChatMessage.create({ data: { sessionId: chatId, role: 'user', content } })
       ).catch(() => {});

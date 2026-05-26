@@ -351,10 +351,12 @@ model WaitingList {
 
 model AiChatSession {
   id        String          @id
+  userId    String?
   messages  AiChatMessage[]
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
 
+  @@index([userId])
   @@index([createdAt])
 }
 
