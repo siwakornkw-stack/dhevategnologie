@@ -16,14 +16,17 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
   if (body.stockUnit !== undefined) data.stockUnit = String(body.stockUnit).trim() || 'ชิ้น';
   if (body.imageUrl !== undefined) data.imageUrl = body.imageUrl?.trim() || null;
   if (body.isActive !== undefined) data.isActive = !!body.isActive;
+  // Cap price/cost at 1,000,000 to avoid downstream multiplication overflow
+  // when combined with qty in subtotal calculation.
+  const MAX_UNIT = 1_000_000;
   if (body.price !== undefined) {
     const n = Number(body.price);
-    if (!Number.isFinite(n) || n < 0) return NextResponse.json({ error: 'price invalid' }, { status: 400 });
+    if (!Number.isFinite(n) || n < 0 || n > MAX_UNIT) return NextResponse.json({ error: 'price invalid' }, { status: 400 });
     data.price = n;
   }
   if (body.cost !== undefined) {
     const n = Number(body.cost);
-    if (!Number.isFinite(n) || n < 0) return NextResponse.json({ error: 'cost invalid' }, { status: 400 });
+    if (!Number.isFinite(n) || n < 0 || n > MAX_UNIT) return NextResponse.json({ error: 'cost invalid' }, { status: 400 });
     data.cost = n;
   }
   if (body.lowStockAlert !== undefined) {

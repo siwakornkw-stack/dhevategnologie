@@ -10,6 +10,11 @@ export async function POST(req: NextRequest) {
   if (!endpoint || !keys?.p256dh || !keys?.auth) {
     return NextResponse.json({ error: 'Invalid subscription' }, { status: 400 });
   }
+  // Restrict endpoint to known push services to block SSRF (sendNotification
+  // POSTs to this URL from the server).
+  if (typeof endpoint !== 'string' || !/^https:\/\/(fcm\.googleapis\.com|updates\.push\.services\.mozilla\.com|.+\.notify\.windows\.com|.+\.push\.apple\.com|web\.push\.apple\.com)\//.test(endpoint)) {
+    return NextResponse.json({ error: 'Invalid push endpoint' }, { status: 400 });
+  }
 
   const existing = await prisma.pushSubscription.findUnique({ where: { endpoint } });
   if (existing && existing.userId !== session.user.id) {

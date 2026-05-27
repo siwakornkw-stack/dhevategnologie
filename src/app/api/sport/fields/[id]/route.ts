@@ -66,6 +66,22 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         (r: { startTime?: string; endTime?: string; pricePerHour?: unknown }) =>
           r.startTime && r.endTime && r.startTime !== r.endTime && Number(r.pricePerHour) > 0,
       );
+      // Reject overlapping rules — ambiguous pricing otherwise. Compare as
+      // minute offsets so "23:00-01:00" overnight wraps consistently.
+      const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+      const ranges = validRules.map((r: { startTime: string; endTime: string }) => {
+        let s = toMin(r.startTime);
+        let e = toMin(r.endTime);
+        if (e <= s) e += 1440;
+        return [s, e] as const;
+      });
+      for (let i = 0; i < ranges.length; i++) {
+        for (let j = i + 1; j < ranges.length; j++) {
+          const [s1, e1] = ranges[i];
+          const [s2, e2] = ranges[j];
+          if (s1 < e2 && s2 < e1) throw new Error('PRICE_RULE_OVERLAP');
+        }
+      }
       if (validRules.length > 0) {
         await tx.fieldPriceRule.createMany({
           data: validRules.map((r: { startTime: string; endTime: string; pricePerHour: unknown; label?: string }) => ({
@@ -79,7 +95,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       }
     }
     return updated;
+  }).catch((err: unknown) => {
+    if (err instanceof Error && err.message === 'PRICE_RULE_OVERLAP') return null;
+    throw err;
   });
+  if (field === null) {
+    return NextResponse.json({ error: 'ช่วงเวลาราคาซ้อนทับกัน' }, { status: 400 });
+  }
 
   prisma.auditLog.create({
     data: { adminId: session.user.id, action: 'FIELD_UPDATED', targetId: id, details: { name: field.name } },

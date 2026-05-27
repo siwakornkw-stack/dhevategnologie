@@ -9,12 +9,12 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
 
   const { productId, qty, note, unitPrice, discount } = await req.json();
   const qtyNum = Number(qty);
-  if (!productId || !Number.isInteger(qtyNum) || qtyNum <= 0) {
-    return NextResponse.json({ error: 'productId + qty required' }, { status: 400 });
+  if (!productId || !Number.isInteger(qtyNum) || qtyNum <= 0 || qtyNum > 10_000) {
+    return NextResponse.json({ error: 'productId + qty required (qty 1-10000)' }, { status: 400 });
   }
   const isAdmin = session.user.role === 'ADMIN';
   const discountNum = Math.max(0, Number(discount) || 0);
-  if (!Number.isFinite(discountNum)) {
+  if (!Number.isFinite(discountNum) || discountNum > 1_000_000) {
     return NextResponse.json({ error: 'discount ไม่ถูกต้อง' }, { status: 400 });
   }
   let unitPriceOverride: number | null = null;
@@ -23,7 +23,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       return NextResponse.json({ error: 'unitPrice override ต้องเป็น ADMIN' }, { status: 403 });
     }
     const n = Number(unitPrice);
-    if (!Number.isFinite(n) || n < 0) {
+    // Cap override to keep subtotal = unitPrice * qty within safe integer range.
+    if (!Number.isFinite(n) || n < 0 || n > 1_000_000) {
       return NextResponse.json({ error: 'unitPrice ไม่ถูกต้อง' }, { status: 400 });
     }
     unitPriceOverride = n;
