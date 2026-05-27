@@ -19,14 +19,15 @@ export async function GET(req: NextRequest) {
 
   const coupon = await prisma.coupon.findUnique({ where: { code } });
 
-  if (!coupon || !coupon.isActive) {
-    return NextResponse.json({ error: 'รหัสคูปองไม่ถูกต้องหรือหมดอายุแล้ว' }, { status: 404 });
-  }
-  if (coupon.expiresAt && coupon.expiresAt < new Date()) {
-    return NextResponse.json({ error: 'รหัสคูปองหมดอายุแล้ว' }, { status: 400 });
-  }
-  if (coupon.maxUses !== null && coupon.usedCount >= coupon.maxUses) {
-    return NextResponse.json({ error: 'คูปองนี้ถูกใช้ครบแล้ว' }, { status: 400 });
+  // Unified 400 response for any invalid coupon condition to avoid
+  // existence/expiry enumeration via differing status codes.
+  if (
+    !coupon ||
+    !coupon.isActive ||
+    (coupon.expiresAt && coupon.expiresAt < new Date()) ||
+    (coupon.maxUses !== null && coupon.usedCount >= coupon.maxUses)
+  ) {
+    return NextResponse.json({ error: 'รหัสคูปองไม่ถูกต้องหรือหมดอายุแล้ว' }, { status: 400 });
   }
 
   return NextResponse.json({
