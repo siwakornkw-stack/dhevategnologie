@@ -13,12 +13,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Find APPROVED bookings for tomorrow (UTC date)
-  const tomorrow = new Date();
-  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-  tomorrow.setUTCHours(0, 0, 0, 0);
-  const dayAfter = new Date(tomorrow);
-  dayAfter.setUTCDate(dayAfter.getUTCDate() + 1);
+  // Find APPROVED bookings for tomorrow (Bangkok-day, since booking.date is stored
+  // as Bangkok midnight UTC). Using UTC-day would skip/double-count near midnight ICT.
+  const BANGKOK_OFFSET_MS = 7 * 60 * 60 * 1000;
+  const bangkokNow = Date.now() + BANGKOK_OFFSET_MS;
+  const bangkokTodayMidnightUtc = Math.floor(bangkokNow / 86_400_000) * 86_400_000 - BANGKOK_OFFSET_MS;
+  const tomorrow = new Date(bangkokTodayMidnightUtc + 86_400_000);
+  const dayAfter = new Date(bangkokTodayMidnightUtc + 2 * 86_400_000);
 
   const bookings = await prisma.booking.findMany({
     where: {

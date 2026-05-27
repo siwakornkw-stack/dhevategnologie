@@ -9,7 +9,10 @@ import { useTranslations } from 'next-intl';
 export function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') ?? '/sport';
+  // Whitelist callbackUrl to internal /sport paths only. Reject absolute URLs (//evil.com,
+  // http://evil.com) and protocol-relative URLs to prevent open redirect.
+  const rawCallback = searchParams.get('callbackUrl');
+  const callbackUrl = rawCallback && /^\/sport(\/|$|\?)/.test(rawCallback) ? rawCallback : '/sport';
   const t = useTranslations('auth');
 
   const [email, setEmail] = useState('');

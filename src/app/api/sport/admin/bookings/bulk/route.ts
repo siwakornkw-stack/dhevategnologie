@@ -58,11 +58,18 @@ export async function POST(req: NextRequest) {
         try {
           await prisma.$transaction(async (tx) => {
             if (pointsEarned > 0) {
-              await tx.user.update({ where: { id: booking.userId }, data: { points: { increment: pointsEarned } } });
-              await tx.pointTransaction.create({
-                data: { userId: booking.userId, points: pointsEarned, type: 'EARN', bookingId: booking.id, note: `จากการจอง ${booking.field.name}` },
+              // Atomic claim: only award if pointsEarned not already set on this booking.
+              // Protects against double-award when two admins overlap on the same booking IDs.
+              const claimed = await tx.booking.updateMany({
+                where: { id: booking.id, pointsEarned: null },
+                data: { pointsEarned },
               });
-              await tx.booking.update({ where: { id: booking.id }, data: { pointsEarned } });
+              if (claimed.count === 1) {
+                await tx.user.update({ where: { id: booking.userId }, data: { points: { increment: pointsEarned } } });
+                await tx.pointTransaction.create({
+                  data: { userId: booking.userId, points: pointsEarned, type: 'EARN', bookingId: booking.id, note: `จากการจอง ${booking.field.name}` },
+                });
+              }
             }
 
             // Referral bonus: atomic claim via updateMany guard on referralBonusGrantedAt.
