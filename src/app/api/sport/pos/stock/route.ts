@@ -34,6 +34,10 @@ export async function POST(req: NextRequest) {
   if (!Number.isInteger(qtyNum) || qtyNum === 0) {
     return NextResponse.json({ error: 'qty must be non-zero integer' }, { status: 400 });
   }
+  // Sanity cap — prevent typo-driven stock corruption (e.g. accidentally entering 1e9)
+  if (Math.abs(qtyNum) > 100000) {
+    return NextResponse.json({ error: 'qty exceeds maximum (100,000)' }, { status: 400 });
+  }
 
   const settings = await getPosSettings();
   const allowNegative = settings.allowNegativeStock;

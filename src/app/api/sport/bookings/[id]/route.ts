@@ -8,6 +8,7 @@ import { stripe } from '@/lib/stripe';
 import { notifyWaitingList } from '@/lib/waiting-list-notify';
 import { sendPushToUser } from '@/lib/web-push';
 import { calculatePriceWithRules } from '@/lib/booking';
+import { rateLimit, BOOKING_RATE_LIMIT } from '@/lib/rate-limit';
 
 const REFERRAL_BONUS = 50;
 const CANCEL_DEADLINE_HOURS = 2;
@@ -61,6 +62,9 @@ function overlaps(aStart: number, aEnd: number, bStart: number, bEnd: number): b
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const rl = await rateLimit(`booking-mutate:${session.user.id}`, BOOKING_RATE_LIMIT);
+  if (!rl.success) return NextResponse.json({ error: 'คำขอเกินจำนวนที่กำหนด' }, { status: 429 });
 
   const { id } = await params;
   const body = await req.json();
@@ -223,10 +227,19 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   // --- Atomic transaction: status change + all financial side-effects ---
-  const updated = await prisma.$transaction(async (tx) => {
-    const b = await tx.booking.update({
-      where: { id },
+  // TOCTOU guard: only flip status if it still matches the value we validated against
+  // VALID_TRANSITIONS. If a concurrent request already changed it, claim.count === 0
+  // and we throw STATUS_RACE so the caller sees 409 instead of double-applying side-effects.
+  const txResult = await prisma.$transaction(async (tx) => {
+    const claim = await tx.booking.updateMany({
+      where: { id, status: booking.status },
       data: { status },
+    });
+    if (claim.count !== 1) {
+      throw Object.assign(new Error('STATUS_RACE'), { isRace: true });
+    }
+    const b = await tx.booking.findUnique({
+      where: { id },
       include: {
         field: {
           select: {
@@ -238,6 +251,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         user: { select: { name: true, email: true, notifEmail: true, notifInApp: true, referredById: true } },
       },
     });
+    if (!b) throw Object.assign(new Error('STATUS_RACE'), { isRace: true });
 
     if (status === 'APPROVED') {
       const [s, e] = booking.timeSlot.split('-');
@@ -313,7 +327,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     return b;
+  }).catch((err: unknown) => {
+    if (err && typeof err === 'object' && (err as { isRace?: boolean }).isRace) {
+      return null;
+    }
+    throw err;
   });
+  if (txResult === null) {
+    return NextResponse.json({ error: 'การจองถูกแก้ไขโดยผู้ใช้อื่น โปรดรีโหลด' }, { status: 409 });
+  }
+  const updated = txResult;
 
   // --- Post-transaction side-effects (external services, fire-and-forget) ---
   const emailData = {
@@ -349,13 +372,20 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
     if (booking.paidAt && booking.stripePaymentIntentId) {
       const stripeEnabled = process.env.STRIPE_SECRET_KEY && !process.env.STRIPE_SECRET_KEY.startsWith('sk_test_your');
-      if (stripeEnabled) notifTasks.push(stripe.refunds.create({ payment_intent: booking.stripePaymentIntentId }).catch(() => {}));
+      // idempotencyKey scoped to booking+intent prevents duplicate refund on retry
+      if (stripeEnabled) notifTasks.push(stripe.refunds.create(
+        { payment_intent: booking.stripePaymentIntentId },
+        { idempotencyKey: `refund:${id}:${booking.stripePaymentIntentId}` },
+      ).catch(() => {}));
     }
   } else if (status === 'CANCELLED') {
     if (updated.user.notifEmail) notifTasks.push(sendBookingCancelledEmail(updated.user.email, emailData).catch(() => {}));
     if (booking.paidAt && booking.stripePaymentIntentId) {
       const stripeEnabled = process.env.STRIPE_SECRET_KEY && !process.env.STRIPE_SECRET_KEY.startsWith('sk_test_your');
-      if (stripeEnabled) notifTasks.push(stripe.refunds.create({ payment_intent: booking.stripePaymentIntentId }).catch(() => {}));
+      if (stripeEnabled) notifTasks.push(stripe.refunds.create(
+        { payment_intent: booking.stripePaymentIntentId },
+        { idempotencyKey: `refund:${id}:${booking.stripePaymentIntentId}` },
+      ).catch(() => {}));
     }
   }
 

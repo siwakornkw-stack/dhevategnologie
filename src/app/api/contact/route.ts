@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { z } from 'zod';
+import { rateLimit, AUTH_RATE_LIMIT } from '@/lib/rate-limit';
 
 const resend = new Resend(process.env.RESEND_API_KEY ?? 're_placeholder');
 
@@ -15,6 +16,10 @@ export async function POST(req: NextRequest) {
   if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith('re_your')) {
     return NextResponse.json({ error: 'Email service not configured' }, { status: 503 });
   }
+
+  const ip = req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? 'unknown';
+  const rl = await rateLimit(`contact:${ip}`, AUTH_RATE_LIMIT);
+  if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
 
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });

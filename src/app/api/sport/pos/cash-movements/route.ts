@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requirePosRole, getActiveShift, audit } from '@/lib/pos';
+import { requirePosRole, audit } from '@/lib/pos';
 
 export async function GET(req: NextRequest) {
   const session = await requirePosRole(['ADMIN', 'CASHIER']);
@@ -44,18 +44,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'amount invalid' }, { status: 400 });
   }
 
-  const shift = await getActiveShift(session.user.id);
-  if (!shift) return NextResponse.json({ error: 'ไม่มีกะที่เปิดอยู่' }, { status: 409 });
-
-  const mv = await prisma.posCashMovement.create({
-    data: {
-      shiftId: shift.id,
-      type: type as 'PAY_IN' | 'PAY_OUT',
-      amount,
-      reason,
-      userId: session.user.id,
-    },
-  });
-  audit(session.user.id, 'POS_CASH_MOVEMENT', mv.id, { shiftId: shift.id, type, amount, reason });
-  return NextResponse.json(mv, { status: 201 });
+  try {
+    // Re-check shift inside tx so we don't write a cash movement into a shift that
+    // closed between the getActiveShift call and the create. Throws CLOSED_RACE if so.
+    const mv = await prisma.$transaction(async (tx) => {
+      const shift = await tx.posShift.findFirst({
+        where: { cashierId: session.user.id, status: 'OPEN' },
+        select: { id: true },
+      });
+      if (!shift) throw new Error('NO_OPEN_SHIFT');
+      return tx.posCashMovement.create({
+        data: {
+          shiftId: shift.id,
+          type: type as 'PAY_IN' | 'PAY_OUT',
+          amount,
+          reason,
+          userId: session.user.id,
+        },
+      });
+    });
+    audit(session.user.id, 'POS_CASH_MOVEMENT', mv.id, { shiftId: mv.shiftId, type, amount, reason });
+    return NextResponse.json(mv, { status: 201 });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : 'failed';
+    if (msg === 'NO_OPEN_SHIFT') return NextResponse.json({ error: 'ไม่มีกะที่เปิดอยู่' }, { status: 409 });
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }

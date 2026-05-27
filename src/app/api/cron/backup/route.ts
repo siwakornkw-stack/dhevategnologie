@@ -8,8 +8,9 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // Bearer header only — query-string secret leaks into proxy/CDN access logs.
   const authHeader = req.headers.get('authorization');
-  const secret = authHeader?.replace('Bearer ', '') ?? req.nextUrl.searchParams.get('secret');
+  const secret = authHeader?.replace('Bearer ', '');
   if (secret !== cronSecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

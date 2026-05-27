@@ -81,6 +81,12 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       if (!shift) throw new Error('NOT_FOUND');
       if (session.user.role !== 'ADMIN' && shift.cashierId !== session.user.id) throw new Error('FORBIDDEN');
       if (shift.status !== 'OPEN') throw new Error('ALREADY_CLOSED');
+      // Block close if cashier still has open tabs; otherwise cash math is unreliable
+      // because pending tab items won't be reflected in invoices/payments for this shift.
+      const openTabs = await tx.posTab.count({
+        where: { openedBy: shift.cashierId, status: { in: ['OPEN', 'HELD'] } },
+      });
+      if (openTabs > 0) throw new Error('OPEN_TABS_EXIST');
       const upd = await tx.posShift.updateMany({
         where: { id, status: 'OPEN' },
         data: {
@@ -92,16 +98,19 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
         },
       });
       if (upd.count !== 1) throw new Error('SHIFT_RACE');
-      return tx.posShift.findUnique({ where: { id } });
+      const closed = await tx.posShift.findUnique({ where: { id } });
+      // Audit inside tx so close + audit row are atomic; summary built outside (read-only)
+      await audit(session.user.id, 'POS_SHIFT_CLOSE', id, { countedCash, closingNote }, tx);
+      return closed;
     });
     const summary = await buildSummary(id);
-    audit(session.user.id, 'POS_SHIFT_CLOSE', id, { countedCash, closingNote, summary });
     return NextResponse.json({ ...result, summary });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'close failed';
     if (msg === 'NOT_FOUND') return NextResponse.json({ error: 'ไม่พบกะ' }, { status: 404 });
     if (msg === 'FORBIDDEN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     if (msg === 'ALREADY_CLOSED') return NextResponse.json({ error: 'กะปิดไปแล้ว' }, { status: 409 });
+    if (msg === 'OPEN_TABS_EXIST') return NextResponse.json({ error: 'ยังมี tab ที่ยังไม่ปิด/ยังไม่ checkout' }, { status: 409 });
     if (msg === 'SHIFT_RACE') return NextResponse.json({ error: 'กะถูกปิดโดยอีกหน้าจอ' }, { status: 409 });
     return NextResponse.json({ error: msg }, { status: 500 });
   }

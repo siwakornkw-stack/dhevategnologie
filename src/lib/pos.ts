@@ -67,17 +67,22 @@ export function audit(
   action: string,
   targetId?: string | null,
   details?: Record<string, unknown> | null,
+  tx?: Tx,
 ) {
-  return prisma.auditLog
-    .create({
-      data: {
-        adminId: userId,
-        action,
-        targetId: targetId || null,
-        details: (details ?? undefined) as Prisma.InputJsonValue | undefined,
-      },
-    })
-    .catch(() => {});
+  const client = tx ?? prisma;
+  const op = client.auditLog.create({
+    data: {
+      adminId: userId,
+      action,
+      targetId: targetId || null,
+      details: (details ?? undefined) as Prisma.InputJsonValue | undefined,
+    },
+  });
+  // When called inside a tx, let failure propagate so the action and the audit row
+  // commit/rollback together. Outside a tx, keep fire-and-forget so the request
+  // doesn't fail when AuditLog is degraded.
+  if (tx) return op;
+  return op.catch(() => {});
 }
 
 export async function getActiveShift(cashierId: string, tx: Tx = prisma) {

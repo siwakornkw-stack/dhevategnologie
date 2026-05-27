@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requirePosRole, reversePoints } from '@/lib/pos';
+import { requirePosRole, reversePoints, audit } from '@/lib/pos';
 
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const session = await requirePosRole(['ADMIN', 'CASHIER']);
@@ -37,13 +37,14 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
       if (inv.status === 'VOID') throw new Error('ALREADY_VOID');
       if (inv.refundedAmount > 0) throw new Error('HAS_REFUND');
 
-      // Reverse stock from itemsSnapshot
+      // Reverse stock from itemsSnapshot. updateMany no-ops if the product was deleted
+      // since the invoice was paid, instead of throwing (the prior .catch hid real DB errors).
       const snap = (inv.itemsSnapshot as Array<{ productId: string; qty: number; productName?: string }> | null) || [];
       for (const it of snap) {
-        await tx.posProduct.update({
+        await tx.posProduct.updateMany({
           where: { id: it.productId },
           data: { stockQty: { increment: it.qty } },
-        }).catch(() => {});
+        });
         await tx.posStockMovement.create({
           data: {
             productId: it.productId,
@@ -84,10 +85,9 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
         data: { status: 'VOID', voidedAt: new Date(), voidedBy: session.user.id, voidReason: reason },
       });
       if (upd.count !== 1) throw new Error('VOID_RACE');
+      // Audit inside tx: void + audit row commit atomically
+      await audit(session.user.id, 'POS_INVOICE_VOID', id, { reason }, tx);
     });
-    prisma.auditLog
-      .create({ data: { adminId: session.user.id, action: 'POS_INVOICE_VOID', targetId: id, details: { reason } } })
-      .catch(() => {});
     return NextResponse.json({ ok: true });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'void failed';

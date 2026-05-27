@@ -20,6 +20,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
+  // Dedup against Stripe event.id. Stripe may redeliver the same event multiple times;
+  // unique-PK insert fails atomically on the second delivery so handler side-effects
+  // (refunds, point reversals, emails) only run once.
+  try {
+    await prisma.processedStripeEvent.create({ data: { eventId: event.id, type: event.type } });
+  } catch {
+    return NextResponse.json({ ok: true, duplicate: true });
+  }
+
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
     const bookingId = session.metadata?.bookingId;
@@ -90,29 +99,29 @@ export async function POST(req: NextRequest) {
     const session = event.data.object;
     const bookingId = session.metadata?.bookingId;
     if (bookingId) {
-      const booking = await prisma.booking.findUnique({
-        where: { id: bookingId },
-        select: { couponCode: true, status: true, pointsRedeemed: true, userId: true },
-      });
-      const expiredResult = await prisma.booking.updateMany({
-        where: { id: bookingId, status: 'PENDING' },
-        data: { status: 'CANCELLED' },
-      });
-      if (expiredResult.count > 0 && booking) {
-        const tasks: Promise<unknown>[] = [];
+      // Single tx: status flip + coupon decrement + point restore must all-or-nothing,
+      // otherwise a partial failure leaves the booking cancelled with stuck coupon usage.
+      await prisma.$transaction(async (tx) => {
+        const booking = await tx.booking.findUnique({
+          where: { id: bookingId },
+          select: { couponCode: true, status: true, pointsRedeemed: true, userId: true },
+        });
+        if (!booking) return;
+        const expired = await tx.booking.updateMany({
+          where: { id: bookingId, status: 'PENDING' },
+          data: { status: 'CANCELLED' },
+        });
+        if (expired.count === 0) return;
         if (booking.couponCode) {
-          tasks.push(prisma.coupon.update({ where: { code: booking.couponCode }, data: { usedCount: { decrement: 1 } } }).catch(() => {}));
+          await tx.coupon.update({ where: { code: booking.couponCode }, data: { usedCount: { decrement: 1 } } });
         }
         if (booking.pointsRedeemed && booking.pointsRedeemed > 0) {
-          tasks.push(
-            prisma.user.update({ where: { id: booking.userId }, data: { points: { increment: booking.pointsRedeemed } } }),
-            prisma.pointTransaction.create({
-              data: { userId: booking.userId, points: booking.pointsRedeemed, type: 'EARN', bookingId, note: 'คืนแต้มเนื่องจาก session หมดอายุ' },
-            }),
-          );
+          await tx.user.update({ where: { id: booking.userId }, data: { points: { increment: booking.pointsRedeemed } } });
+          await tx.pointTransaction.create({
+            data: { userId: booking.userId, points: booking.pointsRedeemed, type: 'EARN', bookingId, note: 'คืนแต้มเนื่องจาก session หมดอายุ' },
+          });
         }
-        if (tasks.length > 0) await Promise.allSettled(tasks);
-      }
+      });
     }
   }
 
@@ -126,29 +135,23 @@ export async function POST(req: NextRequest) {
       });
 
       if (booking) {
-        // Atomic status transition - prevents double-processing on concurrent webhooks
-        const updated = await prisma.booking.updateMany({
-          where: { id: booking.id, status: { not: 'CANCELLED' } },
-          data: { status: 'CANCELLED' },
-        });
-
-        if (updated.count > 0) {
-          const tasks: Promise<unknown>[] = [];
+        // Single tx: status flip + reversals must all-or-nothing.
+        await prisma.$transaction(async (tx) => {
+          const updated = await tx.booking.updateMany({
+            where: { id: booking.id, status: { not: 'CANCELLED' } },
+            data: { status: 'CANCELLED' },
+          });
+          if (updated.count === 0) return;
           if (booking.couponCode) {
-            tasks.push(
-              prisma.coupon.update({ where: { code: booking.couponCode }, data: { usedCount: { decrement: 1 } } }).catch(() => {}),
-            );
+            await tx.coupon.update({ where: { code: booking.couponCode }, data: { usedCount: { decrement: 1 } } });
           }
           if (booking.pointsRedeemed && booking.pointsRedeemed > 0) {
-            tasks.push(
-              prisma.user.update({ where: { id: booking.userId }, data: { points: { increment: booking.pointsRedeemed } } }),
-              prisma.pointTransaction.create({
-                data: { userId: booking.userId, points: booking.pointsRedeemed, type: 'EARN', bookingId: booking.id, note: 'คืนแต้มเนื่องจากการคืนเงิน' },
-              }),
-            );
+            await tx.user.update({ where: { id: booking.userId }, data: { points: { increment: booking.pointsRedeemed } } });
+            await tx.pointTransaction.create({
+              data: { userId: booking.userId, points: booking.pointsRedeemed, type: 'EARN', bookingId: booking.id, note: 'คืนแต้มเนื่องจากการคืนเงิน' },
+            });
           }
-          if (tasks.length > 0) await Promise.allSettled(tasks);
-        }
+        });
       }
     }
   }

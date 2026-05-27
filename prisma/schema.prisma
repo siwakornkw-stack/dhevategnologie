@@ -638,3 +638,13 @@ model PosCashMovement {
   @@index([shiftId])
   @@index([createdAt])
 }
+
+// Webhook event deduplication. INSERT against the unique eventId fails atomically
+// when the same Stripe event is delivered twice, letting us short-circuit handler logic.
+model ProcessedStripeEvent {
+  eventId     String   @id
+  type        String
+  processedAt DateTime @default(now())
+
+  @@index([processedAt])
+}

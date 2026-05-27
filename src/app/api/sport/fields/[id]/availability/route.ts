@@ -18,7 +18,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (isNaN(dateObj.getTime())) return NextResponse.json({ error: 'Invalid date' }, { status: 400 });
 
   const field = await prisma.field.findFirst({
-    where: { id: decodedId },
+    where: { id: decodedId, deletedAt: null },
     include: { priceRules: { orderBy: { startTime: 'asc' } } },
   });
   if (!field) return NextResponse.json({ error: 'Field not found' }, { status: 404 });

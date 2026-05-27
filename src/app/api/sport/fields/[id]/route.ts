@@ -4,7 +4,10 @@ import { auth } from '@/lib/auth';
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const field = await prisma.field.findUnique({ where: { id }, include: { priceRules: { orderBy: { startTime: 'asc' } } } });
+  const field = await prisma.field.findFirst({
+    where: { id, deletedAt: null },
+    include: { priceRules: { orderBy: { startTime: 'asc' } } },
+  });
   if (!field) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json(field);
 }

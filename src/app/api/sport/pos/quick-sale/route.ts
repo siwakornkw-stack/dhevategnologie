@@ -24,16 +24,23 @@ export async function POST(req: NextRequest) {
 
   const cust = customer && typeof customer === 'object' ? customer : null;
   const customerId = cust?.id ? String(cust.id).slice(0, 50) : null;
-  const customerName = cust?.name ? String(cust.name).slice(0, 200) : null;
+  // For guest customers (no id), accept body fields. For known customers, body is overridden
+  // with DB values inside the tx so cashier UI can't fake another user's snapshot.
+  let customerName = cust?.name ? String(cust.name).slice(0, 200) : null;
   const customerTaxId = cust?.taxId ? String(cust.taxId).slice(0, 50) : null;
   const customerAddress = cust?.address ? String(cust.address).slice(0, 500) : null;
-  const customerPhone = cust?.phone ? String(cust.phone).slice(0, 50) : null;
+  let customerPhone = cust?.phone ? String(cust.phone).slice(0, 50) : null;
 
   try {
     const result = await prisma.$transaction(async (tx) => {
       if (customerId) {
-        const c = await tx.user.findUnique({ where: { id: customerId }, select: { id: true, role: true } });
+        const c = await tx.user.findUnique({
+          where: { id: customerId },
+          select: { id: true, role: true, name: true, phone: true },
+        });
         if (!c || c.role !== 'USER') throw new Error('CUSTOMER_INVALID');
+        customerName = c.name?.slice(0, 200) || customerName;
+        customerPhone = c.phone?.slice(0, 50) || customerPhone;
       }
       const ids = (items as Item[]).map((i) => i.productId);
       const products = await tx.posProduct.findMany({ where: { id: { in: ids } } });

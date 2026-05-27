@@ -88,6 +88,8 @@ export async function POST(req: NextRequest) {
           if (hasSlotConflict(existing.map((b) => b.timeSlot), [timeSlot])) {
             throw Object.assign(new Error('conflict'), { isConflict: true });
           }
+          // Auto-approve inside the same tx: avoids a race where another writer
+          // cancels the PENDING row before the post-loop updateMany flips it back to APPROVED.
           return tx.booking.create({
             data: {
               userId: session.user.id,
@@ -97,6 +99,7 @@ export async function POST(req: NextRequest) {
               note,
               isRecurring: true,
               recurringGroupId: groupId,
+              status: 'APPROVED',
             },
           });
         },
@@ -106,15 +109,6 @@ export async function POST(req: NextRequest) {
     } catch {
       errors.push(d.toLocaleDateString('th-TH'));
     }
-  }
-
-  // Recurring bookings have no online-payment flow; auto-approve so users are not
-  // left with PENDING bookings they cannot pay. Admin can still reject later.
-  if (bookings.length > 0) {
-    await prisma.booking.updateMany({
-      where: { id: { in: bookings.map((b) => b.id) } },
-      data: { status: 'APPROVED' },
-    });
   }
 
   const status = bookings.length === 0 ? 409 : errors.length === 0 ? 201 : 200;
