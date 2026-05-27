@@ -7,7 +7,14 @@ function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+// Strip CR/LF from any header-bound string to block header injection
+// (e.g. malicious field name containing newlines splicing in BCC).
+function sanitizeHeader(s: string): string {
+  return s.replace(/[\r\n]+/g, ' ').slice(0, 200);
+}
+
 async function sendEmail(args: Parameters<typeof resend.emails.send>[0]) {
+  if (typeof args.subject === 'string') args.subject = sanitizeHeader(args.subject);
   const { error } = await resend.emails.send(args);
   if (error) console.error('[email] send failed:', error);
 }

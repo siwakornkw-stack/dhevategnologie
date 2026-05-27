@@ -30,6 +30,11 @@ export async function POST(req: NextRequest) {
       if (!(file instanceof File)) {
         return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
       }
+      // Cap upload at 100 MB to prevent memory exhaustion via huge JSON
+      const MAX_BACKUP_BYTES = 100 * 1024 * 1024;
+      if (file.size > MAX_BACKUP_BYTES) {
+        return NextResponse.json({ error: 'Backup file too large (max 100 MB)' }, { status: 413 });
+      }
       const text = await file.text();
       dump = JSON.parse(text) as BackupFile;
       if (dump.version !== 1 || !dump.data) {
@@ -38,7 +43,9 @@ export async function POST(req: NextRequest) {
     } else {
       const body = await req.json();
       const parsed = schema.parse(body);
-      if (!parsed.pathname || !parsed.pathname.startsWith('db-backups/')) {
+      // Reject path-segment escapes even though Blob keys are not filesystem paths,
+      // to keep the allowlist tight against future provider changes.
+      if (!parsed.pathname || !parsed.pathname.startsWith('db-backups/') || parsed.pathname.includes('..')) {
         return NextResponse.json({ error: 'invalid pathname' }, { status: 400 });
       }
       dump = await fetchBackupByPathname(parsed.pathname);
