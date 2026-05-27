@@ -70,7 +70,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       // minute offsets so "23:00-01:00" overnight wraps consistently.
       const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
       const ranges = validRules.map((r: { startTime: string; endTime: string }) => {
-        let s = toMin(r.startTime);
+        const s = toMin(r.startTime);
         let e = toMin(r.endTime);
         if (e <= s) e += 1440;
         return [s, e] as const;
