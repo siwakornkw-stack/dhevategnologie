@@ -118,7 +118,10 @@ export async function POST(req: NextRequest) {
       // If this refund pushes refundedAmount to exactly inv.total, release the coupon hold
       // once. The atomic guard above ensures we only enter this branch the single tx that
       // crosses the threshold, so no double-decrement.
-      const newRefunded = +(inv.refundedAmount + amount).toFixed(2);
+      // Use raw sum (not toFixed) — toFixed rounds, but the atomic guard above
+      // already bounds newRefunded <= inv.total exactly. Comparing the raw sum
+      // avoids spurious threshold crossing from rounding artifacts.
+      const newRefunded = inv.refundedAmount + amount;
       if (newRefunded >= inv.total) {
         const couponMatch = inv.note?.match(/\[COUPON:([A-Z0-9_-]+)\s+-[\d.]+\]/);
         if (couponMatch) {

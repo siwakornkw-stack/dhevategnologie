@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomBytes } from 'crypto';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'จำนวนสัปดาห์ไม่ถูกต้อง' }, { status: 400 });
   }
   const numWeeks = Math.min(weeksParsed, 52);
-  const groupId = `rec-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const groupId = `rec-${randomBytes(16).toString('hex')}`;
 
   const bookings = [];
   const errors = [];
