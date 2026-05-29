@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { SPORT_TYPE_EMOJI, STATUS_COLORS, STATUS_LABELS } from '@/lib/booking';
+import { EditBookingButton } from '../bookings/edit-booking-button';
 import Link from 'next/link';
 
 export const metadata = { title: 'ปฏิทินการจอง' };
@@ -125,13 +126,31 @@ export default async function AdminCalendarPage({ searchParams }: PageProps) {
                         <span className="text-xs text-gray-300 dark:text-gray-700">-</span>
                       ) : (
                         <div className="space-y-1">
-                          {dayBookings.map((b) => (
-                            <div key={b.id} className={`px-2 py-1 rounded-lg text-xs ${STATUS_COLORS[b.status]}`}>
-                              <div className="font-semibold truncate">{b.timeSlot}</div>
-                              <div className="truncate opacity-80">{b.user.name ?? '-'}</div>
-                              <div className="text-xs opacity-60">{STATUS_LABELS[b.status]}</div>
-                            </div>
-                          ))}
+                          {dayBookings.map((b) => {
+                            const chip = (
+                              <>
+                                <div className="font-semibold truncate">{b.timeSlot}</div>
+                                <div className="truncate opacity-80">{b.user.name ?? '-'}</div>
+                                <div className="text-xs opacity-60">{STATUS_LABELS[b.status]}</div>
+                              </>
+                            );
+                            const editable = b.status === 'PENDING' || b.status === 'APPROVED';
+                            return editable ? (
+                              <EditBookingButton
+                                key={b.id}
+                                bookingId={b.id}
+                                initialDate={new Date(b.date).toISOString()}
+                                initialTimeSlot={b.timeSlot}
+                                triggerClassName={`block w-full text-left px-2 py-1 rounded-lg text-xs cursor-pointer transition hover:ring-2 hover:ring-primary-400 ${STATUS_COLORS[b.status]}`}
+                              >
+                                {chip}
+                              </EditBookingButton>
+                            ) : (
+                              <div key={b.id} className={`px-2 py-1 rounded-lg text-xs ${STATUS_COLORS[b.status]}`}>
+                                {chip}
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </td>

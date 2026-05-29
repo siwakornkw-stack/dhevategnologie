@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
@@ -8,9 +8,11 @@ interface Props {
   bookingId: string;
   initialDate: string; // ISO
   initialTimeSlot: string; // "HH:MM-HH:MM"
+  children?: ReactNode; // custom trigger content; defaults to "✎ แก้เวลา" pill
+  triggerClassName?: string;
 }
 
-export function EditBookingButton({ bookingId, initialDate, initialTimeSlot }: Props) {
+export function EditBookingButton({ bookingId, initialDate, initialTimeSlot, children, triggerClassName }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -53,9 +55,9 @@ export function EditBookingButton({ bookingId, initialDate, initialTimeSlot }: P
     <>
       <button
         onClick={() => setOpen(true)}
-        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition"
+        className={triggerClassName ?? 'px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition'}
       >
-        ✎ แก้เวลา
+        {children ?? '✎ แก้เวลา'}
       </button>
 
       {open && (
