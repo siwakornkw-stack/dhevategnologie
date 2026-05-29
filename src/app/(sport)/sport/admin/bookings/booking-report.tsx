@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { formatDateISO } from '@/lib/booking';
 import { cn } from '@/lib/utils';
+import { EditBookingButton } from './edit-booking-button';
 
 interface ReportBooking {
   id: string;
@@ -55,6 +56,7 @@ export function BookingReport() {
   const [bookings, setBookings] = useState<ReportBooking[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     setFromDate(formatDateISO(firstDayOfMonth(year, month)));
@@ -82,7 +84,7 @@ export function BookingReport() {
     return () => {
       cancelled = true;
     };
-  }, [fromDate, toDate, statusFilter]);
+  }, [fromDate, toDate, statusFilter, refreshKey]);
 
   const byDay = useMemo(() => {
     const map: Record<string, ReportBooking[]> = {};
@@ -284,6 +286,17 @@ export function BookingReport() {
                     <span className={cn('ml-auto px-2 py-0.5 rounded-full font-semibold', STATUS_COLOR[b.status])}>
                       {STATUS_LABEL[b.status]}
                     </span>
+                    {(b.status === 'PENDING' || b.status === 'APPROVED') && (
+                      <EditBookingButton
+                        bookingId={b.id}
+                        initialDate={b.date}
+                        initialTimeSlot={b.timeSlot}
+                        onSaved={() => setRefreshKey((k) => k + 1)}
+                        triggerClassName="px-2 py-0.5 rounded-lg font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition"
+                      >
+                        ✎ แก้
+                      </EditBookingButton>
+                    )}
                   </div>
                 ))}
               </div>

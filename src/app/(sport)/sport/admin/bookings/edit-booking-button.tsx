@@ -10,9 +10,10 @@ interface Props {
   initialTimeSlot: string; // "HH:MM-HH:MM"
   children?: ReactNode; // custom trigger content; defaults to "✎ แก้เวลา" pill
   triggerClassName?: string;
+  onSaved?: () => void; // called after a successful save (in addition to router.refresh)
 }
 
-export function EditBookingButton({ bookingId, initialDate, initialTimeSlot, children, triggerClassName }: Props) {
+export function EditBookingButton({ bookingId, initialDate, initialTimeSlot, children, triggerClassName, onSaved }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -44,6 +45,7 @@ export function EditBookingButton({ bookingId, initialDate, initialTimeSlot, chi
       toast.success('แก้ไขการจองแล้ว ✓');
       setOpen(false);
       router.refresh();
+      onSaved?.();
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
