@@ -11,9 +11,13 @@ interface Props {
   children?: ReactNode; // custom trigger content; defaults to "✎ แก้เวลา" pill
   triggerClassName?: string;
   onSaved?: () => void; // called after a successful save (in addition to router.refresh)
+  fieldName?: string;
+  customerName?: string | null;
+  customerPhone?: string | null;
+  note?: string | null;
 }
 
-export function EditBookingButton({ bookingId, initialDate, initialTimeSlot, children, triggerClassName, onSaved }: Props) {
+export function EditBookingButton({ bookingId, initialDate, initialTimeSlot, children, triggerClassName, onSaved, fieldName, customerName, customerPhone, note }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -66,6 +70,17 @@ export function EditBookingButton({ bookingId, initialDate, initialTimeSlot, chi
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => !loading && setOpen(false)}>
           <div onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-gray-900 rounded-2xl p-5 w-full max-w-sm space-y-4">
             <h3 className="font-semibold text-gray-900 dark:text-white">แก้ไขเวลาการจอง</h3>
+            {(fieldName || customerName || customerPhone || note) && (
+              <div className="rounded-lg bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs space-y-0.5">
+                {fieldName && <p className="font-medium text-gray-800 dark:text-gray-200">🏟️ {fieldName}</p>}
+                {(customerName || customerPhone) && (
+                  <p className="text-gray-600 dark:text-gray-400">
+                    👤 {customerName ?? '-'}{customerPhone ? ` · 📱 ${customerPhone}` : ''}
+                  </p>
+                )}
+                {note && <p className="text-gray-500 dark:text-gray-400 italic">💬 {note}</p>}
+              </div>
+            )}
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">วันที่</label>

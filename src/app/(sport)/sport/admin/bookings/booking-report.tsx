@@ -291,6 +291,10 @@ export function BookingReport() {
                         bookingId={b.id}
                         initialDate={b.date}
                         initialTimeSlot={b.timeSlot}
+                        fieldName={b.field.name}
+                        customerName={b.user.name}
+                        customerPhone={b.user.phone}
+                        note={b.note}
                         onSaved={() => setRefreshKey((k) => k + 1)}
                         triggerClassName="px-2 py-0.5 rounded-lg font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition"
                       >

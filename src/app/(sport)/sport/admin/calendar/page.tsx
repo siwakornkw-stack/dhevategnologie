@@ -141,6 +141,10 @@ export default async function AdminCalendarPage({ searchParams }: PageProps) {
                                 bookingId={b.id}
                                 initialDate={new Date(b.date).toISOString()}
                                 initialTimeSlot={b.timeSlot}
+                                fieldName={b.field.name}
+                                customerName={b.user.name}
+                                customerPhone={b.user.phone}
+                                note={b.note}
                                 triggerClassName={`block w-full text-left px-2 py-1 rounded-lg text-xs cursor-pointer transition hover:ring-2 hover:ring-primary-400 ${STATUS_COLORS[b.status]}`}
                               >
                                 {chip}

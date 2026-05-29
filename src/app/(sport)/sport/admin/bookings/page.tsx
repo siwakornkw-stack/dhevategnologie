@@ -217,6 +217,10 @@ function BookingRow({ booking, showActions, paidLabel, noPhoneLabel, bookedOnLab
               bookingId={booking.id}
               initialDate={new Date(booking.date).toISOString()}
               initialTimeSlot={booking.timeSlot}
+              fieldName={booking.field.name}
+              customerName={booking.user.name}
+              customerPhone={booking.user.phone}
+              note={booking.note}
             />
             <AdminCancelAction bookingId={booking.id} />
           </>
