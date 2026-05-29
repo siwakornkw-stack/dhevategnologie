@@ -9,12 +9,20 @@ const POS_ACTIONS = [
   'POS_REFUND',
   'POS_SHIFT_OPEN',
   'POS_SHIFT_CLOSE',
+  'POS_PRODUCT_CREATE',
   'POS_PRODUCT_UPDATE',
   'POS_PRODUCT_DELETE',
   'POS_STOCK_IN',
   'POS_STOCK_OUT',
   'POS_STOCK_ADJUST',
   'POS_SETTINGS_UPDATE',
+  'POS_CASH_MOVEMENT',
+  'POS_CUSTOMER_CREATE',
+  'POS_REPORT_CSV_EXPORT',
+  'POS_TAB_HOLD',
+  'POS_TAB_RESUME',
+  'POS_CASHIER_CREATE',
+  'POS_CASHIER_DELETE',
 ];
 
 export async function GET(req: NextRequest) {
@@ -35,8 +43,16 @@ export async function GET(req: NextRequest) {
   if (adminId) where.adminId = adminId;
   if (targetId) where.targetId = targetId;
   const range: Record<string, Date> = {};
-  if (from) range.gte = new Date(from);
-  if (to) range.lte = new Date(to);
+  if (from) {
+    const d = new Date(from);
+    if (isNaN(d.getTime())) return NextResponse.json({ error: 'Invalid from date' }, { status: 400 });
+    range.gte = d;
+  }
+  if (to) {
+    const d = new Date(to);
+    if (isNaN(d.getTime())) return NextResponse.json({ error: 'Invalid to date' }, { status: 400 });
+    range.lte = d;
+  }
   if (Object.keys(range).length) where.createdAt = range;
 
   const logs = await prisma.auditLog.findMany({

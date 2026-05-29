@@ -34,11 +34,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const parsed = loginSchema.safeParse(credentials);
         if (!parsed.success) return null;
 
-        const rl = await rateLimit(`login:${parsed.data.email.toLowerCase()}`, AUTH_RATE_LIMIT);
+        // Normalize email once: trim + lowercase. Use the same value for the rate-limit key
+        // AND the DB lookup so attackers cannot bypass the per-email throttle by varying case
+        // or whitespace (zod email validator does not normalize).
+        const email = parsed.data.email.trim().toLowerCase();
+
+        const rl = await rateLimit(`login:${email}`, AUTH_RATE_LIMIT);
         if (!rl.success) throw new Error('LOGIN_RATE_LIMITED');
 
         const user = await prisma.user.findUnique({
-          where: { email: parsed.data.email },
+          where: { email },
           select: { id: true, name: true, email: true, image: true, role: true, emailVerified: true, password: true, twoFactorEnabled: true, twoFactorSecret: true },
         });
 

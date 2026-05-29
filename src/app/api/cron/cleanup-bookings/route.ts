@@ -8,8 +8,9 @@ import { notifyWaitingList } from '@/lib/waiting-list-notify';
 export async function GET(req: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // Bearer header only — query-string secret leaks into proxy/CDN access logs.
   const authHeader = req.headers.get('authorization');
-  const secret = authHeader?.replace('Bearer ', '') ?? req.nextUrl.searchParams.get('secret');
+  const secret = authHeader?.replace('Bearer ', '');
   if (secret !== cronSecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -32,18 +33,11 @@ export async function GET(req: NextRequest) {
 
   if (toCancel.length === 0) return NextResponse.json({ cancelled: 0 });
 
-  await prisma.booking.updateMany({
-    where: { id: { in: toCancel.map((b) => b.id) } },
-    data: { status: 'CANCELLED' },
-  });
-
-  // Decrement coupon usedCount
+  // Aggregate reversal work
   const couponDecrements: Record<string, number> = {};
   for (const b of toCancel) {
     if (b.couponCode) couponDecrements[b.couponCode] = (couponDecrements[b.couponCode] ?? 0) + 1;
   }
-
-  // Restore redeemed points per user
   const pointRestores: Record<string, number> = {};
   const pointBookings: { userId: string; points: number; bookingId: string }[] = [];
   for (const b of toCancel) {
@@ -53,25 +47,26 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const tasks: Promise<unknown>[] = [];
-
-  for (const [code, n] of Object.entries(couponDecrements)) {
-    tasks.push(prisma.coupon.update({ where: { code }, data: { usedCount: { decrement: n } } }).catch(() => {}));
-  }
-
-  for (const [userId, points] of Object.entries(pointRestores)) {
-    tasks.push(prisma.user.update({ where: { id: userId }, data: { points: { increment: points } } }).catch(() => {}));
-  }
-
-  for (const { userId, points, bookingId } of pointBookings) {
-    tasks.push(
-      prisma.pointTransaction.create({
+  // Single tx: cancel + coupon decrements + point restores must all-or-nothing,
+  // otherwise a partial failure leaves users with stuck coupon usage / lost points.
+  // Guard the update with status: 'PENDING' so a concurrent webhook flip is preserved.
+  await prisma.$transaction(async (tx) => {
+    await tx.booking.updateMany({
+      where: { id: { in: toCancel.map((b) => b.id) }, status: 'PENDING' },
+      data: { status: 'CANCELLED' },
+    });
+    for (const [code, n] of Object.entries(couponDecrements)) {
+      await tx.coupon.updateMany({ where: { code, usedCount: { gte: n } }, data: { usedCount: { decrement: n } } });
+    }
+    for (const [userId, points] of Object.entries(pointRestores)) {
+      await tx.user.update({ where: { id: userId }, data: { points: { increment: points } } });
+    }
+    for (const { userId, points, bookingId } of pointBookings) {
+      await tx.pointTransaction.create({
         data: { userId, points, type: 'EARN', bookingId, note: 'คืนแต้มเนื่องจาก Stripe session หมดอายุ' },
-      }).catch(() => {}),
-    );
-  }
-
-  if (tasks.length > 0) await Promise.allSettled(tasks);
+      });
+    }
+  });
 
   // Notify waiting list for each freed slot
   const seen = new Set<string>();

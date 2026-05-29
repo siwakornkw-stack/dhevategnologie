@@ -29,6 +29,7 @@
     "chat": "စကားပြောရန်",
     "profile": "ပရိုဖိုင်",
     "adminDashboard": "စီမံခန့်ခွဲသူ Dashboard",
+    "help": "အသုံးပြုနည်း",
     "emailUnverified": "အီးမေးလ် မစစ်ဆေးရသေးပါ — inbox စစ်ဆေးပါ",
     "resendVerification": "ပြန်ပို့ရန်",
     "mobile": {
@@ -36,7 +37,8 @@
       "bookings": "📋 ဘွတ်ကင်များ",
       "chat": "💬 စကားပြော",
       "profile": "👤 ပရိုဖိုင်",
-      "admin": "⚙️ စီမံခန့်ခွဲသူ"
+      "admin": "⚙️ စီမံခန့်ခွဲသူ",
+      "help": "📖 အသုံးပြုနည်း"
     }
   },
   "language": {

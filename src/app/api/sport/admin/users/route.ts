@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 
@@ -50,23 +51,32 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'ไม่สามารถแก้ไข role ตัวเองได้' }, { status: 400 });
   }
 
-  // Prevent demoting the last remaining admin (system lock-out)
-  if (role === 'USER') {
-    const target = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
-    if (!target) return NextResponse.json({ error: 'ไม่พบผู้ใช้' }, { status: 404 });
-    if (target.role === 'ADMIN') {
-      const adminCount = await prisma.user.count({ where: { role: 'ADMIN' } });
-      if (adminCount <= 1) {
-        return NextResponse.json({ error: 'ไม่สามารถลด role แอดมินคนสุดท้ายได้' }, { status: 400 });
-      }
-    }
+  let user;
+  try {
+    user = await prisma.$transaction(
+      async (tx) => {
+        if (role === 'USER') {
+          const target = await tx.user.findUnique({ where: { id: userId }, select: { role: true } });
+          if (!target) throw new Error('NOT_FOUND');
+          if (target.role === 'ADMIN') {
+            const adminCount = await tx.user.count({ where: { role: 'ADMIN' } });
+            if (adminCount <= 1) throw new Error('LAST_ADMIN');
+          }
+        }
+        return tx.user.update({
+          where: { id: userId },
+          data: { role },
+          select: { id: true, role: true },
+        });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : 'failed';
+    if (msg === 'NOT_FOUND') return NextResponse.json({ error: 'ไม่พบผู้ใช้' }, { status: 404 });
+    if (msg === 'LAST_ADMIN') return NextResponse.json({ error: 'ไม่สามารถลด role แอดมินคนสุดท้ายได้' }, { status: 400 });
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
-
-  const user = await prisma.user.update({
-    where: { id: userId },
-    data: { role },
-    select: { id: true, role: true },
-  });
 
   prisma.auditLog.create({
     data: { adminId: session.user.id, action: 'USER_ROLE_CHANGED', targetId: userId, details: { role } },

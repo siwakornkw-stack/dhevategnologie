@@ -35,8 +35,14 @@ export async function POST(req: NextRequest) {
   if (discountType === 'PERCENT' && parsedValue > 100) {
     return NextResponse.json({ error: 'ส่วนลดเปอร์เซ็นต์ต้องไม่เกิน 100' }, { status: 400 });
   }
-  if (maxUses !== undefined && maxUses !== null && Number(maxUses) < 1) {
-    return NextResponse.json({ error: 'จำนวนครั้งที่ใช้ได้ต้องมากกว่า 0' }, { status: 400 });
+  if (discountType === 'FIXED' && parsedValue > 100000) {
+    return NextResponse.json({ error: 'ส่วนลดคงที่ต้องไม่เกิน 100,000' }, { status: 400 });
+  }
+  if (maxUses !== undefined && maxUses !== null) {
+    const mu = Number(maxUses);
+    if (!Number.isSafeInteger(mu) || mu < 1 || mu > 1_000_000) {
+      return NextResponse.json({ error: 'จำนวนครั้งที่ใช้ได้ต้องเป็น 1-1,000,000' }, { status: 400 });
+    }
   }
   if (expiresAt) {
     const expiresDate = new Date(expiresAt);

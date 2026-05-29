@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { stripe } from '@/lib/stripe';
@@ -32,10 +31,14 @@ export async function POST(req: NextRequest) {
   }
 
   const bookingDate = new Date(date);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // Compare in Asia/Bangkok (UTC+7) — server runs UTC on Vercel; using server-local
+  // setHours would let users book yesterday's slots between 17:00–23:59 UTC (00:00–06:59 Bangkok next day).
+  const BANGKOK_OFFSET_MS = 7 * 60 * 60 * 1000;
+  const bangkokNow = Date.now() + BANGKOK_OFFSET_MS;
+  const bangkokTodayMidnightUtc = Math.floor(bangkokNow / 86_400_000) * 86_400_000 - BANGKOK_OFFSET_MS;
+  const today = new Date(bangkokTodayMidnightUtc);
   const maxDate = new Date(today);
-  maxDate.setFullYear(today.getFullYear() + 1);
+  maxDate.setUTCFullYear(today.getUTCFullYear() + 1);
 
   if (isNaN(bookingDate.getTime()) || bookingDate < today || bookingDate > maxDate) {
     return NextResponse.json({ error: 'สามารถจองได้ล่วงหน้าสูงสุด 1 ปี' }, { status: 400 });
@@ -110,7 +113,7 @@ export async function POST(req: NextRequest) {
         where: { fieldId, date: bookingDate, status: { in: ['PENDING', 'APPROVED'] } },
         select: { timeSlot: true },
       });
-      if (hasSlotConflict(timeSlotRange, existingBookings.map((b) => b.timeSlot))) {
+      if (hasSlotConflict(existingBookings.map((b) => b.timeSlot), slotsArray)) {
         throw Object.assign(new Error('CONFLICT'), { isConflict: true });
       }
       if (appliedCoupon) {
@@ -152,7 +155,7 @@ export async function POST(req: NextRequest) {
       }
 
       return created;
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    });
   } catch (e: unknown) {
     if (e && typeof e === 'object') {
       if ('isCouponInvalid' in e) return NextResponse.json({ error: 'คูปองนี้ไม่สามารถใช้ได้หรือหมดอายุแล้ว' }, { status: 400 });

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomBytes } from 'crypto';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'จำนวนสัปดาห์ไม่ถูกต้อง' }, { status: 400 });
   }
   const numWeeks = Math.min(weeksParsed, 52);
-  const groupId = `rec-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const groupId = `rec-${randomBytes(16).toString('hex')}`;
 
   const bookings = [];
   const errors = [];
@@ -85,9 +86,11 @@ export async function POST(req: NextRequest) {
             where: { fieldId, date: d, status: { in: ['PENDING', 'APPROVED'] } },
             select: { timeSlot: true },
           });
-          if (hasSlotConflict(timeSlot, existing.map((b) => b.timeSlot))) {
+          if (hasSlotConflict(existing.map((b) => b.timeSlot), [timeSlot])) {
             throw Object.assign(new Error('conflict'), { isConflict: true });
           }
+          // Auto-approve inside the same tx: avoids a race where another writer
+          // cancels the PENDING row before the post-loop updateMany flips it back to APPROVED.
           return tx.booking.create({
             data: {
               userId: session.user.id,
@@ -97,6 +100,7 @@ export async function POST(req: NextRequest) {
               note,
               isRecurring: true,
               recurringGroupId: groupId,
+              status: 'APPROVED',
             },
           });
         },
@@ -106,15 +110,6 @@ export async function POST(req: NextRequest) {
     } catch {
       errors.push(d.toLocaleDateString('th-TH'));
     }
-  }
-
-  // Auto-approve when Stripe is not configured (dev/test mode)
-  const stripeKey = process.env.STRIPE_SECRET_KEY;
-  if (bookings.length > 0 && (!stripeKey || stripeKey.startsWith('sk_test_your'))) {
-    await prisma.booking.updateMany({
-      where: { id: { in: bookings.map((b) => b.id) } },
-      data: { status: 'APPROVED' },
-    });
   }
 
   const status = bookings.length === 0 ? 409 : errors.length === 0 ? 201 : 200;

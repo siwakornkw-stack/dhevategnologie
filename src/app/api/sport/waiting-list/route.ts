@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { auth } from '@/lib/auth';
 import { rateLimit, WAITING_LIST_RATE_LIMIT } from '@/lib/rate-limit';
-import { expandTimeSlot } from '@/lib/booking';
+import { hasSlotConflict } from '@/lib/booking';
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -55,17 +55,12 @@ export async function POST(req: NextRequest) {
     select: { timeSlot: true, userId: true },
   });
 
-  const requestedSlots = expandTimeSlot(timeSlot);
-  const takenByAnyone = new Set(existingBookings.flatMap((b) => expandTimeSlot(b.timeSlot)));
-
-  if (!requestedSlots.some((s) => takenByAnyone.has(s))) {
+  if (!hasSlotConflict(existingBookings.map((b) => b.timeSlot), [timeSlot])) {
     return NextResponse.json({ error: 'ช่วงเวลานี้ยังมีว่าง สามารถจองได้เลย' }, { status: 400 });
   }
 
-  const takenByUser = new Set(
-    existingBookings.filter((b) => b.userId === session.user.id).flatMap((b) => expandTimeSlot(b.timeSlot)),
-  );
-  if (requestedSlots.some((s) => takenByUser.has(s))) {
+  const userSlots = existingBookings.filter((b) => b.userId === session.user.id).map((b) => b.timeSlot);
+  if (hasSlotConflict(userSlots, [timeSlot])) {
     return NextResponse.json({ error: 'คุณมีการจองในช่วงเวลานี้อยู่แล้ว' }, { status: 400 });
   }
 

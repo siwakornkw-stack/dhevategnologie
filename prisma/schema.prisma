@@ -102,14 +102,15 @@ model User {
 
   points Int @default(0)
 
-  referralCode         String?   @unique
-  referredById         String?
-  notifEmail           Boolean   @default(true)
-  notifInApp           Boolean   @default(true)
-  twoFactorSecret      String?
-  twoFactorEnabled     Boolean   @default(false)
-  twoFactorBackupCodes String[]  @default([])
-  passwordChangedAt    DateTime?
+  referralCode           String?   @unique
+  referredById           String?
+  referralBonusGrantedAt DateTime?
+  notifEmail             Boolean   @default(true)
+  notifInApp             Boolean   @default(true)
+  twoFactorSecret        String?
+  twoFactorEnabled       Boolean   @default(false)
+  twoFactorBackupCodes   String[]  @default([])
+  passwordChangedAt      DateTime?
 
   referredBy        User?              @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)
   referrals         User[]             @relation("Referrals")
@@ -613,4 +614,14 @@ model PosCashMovement {
 
   @@index([shiftId])
   @@index([createdAt])
+}
+
+// Webhook event deduplication. INSERT against the unique eventId fails atomically
+// when the same Stripe event is delivered twice, letting us short-circuit handler logic.
+model ProcessedStripeEvent {
+  eventId     String   @id
+  type        String
+  processedAt DateTime @default(now())
+
+  @@index([processedAt])
 }

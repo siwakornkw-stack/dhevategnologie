@@ -9,8 +9,11 @@ export async function POST(req: NextRequest) {
   const rl = await rateLimit(`forgot:${ip}`, AUTH_RATE_LIMIT);
   if (!rl.success) return NextResponse.json({ error: 'คุณส่งคำขอมากเกินไป' }, { status: 429 });
 
-  const { email } = await req.json();
-  if (!email) return NextResponse.json({ error: 'กรุณากรอกอีเมล' }, { status: 400 });
+  const { email: rawEmail } = await req.json();
+  if (!rawEmail || typeof rawEmail !== 'string') return NextResponse.json({ error: 'กรุณากรอกอีเมล' }, { status: 400 });
+  // Normalize to match how register/auth store + look up users; otherwise mixed-case
+  // requests find no user and silently never receive a reset email.
+  const email = rawEmail.trim().toLowerCase();
 
   const user = await prisma.user.findUnique({ where: { email } });
 

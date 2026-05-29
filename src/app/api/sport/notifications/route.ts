@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { rateLimit } from '@/lib/rate-limit';
 
 export async function GET() {
   const session = await auth();
@@ -22,6 +23,9 @@ export async function GET() {
 export async function PATCH(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const rl = await rateLimit(`notif-patch:${session.user.id}`, { limit: 60, windowMs: 60_000 });
+  if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
 
   const body = await req.json().catch(() => ({}));
   const { id } = body;

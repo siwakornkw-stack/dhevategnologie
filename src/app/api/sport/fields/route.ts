@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
   const fields = await prisma.field.findMany({
     where: {
       isActive: true,
+      deletedAt: null,
       ...(sport && { sportType: sport }),
       ...(search && {
         OR: [

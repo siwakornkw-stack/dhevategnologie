@@ -1,10 +1,11 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requirePosRole } from '@/lib/pos';
+import { requirePosRole, audit } from '@/lib/pos';
 
 function csvEscape(v: unknown): string {
   if (v === null || v === undefined) return '';
-  const s = String(v);
+  const raw = String(v);
+  const s = /^[=+\-@\t\r]/.test(raw) ? '\t' + raw : raw;
   if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;
 }
@@ -59,6 +60,7 @@ export async function GET(req: NextRequest) {
 
   const fromStr = from.toISOString().slice(0, 10);
   const toStr = to.toISOString().slice(0, 10);
+  audit(session.user.id, 'POS_REPORT_CSV_EXPORT', null, { from: fromStr, to: toStr, count: invoices.length });
   return new Response(body, {
     status: 200,
     headers: {

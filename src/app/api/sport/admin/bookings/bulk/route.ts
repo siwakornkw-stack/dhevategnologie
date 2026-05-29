@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { stripe } from '@/lib/stripe';
 import { sendBookingApprovedEmail, sendBookingRejectedEmail } from '@/lib/email';
 import { sendPushToUser } from '@/lib/web-push';
 import { notifyLineBulkStatus } from '@/lib/line-notify';
+import { calculatePriceWithRules } from '@/lib/booking';
 
 const REFERRAL_BONUS = 50;
 
@@ -24,50 +24,98 @@ export async function POST(req: NextRequest) {
     where: { id: { in: ids }, status: 'PENDING' },
     include: {
       user: { select: { name: true, email: true, notifEmail: true, notifInApp: true, referredById: true } },
-      field: { select: { name: true, pricePerHour: true } },
+      field: {
+        select: {
+          name: true,
+          pricePerHour: true,
+          priceRules: { select: { startTime: true, endTime: true, pricePerHour: true } },
+        },
+      },
     },
   });
 
   if (bookings.length === 0) return NextResponse.json({ updated: 0 });
 
-  await prisma.booking.updateMany({
-    where: { id: { in: bookings.map((b) => b.id) } },
+  const upd = await prisma.booking.updateMany({
+    where: { id: { in: bookings.map((b) => b.id) }, status: 'PENDING' },
     data: { status },
   });
+  if (upd.count === 0) return NextResponse.json({ updated: 0 });
 
   if (status === 'APPROVED') {
-    const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + (m || 0); };
     prisma.auditLog.create({
       data: { adminId: session.user.id, action: 'BOOKINGS_APPROVED', details: { ids: bookings.map((b) => b.id) } },
     }).catch(() => {});
 
-    // Check which users have prior approved bookings (for referral bonus)
-    const userIds = [...new Set(bookings.map((b) => b.userId))];
-    const usersWithPrior = await prisma.booking.findMany({
-      where: { userId: { in: userIds }, status: 'APPROVED', id: { notIn: bookings.map((b) => b.id) } },
-      select: { userId: true },
-      distinct: ['userId'],
-    });
-    const priorApprovedSet = new Set(usersWithPrior.map((b) => b.userId));
-    // Track which users already got referral bonus in this batch
-    const referralGivenTo = new Set<string>();
-
     await Promise.all(
       bookings.map(async (booking) => {
         const [s, e] = booking.timeSlot.split('-');
-        const hrs = Math.max(0, (toMin(e) - toMin(s)) / 60);
-        const paidAmount = Math.max(0, booking.field.pricePerHour * hrs - (booking.discountAmount ?? 0));
+        const base = calculatePriceWithRules(s, e, booking.field.pricePerHour, booking.field.priceRules || []);
+        const paidAmount = Math.max(0, base - (booking.discountAmount ?? 0));
         const pointsEarned = Math.floor(paidAmount / 10);
 
-        const tasks: Promise<unknown>[] = [];
+        // Points award + referral bonus must be atomic so partial failures roll back.
+        try {
+          await prisma.$transaction(async (tx) => {
+            if (pointsEarned > 0) {
+              // Atomic claim: only award if pointsEarned not already set on this booking.
+              // Protects against double-award when two admins overlap on the same booking IDs.
+              const claimed = await tx.booking.updateMany({
+                where: { id: booking.id, pointsEarned: null },
+                data: { pointsEarned },
+              });
+              if (claimed.count === 1) {
+                await tx.user.update({ where: { id: booking.userId }, data: { points: { increment: pointsEarned } } });
+                await tx.pointTransaction.create({
+                  data: { userId: booking.userId, points: pointsEarned, type: 'EARN', bookingId: booking.id, note: `จากการจอง ${booking.field.name}` },
+                });
+              }
+            }
 
-        // Notification + email
+            // Referral bonus: atomic claim via updateMany guard on referralBonusGrantedAt.
+            if (booking.user.referredById) {
+              const referrerId = booking.user.referredById;
+              const claimed = await tx.user.updateMany({
+                where: { id: booking.userId, referralBonusGrantedAt: null },
+                data: { referralBonusGrantedAt: new Date() },
+              });
+              if (claimed.count === 1) {
+                await tx.user.update({ where: { id: referrerId }, data: { points: { increment: REFERRAL_BONUS } } });
+                await tx.pointTransaction.create({
+                  data: { userId: referrerId, points: REFERRAL_BONUS, type: 'EARN', note: 'โบนัสแนะนำเพื่อน' },
+                });
+                await tx.notification.create({
+                  data: {
+                    userId: referrerId,
+                    type: 'REFERRAL_BONUS',
+                    title: 'ได้รับโบนัสแนะนำเพื่อน',
+                    message: `คุณได้รับ ${REFERRAL_BONUS} แต้มจากการที่เพื่อนจองสนามครั้งแรก`,
+                    link: '/sport/profile',
+                  },
+                });
+                await tx.auditLog.create({
+                  data: {
+                    adminId: session.user.id,
+                    action: 'REFERRAL_BONUS_AWARDED',
+                    targetId: referrerId,
+                    details: { referredUserId: booking.userId, points: REFERRAL_BONUS, bookingId: booking.id },
+                  },
+                });
+              }
+            }
+          });
+        } catch (err) {
+          console.error('[bulk approve] points/referral tx failed:', { bookingId: booking.id, err });
+        }
+
+        // Post-tx notifications (fire-and-forget)
         const emailData = {
           userName: booking.user.name ?? 'ลูกค้า',
           fieldName: booking.field.name,
           date: booking.date.toLocaleDateString('th-TH'),
           timeSlot: booking.timeSlot,
         };
+        const tasks: Promise<unknown>[] = [];
         if (booking.user.notifEmail) tasks.push(sendBookingApprovedEmail(booking.user.email, emailData).catch(() => {}));
         if (booking.user.notifInApp) {
           tasks.push(
@@ -75,75 +123,18 @@ export async function POST(req: NextRequest) {
               data: {
                 userId: booking.userId,
                 type: 'BOOKING_APPROVED',
-                title: '🎉 การจองได้รับการอนุมัติ',
+                title: 'การจองได้รับการอนุมัติ',
                 message: `${booking.field.name} · ${emailData.date} เวลา ${booking.timeSlot} น.`,
                 link: '/sport/bookings',
               },
             }).catch(() => {}),
             sendPushToUser(booking.userId, {
-              title: '🎉 การจองได้รับการอนุมัติ',
+              title: 'การจองได้รับการอนุมัติ',
               message: `${booking.field.name} · ${emailData.date} เวลา ${booking.timeSlot} น.`,
               link: '/sport/bookings',
             }).catch(() => {}),
           );
         }
-
-        // Award points
-        if (pointsEarned > 0) {
-          tasks.push(
-            prisma.user.update({ where: { id: booking.userId }, data: { points: { increment: pointsEarned } } }),
-            prisma.pointTransaction.create({
-              data: { userId: booking.userId, points: pointsEarned, type: 'EARN', bookingId: booking.id, note: `จากการจอง ${booking.field.name}` },
-            }),
-            prisma.booking.update({ where: { id: booking.id }, data: { pointsEarned } }),
-          );
-        }
-
-        // Referral bonus on first approved booking — wrapped in transaction to prevent concurrent double-award
-        const isFirstApproved = !priorApprovedSet.has(booking.userId) && booking.user.referredById && !referralGivenTo.has(booking.userId);
-        if (isFirstApproved && booking.user.referredById) {
-          referralGivenTo.add(booking.userId);
-          const referrerId = booking.user.referredById;
-          const currentBatchIds = bookings.map((b) => b.id);
-          tasks.push(
-            prisma.$transaction(async (tx) => {
-              // Idempotency: award at most once per referred user, even under concurrent
-              // approvals. The audit log keyed by referredUserId is the dedup marker;
-              // Serializable isolation makes concurrent checks conflict instead of both passing.
-              const alreadyAwarded = await tx.auditLog.findFirst({
-                where: { action: 'REFERRAL_BONUS_AWARDED', details: { path: ['referredUserId'], equals: booking.userId } },
-                select: { id: true },
-              });
-              if (alreadyAwarded) return;
-              const otherApproved = await tx.booking.count({
-                where: { userId: booking.userId, status: 'APPROVED', id: { notIn: currentBatchIds } },
-              });
-              if (otherApproved > 0) return;
-              await tx.user.update({ where: { id: referrerId }, data: { points: { increment: REFERRAL_BONUS } } });
-              await tx.pointTransaction.create({
-                data: { userId: referrerId, points: REFERRAL_BONUS, type: 'EARN', note: 'โบนัสแนะนำเพื่อน' },
-              });
-              await tx.notification.create({
-                data: {
-                  userId: referrerId,
-                  type: 'REFERRAL_BONUS',
-                  title: '⭐ ได้รับโบนัสแนะนำเพื่อน',
-                  message: `คุณได้รับ ${REFERRAL_BONUS} แต้มจากการที่เพื่อนจองสนามครั้งแรก`,
-                  link: '/sport/profile',
-                },
-              });
-              await tx.auditLog.create({
-                data: {
-                  adminId: session.user.id,
-                  action: 'REFERRAL_BONUS_AWARDED',
-                  targetId: referrerId,
-                  details: { referredUserId: booking.userId, points: REFERRAL_BONUS, bookingId: booking.id },
-                },
-              });
-            }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }).catch(() => {}),
-          );
-        }
-
         await Promise.allSettled(tasks);
       })
     );

@@ -20,13 +20,25 @@ export async function POST(req: NextRequest) {
 
   const cust = customer && typeof customer === 'object' ? customer : null;
   const customerId = cust?.id ? String(cust.id).slice(0, 50) : null;
-  const customerName = cust?.name ? String(cust.name).slice(0, 200) : null;
+  // For guest customers (no id), accept body fields. For known customers, body is overridden
+  // with DB values inside the tx so cashier UI can't fake another user's snapshot.
+  let customerName = cust?.name ? String(cust.name).slice(0, 200) : null;
   const customerTaxId = cust?.taxId ? String(cust.taxId).slice(0, 50) : null;
   const customerAddress = cust?.address ? String(cust.address).slice(0, 500) : null;
-  const customerPhone = cust?.phone ? String(cust.phone).slice(0, 50) : null;
+  let customerPhone = cust?.phone ? String(cust.phone).slice(0, 50) : null;
 
   try {
     const result = await prisma.$transaction(async (tx) => {
+      if (customerId) {
+        const c = await tx.user.findUnique({
+          where: { id: customerId },
+          select: { id: true, role: true, name: true, phone: true },
+        });
+        if (!c || c.role !== 'USER') throw new Error('CUSTOMER_INVALID');
+        // Sync snapshot from DB so the invoice reflects the actual customer record, not body inputs
+        customerName = c.name?.slice(0, 200) || customerName;
+        customerPhone = c.phone?.slice(0, 50) || customerPhone;
+      }
       const master = await tx.posTab.findUnique({
         where: { id: tabId },
         include: {
@@ -141,7 +153,7 @@ export async function POST(req: NextRequest) {
       let invoice;
       let invAttempts = 0;
       while (true) {
-        const invoiceNo = await nextInvoiceNo();
+        const invoiceNo = await nextInvoiceNo(tx);
         try {
           invoice = await tx.posInvoice.create({ data: {
             invoiceNo, type, status: 'PAID',
@@ -199,7 +211,7 @@ export async function POST(req: NextRequest) {
           data: {
             invoiceId: invoice.id,
             method: p.method as 'CASH' | 'TRANSFER' | 'QR' | 'CARD' | 'OTHER',
-            amount: Number(p.amount) || finalTotal,
+            amount: finalTotal,
             cashReceived,
             changeAmount,
             refNo: p.refNo || null,
@@ -244,6 +256,7 @@ export async function POST(req: NextRequest) {
     if (msg === 'CASH_INSUFFICIENT') return NextResponse.json({ error: 'เงินสดไม่พอ' }, { status: 400 });
     if (msg === 'COUPON_DISABLED') return NextResponse.json({ error: 'ระบบคูปองปิดอยู่' }, { status: 403 });
     if (msg === 'COUPON_INVALID') return NextResponse.json({ error: 'คูปองไม่ถูกต้องหรือหมดอายุ' }, { status: 400 });
+    if (msg === 'CUSTOMER_INVALID') return NextResponse.json({ error: 'ลูกค้าไม่ถูกต้อง' }, { status: 400 });
     if (msg === 'TAB_NOT_OPEN') return NextResponse.json({ error: 'tab ปิดแล้ว' }, { status: 409 });
     if (msg === 'TAB_NOT_FOUND') return NextResponse.json({ error: 'ไม่พบ tab' }, { status: 404 });
     if (msg === 'TAB_RACE') return NextResponse.json({ error: 'tab ถูกปิดโดยอีกหน้าจอ' }, { status: 409 });

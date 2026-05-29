@@ -1,14 +1,21 @@
-export function generateTimeSlots(openTime: string, closeTime: string): string[] {
+export function generateTimeSlots(openTime: string, closeTime: string, stepMin: number = 60): string[] {
   const slots: string[] = [];
-  const [openH] = openTime.split(':').map(Number);
-  const [closeH] = closeTime.split(':').map(Number);
-  if (openH === closeH) return slots;
-  const closeHAdj = closeH < openH ? closeH + 24 : closeH;
+  const [openH, openM = 0] = openTime.split(':').map(Number);
+  const [closeH, closeM = 0] = closeTime.split(':').map(Number);
+  const openMin = openH * 60 + openM;
+  let closeMin = closeH * 60 + closeM;
+  if (closeMin === openMin) return slots;
+  if (closeMin < openMin) closeMin += 1440;
+  if (stepMin <= 0) return slots;
 
-  for (let h = openH; h < closeHAdj; h++) {
-    const start = `${String(h % 24).padStart(2, '0')}:00`;
-    const end = `${String((h + 1) % 24).padStart(2, '0')}:00`;
-    slots.push(`${start}-${end}`);
+  const fmt = (totalMin: number) => {
+    const t = ((totalMin % 1440) + 1440) % 1440;
+    return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+  };
+
+  for (let m = openMin; m < closeMin; m += stepMin) {
+    const end = Math.min(m + stepMin, closeMin);
+    slots.push(`${fmt(m)}-${fmt(end)}`);
   }
   return slots;
 }
@@ -74,6 +81,41 @@ const toTime = (m: number): string =>
   `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 
 /**
+ * Parse a timeslot string "HH:MM-HH:MM" into minute pair [start, end].
+ * Returns null on invalid input. Overnight ranges (end <= start) wrap +1440.
+ */
+export function parseSlotRange(ts: string): [number, number] | null {
+  if (typeof ts !== 'string') return null;
+  const parts = ts.split('-');
+  if (parts.length !== 2) return null;
+  const s = toMinutes(parts[0]);
+  let e = toMinutes(parts[1]);
+  if (isNaN(s) || isNaN(e) || s === e) return null;
+  if (e < s) e += 1440;
+  return [s, e];
+}
+
+/** Half-open interval overlap: [aStart, aEnd) ∩ [bStart, bEnd) != empty */
+export function rangesOverlap(aStart: number, aEnd: number, bStart: number, bEnd: number): boolean {
+  return aStart < bEnd && aEnd > bStart;
+}
+
+/**
+ * Detect whether any incoming slot overlaps any existing booked slot.
+ * Uses minute-based half-open interval overlap, so partial 15-min slots
+ * correctly conflict with hourly slots.
+ */
+export function hasSlotConflict(existingTimeSlots: string[], incomingTimeSlots: string[]): boolean {
+  const existing = existingTimeSlots
+    .map(parseSlotRange)
+    .filter((r): r is [number, number] => r !== null);
+  const incoming = incomingTimeSlots
+    .map(parseSlotRange)
+    .filter((r): r is [number, number] => r !== null);
+  return incoming.some(([is, ie]) => existing.some(([es, ee]) => rangesOverlap(is, ie, es, ee)));
+}
+
+/**
  * Expand a range like "08:00-10:00" into hourly slots ["08:00-09:00","09:00-10:00"].
  * A single-hour range is returned as-is.
  */
@@ -108,19 +150,6 @@ export function parseSlot(ts: string): [number, number] | null {
 /** True if interval [aStart,aEnd) overlaps [bStart,bEnd). */
 export function slotsOverlap(aStart: number, aEnd: number, bStart: number, bEnd: number): boolean {
   return aStart < bEnd && aEnd > bStart;
-}
-
-/**
- * True if `incoming` ("HH:MM-HH:MM") overlaps any of `existing` slot strings.
- * Used as the single source of truth for booking conflict detection.
- */
-export function hasSlotConflict(incoming: string, existing: string[]): boolean {
-  const inc = parseSlot(incoming);
-  if (!inc) return false;
-  return existing.some((ts) => {
-    const p = parseSlot(ts);
-    return p ? slotsOverlap(inc[0], inc[1], p[0], p[1]) : false;
-  });
 }
 
 /**

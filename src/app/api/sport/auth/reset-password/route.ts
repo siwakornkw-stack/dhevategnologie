@@ -29,17 +29,27 @@ export async function POST(req: NextRequest) {
 
   if (!record) return NextResponse.json({ error: 'Token ไม่ถูกต้องหรือหมดอายุแล้ว' }, { status: 400 });
   if (record.expires < new Date()) {
-    await prisma.verificationToken.delete({ where: { identifier_token: { identifier: record.identifier, token } } });
+    await prisma.verificationToken.deleteMany({ where: { identifier: record.identifier, token } });
     return NextResponse.json({ error: 'Token หมดอายุแล้ว กรุณาขอใหม่อีกครั้ง' }, { status: 400 });
   }
 
   const email = record.identifier.replace('reset:', '');
   const hashed = await bcrypt.hash(password, 12);
 
-  await Promise.all([
-    prisma.user.update({ where: { email }, data: { password: hashed, passwordChangedAt: new Date() } }),
-    prisma.verificationToken.delete({ where: { identifier_token: { identifier: record.identifier, token } } }),
-  ]);
+  // Single-use guard: atomic deleteMany claims the token. If count !== 1 a concurrent
+  // request already consumed it; abort so we don't reset to two different passwords.
+  try {
+    await prisma.$transaction(async (tx) => {
+      const claim = await tx.verificationToken.deleteMany({ where: { identifier: record.identifier, token } });
+      if (claim.count !== 1) throw new Error('TOKEN_CONSUMED');
+      await tx.user.update({ where: { email }, data: { password: hashed, passwordChangedAt: new Date() } });
+    });
+  } catch (e) {
+    if (e instanceof Error && e.message === 'TOKEN_CONSUMED') {
+      return NextResponse.json({ error: 'Token ถูกใช้ไปแล้ว' }, { status: 400 });
+    }
+    throw e;
+  }
 
   return NextResponse.json({ ok: true });
 }

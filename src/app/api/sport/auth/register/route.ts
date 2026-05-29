@@ -39,14 +39,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
     }
 
-    const { name, email, phone, password, referralCode } = parsed.data;
+    const { name, phone, password, referralCode } = parsed.data;
+    // Normalize email: lookup AND store the same trimmed/lowercased form so an
+    // attacker can't enumerate accounts by varying casing/whitespace.
+    const email = parsed.data.email.trim().toLowerCase();
 
     const exists = await prisma.user.findUnique({ where: { email } });
     if (exists) {
-      // Run a throwaway hash so the duplicate-email path takes as long as the success
-      // path (which calls bcrypt.hash), closing the timing side-channel. Message stays generic.
-      await bcrypt.hash(password, 12);
-      return NextResponse.json({ error: 'ไม่สามารถสมัครสมาชิกด้วยข้อมูลนี้ได้' }, { status: 409 });
+      // Return success-shaped 201 to prevent email enumeration. Client navigates
+      // to "check inbox"; no email is sent for the existing account here.
+      return NextResponse.json({ ok: true }, { status: 201 });
     }
 
     // Resolve referrer

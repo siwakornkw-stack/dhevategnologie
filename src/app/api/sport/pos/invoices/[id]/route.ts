@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requirePosRole, reversePoints } from '@/lib/pos';
+import { requirePosRole, reversePoints, audit } from '@/lib/pos';
 
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const session = await requirePosRole(['ADMIN', 'CASHIER']);
@@ -12,14 +12,14 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
     include: { payments: true, splits: true },
   });
   if (!inv) return NextResponse.json({ error: 'not found' }, { status: 404 });
-  // Cashiers may only read today's invoices (mirror list-route restriction); 404 avoids leaking existence.
-  if (session.user.role === 'CASHIER') {
-    const todayMin = new Date();
-    todayMin.setHours(0, 0, 0, 0);
-    if (!inv.paidAt || inv.paidAt < todayMin) {
-      return NextResponse.json({ error: 'not found' }, { status: 404 });
-    }
+
+  if (session.user.role !== 'ADMIN') {
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    const ownInvoice = inv.cashierId === session.user.id;
+    const sameDay = inv.paidAt >= todayStart;
+    if (!ownInvoice && !sameDay) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
+
   return NextResponse.json(inv);
 }
 
@@ -37,13 +37,14 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
       if (inv.status === 'VOID') throw new Error('ALREADY_VOID');
       if (inv.refundedAmount > 0) throw new Error('HAS_REFUND');
 
-      // Reverse stock from itemsSnapshot
+      // Reverse stock from itemsSnapshot. updateMany no-ops if the product was deleted
+      // since the invoice was paid, instead of throwing (the prior .catch hid real DB errors).
       const snap = (inv.itemsSnapshot as Array<{ productId: string; qty: number; productName?: string }> | null) || [];
       for (const it of snap) {
-        await tx.posProduct.update({
+        await tx.posProduct.updateMany({
           where: { id: it.productId },
           data: { stockQty: { increment: it.qty } },
-        }).catch(() => {});
+        });
         await tx.posStockMovement.create({
           data: {
             productId: it.productId,
@@ -57,13 +58,14 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
         });
       }
 
-      // Reopen booking if any
+      // Reopen booking only if still APPROVED + paidAt matches (was paid via this invoice).
+      // Skip if rebooked/cancelled to avoid silently regressing other state.
       const bookingIds = (inv.bookingIds as string[] | null) || [];
       for (const bid of bookingIds) {
-        await tx.booking.update({
-          where: { id: bid },
+        await tx.booking.updateMany({
+          where: { id: bid, status: 'APPROVED', paidAt: { not: null } },
           data: { paidAt: null, status: 'PENDING' },
-        }).catch(() => {});
+        });
       }
 
       if (inv.customerId && (inv.pointsEarned > 0 || inv.pointsRedeemed > 0)) {
@@ -78,20 +80,21 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
         });
       }
 
-      await tx.posInvoice.update({
-        where: { id },
+      const upd = await tx.posInvoice.updateMany({
+        where: { id, status: { not: 'VOID' }, refundedAmount: 0 },
         data: { status: 'VOID', voidedAt: new Date(), voidedBy: session.user.id, voidReason: reason },
       });
+      if (upd.count !== 1) throw new Error('VOID_RACE');
+      // Audit inside tx: void + audit row commit atomically
+      await audit(session.user.id, 'POS_INVOICE_VOID', id, { reason }, tx);
     });
-    prisma.auditLog
-      .create({ data: { adminId: session.user.id, action: 'POS_INVOICE_VOID', targetId: id, details: { reason } } })
-      .catch(() => {});
     return NextResponse.json({ ok: true });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'void failed';
     if (msg === 'NOT_FOUND') return NextResponse.json({ error: 'ไม่พบบิล' }, { status: 404 });
     if (msg === 'ALREADY_VOID') return NextResponse.json({ error: 'บิล void ไปแล้ว' }, { status: 409 });
     if (msg === 'HAS_REFUND') return NextResponse.json({ error: 'บิลนี้มี refund แล้ว ต้อง refund เต็มจำนวนแทนการ void' }, { status: 409 });
+    if (msg === 'VOID_RACE') return NextResponse.json({ error: 'บิลถูกแก้ไขโดยผู้ใช้อื่น' }, { status: 409 });
     return NextResponse.json({ error: msg }, { status: 409 });
   }
 }

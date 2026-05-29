@@ -24,13 +24,24 @@ export async function POST(req: NextRequest) {
 
   const cust = customer && typeof customer === 'object' ? customer : null;
   const customerId = cust?.id ? String(cust.id).slice(0, 50) : null;
-  const customerName = cust?.name ? String(cust.name).slice(0, 200) : null;
+  // For guest customers (no id), accept body fields. For known customers, body is overridden
+  // with DB values inside the tx so cashier UI can't fake another user's snapshot.
+  let customerName = cust?.name ? String(cust.name).slice(0, 200) : null;
   const customerTaxId = cust?.taxId ? String(cust.taxId).slice(0, 50) : null;
   const customerAddress = cust?.address ? String(cust.address).slice(0, 500) : null;
-  const customerPhone = cust?.phone ? String(cust.phone).slice(0, 50) : null;
+  let customerPhone = cust?.phone ? String(cust.phone).slice(0, 50) : null;
 
   try {
     const result = await prisma.$transaction(async (tx) => {
+      if (customerId) {
+        const c = await tx.user.findUnique({
+          where: { id: customerId },
+          select: { id: true, role: true, name: true, phone: true },
+        });
+        if (!c || c.role !== 'USER') throw new Error('CUSTOMER_INVALID');
+        customerName = c.name?.slice(0, 200) || customerName;
+        customerPhone = c.phone?.slice(0, 50) || customerPhone;
+      }
       const ids = (items as Item[]).map((i) => i.productId);
       const products = await tx.posProduct.findMany({ where: { id: { in: ids } } });
       const map = new Map(products.map((p) => [p.id, p]));
@@ -46,10 +57,10 @@ export async function POST(req: NextRequest) {
         const q = Number(it.qty);
         if (!Number.isInteger(q) || q <= 0) throw new Error('QTY_INVALID');
         const unitPrice = it.unitPrice !== undefined ? Number(it.unitPrice) : p.price;
-        if (!Number.isFinite(unitPrice) || unitPrice < 0) throw new Error('PRICE_INVALID');
         const lineDiscount = Number(it.discount) || 0;
-        if (!Number.isFinite(lineDiscount) || lineDiscount < 0 || lineDiscount > unitPrice * q) throw new Error('DISCOUNT_INVALID');
-        const line = unitPrice * q - lineDiscount;
+        if (!Number.isFinite(unitPrice) || unitPrice < 0) throw new Error('PRICE_INVALID');
+        if (!Number.isFinite(lineDiscount) || lineDiscount < 0) throw new Error('DISCOUNT_INVALID');
+        const line = Math.max(0, unitPrice * q - lineDiscount);
         itemsTotal += line;
         totalCost += (p.cost || 0) * q;
         snapshot.push({ productId: p.id, productName: p.name, qty: q, unitPrice, discount: lineDiscount });
@@ -66,7 +77,7 @@ export async function POST(req: NextRequest) {
         pendingMovements.push({ productId: p.id, qty: q });
       }
 
-      const discNum = Number(discount) || 0;
+      const discNum = Math.max(0, Number(discount) || 0);
 
       let couponDiscount = 0;
       let appliedCouponCode: string | null = null;
@@ -116,7 +127,7 @@ export async function POST(req: NextRequest) {
       let invoice;
       let attempts = 0;
       while (true) {
-        const invoiceNo = await nextInvoiceNo();
+        const invoiceNo = await nextInvoiceNo(tx);
         try {
           invoice = await tx.posInvoice.create({
             data: {
@@ -150,7 +161,7 @@ export async function POST(req: NextRequest) {
           if (attempts > 5) throw e;
         }
       }
-      const amount = Number(payment.amount) || finalTotal;
+      const amount = finalTotal;
       const cashReceived = payment.method === 'CASH' && payment.cashReceived !== undefined ? Number(payment.cashReceived) : null;
       const changeAmount = cashReceived !== null ? +(cashReceived - finalTotal).toFixed(2) : null;
       if (payment.method === 'CASH' && cashReceived !== null && cashReceived < finalTotal) {
@@ -201,6 +212,7 @@ export async function POST(req: NextRequest) {
     if (msg === 'QTY_INVALID') return NextResponse.json({ error: 'qty ไม่ถูกต้อง' }, { status: 400 });
     if (msg === 'PRICE_INVALID') return NextResponse.json({ error: 'ราคาไม่ถูกต้อง' }, { status: 400 });
     if (msg === 'DISCOUNT_INVALID') return NextResponse.json({ error: 'ส่วนลดไม่ถูกต้อง' }, { status: 400 });
+    if (msg === 'CUSTOMER_INVALID') return NextResponse.json({ error: 'ลูกค้าไม่ถูกต้อง' }, { status: 400 });
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

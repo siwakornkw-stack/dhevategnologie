@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth';
 import { generateSecret, generateURI, verifySync } from 'otplib';
 import QRCode from 'qrcode';
 import { randomBytes, createHash } from 'crypto';
+import bcrypt from 'bcryptjs';
 
 function generateBackupCodes(): { plain: string[]; hashed: string[] } {
   const plain = Array.from({ length: 8 }, () =>
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { code, action } = await req.json();
+  const { code, action, currentPassword } = await req.json();
 
   if (!code || typeof code !== 'string' || code.length < 4 || code.length > 10) {
     return NextResponse.json({ error: 'รหัส 2FA ไม่ถูกต้อง' }, { status: 400 });
@@ -55,9 +56,18 @@ export async function POST(req: NextRequest) {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { twoFactorSecret: true, twoFactorEnabled: true, twoFactorBackupCodes: true },
+    select: { twoFactorSecret: true, twoFactorEnabled: true, twoFactorBackupCodes: true, password: true },
   });
   if (!user?.twoFactorSecret) return NextResponse.json({ error: 'ไม่พบ secret' }, { status: 400 });
+
+  // Re-auth with password before disabling 2FA; raises bar against session hijack.
+  if (action === 'disable' && user.password) {
+    if (!currentPassword || typeof currentPassword !== 'string') {
+      return NextResponse.json({ error: 'ต้องระบุรหัสผ่านปัจจุบันเพื่อปิด 2FA' }, { status: 400 });
+    }
+    const ok = await bcrypt.compare(currentPassword, user.password);
+    if (!ok) return NextResponse.json({ error: 'รหัสผ่านไม่ถูกต้อง' }, { status: 400 });
+  }
 
   if (action === 'useBackup') {
     const codeHash = createHash('sha256').update(code.toUpperCase()).digest('hex');

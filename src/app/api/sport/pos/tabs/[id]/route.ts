@@ -51,13 +51,22 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       const b = await prisma.booking.findUnique({ where: { id: body.bookingId }, select: { id: true, paidAt: true } });
       if (!b) return NextResponse.json({ error: 'booking not found' }, { status: 404 });
       if (b.paidAt) return NextResponse.json({ error: 'booking จ่ายแล้ว' }, { status: 409 });
+      data.bookingId = body.bookingId;
+    } else {
+      // Unlinking booking — also clear teamLabel (set during booking link) unless caller
+      // explicitly sent a new teamLabel in the same PATCH.
+      data.bookingId = null;
+      if (body.teamLabel === undefined) data.teamLabel = null;
     }
-    data.bookingId = body.bookingId || null;
   }
 
-  const tab = await prisma.posTab.findUnique({ where: { id }, select: { status: true } });
+  const tab = await prisma.posTab.findUnique({ where: { id }, select: { status: true, openedBy: true } });
   if (!tab) return NextResponse.json({ error: 'not found' }, { status: 404 });
   if (tab.status !== 'OPEN') return NextResponse.json({ error: 'tab not open' }, { status: 409 });
+  // Only ADMIN or the cashier who opened it can edit. Pre-migration tabs with null openedBy stay editable by any cashier.
+  if (session.user.role !== 'ADMIN' && tab.openedBy && tab.openedBy !== session.user.id) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
 
   const updated = await prisma.posTab.update({ where: { id }, data });
   return NextResponse.json(updated);
@@ -77,6 +86,10 @@ export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: str
   });
   if (!tab) return NextResponse.json({ error: 'not found' }, { status: 404 });
   if (tab.status !== 'OPEN') return NextResponse.json({ error: 'tab not open' }, { status: 409 });
+  // Only ADMIN or the cashier who opened it can void. Pre-migration tabs with null openedBy stay deletable by any cashier.
+  if (session.user.role !== 'ADMIN' && tab.openedBy && tab.openedBy !== session.user.id) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
 
   const allTabs = [tab, ...tab.children];
   await prisma.$transaction(async (tx) => {

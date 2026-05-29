@@ -14,6 +14,8 @@ export async function GET(req: NextRequest) {
   const where: Record<string, unknown> = {};
   if (invoiceId) where.invoiceId = invoiceId;
   if (shiftId) where.shiftId = shiftId;
+  // Scope CASHIER to their own refunds; ADMIN sees all
+  if (session.user.role === 'CASHIER') where.cashierId = session.user.id;
 
   const refunds = await prisma.posRefund.findMany({
     where,
@@ -104,16 +106,35 @@ export async function POST(req: NextRequest) {
         if (amount > itemsValue + 0.01) throw new Error('REFUND_AMOUNT_EXCEEDS_ITEMS');
       }
 
-      // Atomic guard: refundedAmount cannot exceed total
+      // Atomic guard: refundedAmount + amount must not exceed total.
+      // No positive tolerance — tolerance on the upper bound would allow
+      // total refunds to exceed the invoice amount under repeated rounding.
       const guard = await tx.posInvoice.updateMany({
         where: {
           id: inv.id,
           status: 'PAID',
-          refundedAmount: { lte: inv.total - amount + 0.01 },
+          refundedAmount: { lte: inv.total - amount },
         },
         data: { refundedAmount: { increment: amount } },
       });
       if (guard.count !== 1) throw new Error('REFUND_EXCEEDS');
+
+      // If this refund pushes refundedAmount to exactly inv.total, release the coupon hold
+      // once. The atomic guard above ensures we only enter this branch the single tx that
+      // crosses the threshold, so no double-decrement.
+      // Use raw sum (not toFixed) — toFixed rounds, but the atomic guard above
+      // already bounds newRefunded <= inv.total exactly. Comparing the raw sum
+      // avoids spurious threshold crossing from rounding artifacts.
+      const newRefunded = inv.refundedAmount + amount;
+      if (newRefunded >= inv.total) {
+        const couponMatch = inv.note?.match(/\[COUPON:([A-Z0-9_-]+)\s+-[\d.]+\]/);
+        if (couponMatch) {
+          await tx.coupon.updateMany({
+            where: { code: couponMatch[1], usedCount: { gt: 0 } },
+            data: { usedCount: { decrement: 1 } },
+          });
+        }
+      }
 
       // Ratio-based points reverse (idempotent via pointTransaction history)
       if (inv.customerId && (inv.pointsEarned > 0 || inv.pointsRedeemed > 0) && inv.total > 0) {
@@ -182,9 +203,10 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // Audit inside tx so refund + audit row are atomic
+      await audit(session.user.id, 'POS_REFUND', refund.id, { invoiceId, amount, method, reason }, tx);
       return refund;
     });
-    audit(session.user.id, 'POS_REFUND', result.id, { invoiceId, amount, method, reason });
     return NextResponse.json(result, { status: 201 });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'refund failed';

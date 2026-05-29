@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createBackup } from '@/lib/backup';
-import { verifyCronSecret } from '@/lib/cron-auth';
 
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
 
 // Daily backup. Called by Vercel Cron (see vercel.json) — protected by CRON_SECRET.
 export async function GET(req: NextRequest) {
-  if (!verifyCronSecret(req)) {
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // Bearer header only — query-string secret leaks into proxy/CDN access logs.
+  const authHeader = req.headers.get('authorization');
+  const secret = authHeader?.replace('Bearer ', '');
+  if (secret !== cronSecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

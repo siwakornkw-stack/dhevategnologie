@@ -320,7 +320,7 @@ export function AvailabilityClient({
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-800">
             {fields.map((field) => {
-              const allSlots = generateTimeSlots(field.openTime, field.closeTime);
+              const allSlots = generateTimeSlots(field.openTime, field.closeTime, 15);
               const booked = availability[field.id] ?? {};
               const availableSlots = allSlots.filter((s) => !isSlotOverlapping(s, booked));
 

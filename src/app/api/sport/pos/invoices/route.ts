@@ -24,6 +24,8 @@ export async function GET(req: NextRequest) {
   if (to) range.lte = new Date(to);
   if (isCashier) {
     if (!range.gte || range.gte < todayMin) range.gte = todayMin;
+    // Scope to own cashier's invoices to prevent cross-cashier visibility
+    where.cashierId = session.user.id;
   }
   if (Object.keys(range).length) where.paidAt = range;
 

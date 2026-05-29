@@ -21,11 +21,10 @@ export async function GET() {
     data: { adminId: session.user.id, action: 'USERS_EXPORTED', details: { count: users.length } },
   }).catch(() => {});
 
-  // Prevent Excel formula injection by prefixing dangerous leading characters with a tab
   const escape = (val: unknown) => {
-    const raw = String(val ?? '');
-    const s = /^[=+\-@\t\r]/.test(raw) ? '\t' + raw : raw;
-    return `"${s.replace(/"/g, '""')}"`;
+    const s = String(val ?? '');
+    const safe = /^[=+\-@\t\r]/.test(s) ? '\t' + s : s;
+    return `"${safe.replace(/"/g, '""')}"`;
   };
 
   const header = ['ID', 'ชื่อ', 'อีเมล', 'เบอร์โทร', 'Role', 'ยืนยันอีเมล', 'การจอง', 'สมัครเมื่อ'].map(escape).join(',');

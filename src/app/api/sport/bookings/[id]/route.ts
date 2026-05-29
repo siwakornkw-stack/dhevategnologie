@@ -7,6 +7,8 @@ import { notifyLineBookingStatus } from '@/lib/line-notify';
 import { stripe } from '@/lib/stripe';
 import { notifyWaitingList } from '@/lib/waiting-list-notify';
 import { sendPushToUser } from '@/lib/web-push';
+import { calculatePriceWithRules } from '@/lib/booking';
+import { rateLimit, BOOKING_RATE_LIMIT } from '@/lib/rate-limit';
 
 const REFERRAL_BONUS = 50;
 const CANCEL_DEADLINE_HOURS = 2;
@@ -60,6 +62,9 @@ function overlaps(aStart: number, aEnd: number, bStart: number, bEnd: number): b
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const rl = await rateLimit(`booking-mutate:${session.user.id}`, BOOKING_RATE_LIMIT);
+  if (!rl.success) return NextResponse.json({ error: 'คำขอเกินจำนวนที่กำหนด' }, { status: 429 });
 
   const { id } = await params;
   const body = await req.json();
@@ -203,12 +208,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   // Cancellation deadline: users cannot cancel APPROVED bookings within CANCEL_DEADLINE_HOURS of start
-  // PENDING bookings (payment not completed) are always cancellable
+  // PENDING bookings (payment not completed) are always cancellable.
+  // booking.date stores UTC midnight of the Bangkok day; timeSlot is Bangkok local time.
+  // Compute booking start in UTC as that day's UTC midnight + (hours - 7) to match Asia/Bangkok (UTC+7).
   if (!isAdmin && status === 'CANCELLED' && booking.status === 'APPROVED') {
     const [startStr] = booking.timeSlot.split('-');
     const [h, m] = startStr.split(':').map(Number);
+    const BANGKOK_UTC_OFFSET_HOURS = 7;
     const bookingStart = new Date(booking.date);
-    bookingStart.setHours(h, m, 0, 0);
+    bookingStart.setUTCHours(h - BANGKOK_UTC_OFFSET_HOURS, m, 0, 0);
     const hoursUntil = (bookingStart.getTime() - Date.now()) / 3_600_000;
     if (hoursUntil < CANCEL_DEADLINE_HOURS) {
       return NextResponse.json(
@@ -219,23 +227,37 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   // --- Atomic transaction: status change + all financial side-effects ---
-  const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
-
-  const updated = await prisma.$transaction(async (tx) => {
-    const b = await tx.booking.update({
-      where: { id },
+  // TOCTOU guard: only flip status if it still matches the value we validated against
+  // VALID_TRANSITIONS. If a concurrent request already changed it, claim.count === 0
+  // and we throw STATUS_RACE so the caller sees 409 instead of double-applying side-effects.
+  const txResult = await prisma.$transaction(async (tx) => {
+    const claim = await tx.booking.updateMany({
+      where: { id, status: booking.status },
       data: { status },
+    });
+    if (claim.count !== 1) {
+      throw Object.assign(new Error('STATUS_RACE'), { isRace: true });
+    }
+    const b = await tx.booking.findUnique({
+      where: { id },
       include: {
-        field: { select: { name: true, pricePerHour: true } },
+        field: {
+          select: {
+            name: true,
+            pricePerHour: true,
+            priceRules: { select: { startTime: true, endTime: true, pricePerHour: true } },
+          },
+        },
         user: { select: { name: true, email: true, notifEmail: true, notifInApp: true, referredById: true } },
       },
     });
+    if (!b) throw Object.assign(new Error('STATUS_RACE'), { isRace: true });
 
     if (status === 'APPROVED') {
       const [s, e] = booking.timeSlot.split('-');
-      const hrs = Math.max(0, (toMin(e) - toMin(s)) / 60);
-      const paidAmount = b.field.pricePerHour * hrs - (booking.discountAmount ?? 0);
-      const pointsEarned = Math.floor(Math.max(0, paidAmount) / 10);
+      const base = calculatePriceWithRules(s, e, b.field.pricePerHour, b.field.priceRules || []);
+      const paidAmount = Math.max(0, base - (booking.discountAmount ?? 0));
+      const pointsEarned = Math.floor(paidAmount / 10);
 
       if (pointsEarned > 0) {
         await tx.user.update({ where: { id: b.userId }, data: { points: { increment: pointsEarned } } });
@@ -245,25 +267,30 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         await tx.booking.update({ where: { id }, data: { pointsEarned } });
       }
 
-      // Referral bonus on user's first approved booking
-      const prevApproved = await tx.booking.count({
-        where: { userId: b.userId, status: 'APPROVED', id: { not: id } },
-      });
-      if (prevApproved === 0 && b.user.referredById) {
+      // Referral bonus on user's first approved booking.
+      // Atomic claim: updateMany sets referralBonusGrantedAt only if still null,
+      // so concurrent approvals can only grant the bonus once.
+      if (b.user.referredById) {
         const referrerId = b.user.referredById;
-        await tx.user.update({ where: { id: referrerId }, data: { points: { increment: REFERRAL_BONUS } } });
-        await tx.pointTransaction.create({
-          data: { userId: referrerId, points: REFERRAL_BONUS, type: 'EARN', note: 'โบนัสแนะนำเพื่อน' },
+        const claimed = await tx.user.updateMany({
+          where: { id: b.userId, referralBonusGrantedAt: null },
+          data: { referralBonusGrantedAt: new Date() },
         });
-        await tx.notification.create({
-          data: {
-            userId: referrerId,
-            type: 'REFERRAL_BONUS',
-            title: 'ได้รับโบนัสแนะนำเพื่อน',
-            message: `คุณได้รับ ${REFERRAL_BONUS} แต้มจากการที่เพื่อนจองสนามครั้งแรก`,
-            link: '/sport/profile',
-          },
-        });
+        if (claimed.count === 1) {
+          await tx.user.update({ where: { id: referrerId }, data: { points: { increment: REFERRAL_BONUS } } });
+          await tx.pointTransaction.create({
+            data: { userId: referrerId, points: REFERRAL_BONUS, type: 'EARN', note: 'โบนัสแนะนำเพื่อน' },
+          });
+          await tx.notification.create({
+            data: {
+              userId: referrerId,
+              type: 'REFERRAL_BONUS',
+              title: 'ได้รับโบนัสแนะนำเพื่อน',
+              message: `คุณได้รับ ${REFERRAL_BONUS} แต้มจากการที่เพื่อนจองสนามครั้งแรก`,
+              link: '/sport/profile',
+            },
+          });
+        }
       }
     } else if (status === 'REJECTED' || status === 'CANCELLED') {
       // Restore redeemed points
@@ -291,10 +318,25 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           data: { usedCount: { decrement: 1 } },
         });
       }
+      // Detach any open PosTab still linked to this booking so team label / link don't dangle.
+      // Skip CLOSED/PAID/VOID tabs to preserve historical association on finalized bills.
+      await tx.posTab.updateMany({
+        where: { bookingId: id, status: { in: ['OPEN', 'HELD'] } },
+        data: { bookingId: null, teamLabel: null },
+      });
     }
 
     return b;
+  }).catch((err: unknown) => {
+    if (err && typeof err === 'object' && (err as { isRace?: boolean }).isRace) {
+      return null;
+    }
+    throw err;
   });
+  if (txResult === null) {
+    return NextResponse.json({ error: 'การจองถูกแก้ไขโดยผู้ใช้อื่น โปรดรีโหลด' }, { status: 409 });
+  }
+  const updated = txResult;
 
   // --- Post-transaction side-effects (external services, fire-and-forget) ---
   const emailData = {
@@ -330,13 +372,20 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
     if (booking.paidAt && booking.stripePaymentIntentId) {
       const stripeEnabled = process.env.STRIPE_SECRET_KEY && !process.env.STRIPE_SECRET_KEY.startsWith('sk_test_your');
-      if (stripeEnabled) notifTasks.push(stripe.refunds.create({ payment_intent: booking.stripePaymentIntentId }).catch(() => {}));
+      // idempotencyKey scoped to booking+intent prevents duplicate refund on retry
+      if (stripeEnabled) notifTasks.push(stripe.refunds.create(
+        { payment_intent: booking.stripePaymentIntentId },
+        { idempotencyKey: `refund:${id}:${booking.stripePaymentIntentId}` },
+      ).catch(() => {}));
     }
   } else if (status === 'CANCELLED') {
     if (updated.user.notifEmail) notifTasks.push(sendBookingCancelledEmail(updated.user.email, emailData).catch(() => {}));
     if (booking.paidAt && booking.stripePaymentIntentId) {
       const stripeEnabled = process.env.STRIPE_SECRET_KEY && !process.env.STRIPE_SECRET_KEY.startsWith('sk_test_your');
-      if (stripeEnabled) notifTasks.push(stripe.refunds.create({ payment_intent: booking.stripePaymentIntentId }).catch(() => {}));
+      if (stripeEnabled) notifTasks.push(stripe.refunds.create(
+        { payment_intent: booking.stripePaymentIntentId },
+        { idempotencyKey: `refund:${id}:${booking.stripePaymentIntentId}` },
+      ).catch(() => {}));
     }
   }
 

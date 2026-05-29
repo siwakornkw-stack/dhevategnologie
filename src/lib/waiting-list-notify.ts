@@ -27,9 +27,14 @@ export async function notifyWaitingList(fieldId: string, date: Date, timeSlot: s
   const fieldName = escapeHtml(entries[0].field.name);
   const safeTimeSlot = escapeHtml(timeSlot);
 
+  // Track which entries had at least one channel succeed; only delete those.
+  // Entries with all channels failing stay on the waitlist for retry on next cancellation.
+  const deliveredIds: string[] = [];
+
   await Promise.allSettled(
     entries.map(async (entry) => {
       const { user } = entry;
+      let anyOk = false;
 
       if (user.notifEmail && resendEnabled) {
         await resend.emails.send({
@@ -62,7 +67,7 @@ export async function notifyWaitingList(fieldId: string, date: Date, timeSlot: s
           </body>
           </html>
         `,
-        }).catch(() => {});
+        }).then(() => { anyOk = true; }).catch(() => {});
       }
 
       if (user.notifInApp) {
@@ -74,19 +79,22 @@ export async function notifyWaitingList(fieldId: string, date: Date, timeSlot: s
             type: 'WAITING_LIST',
             link: `/sport/fields/${fieldId}`,
           },
-        }).catch(() => {});
+        }).then(() => { anyOk = true; }).catch(() => {});
       }
 
       await sendPushToUser(user.id, {
         title: '🔔 มีช่วงเวลาว่าง!',
         message: `${fieldName} · ${dateStr} เวลา ${timeSlot} น.`,
         link: `/sport/fields/${fieldId}`,
-      }).catch(() => {});
+      }).then(() => { anyOk = true; }).catch(() => {});
+
+      if (anyOk) deliveredIds.push(entry.id);
     })
   );
 
-  // Delete after notifications sent so users aren't removed silently on failure
-  await prisma.waitingList.deleteMany({
-    where: { id: { in: entries.map((e) => e.id) } },
-  });
+  // Only delete entries where at least one channel delivered. Others stay queued
+  // so next cancellation re-attempts them instead of dropping silently.
+  if (deliveredIds.length) {
+    await prisma.waitingList.deleteMany({ where: { id: { in: deliveredIds } } });
+  }
 }

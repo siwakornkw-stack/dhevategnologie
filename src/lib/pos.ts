@@ -30,13 +30,13 @@ export type VatBreakdown = {
   vatRate: number;
 };
 
-export async function nextInvoiceNo() {
+export async function nextInvoiceNo(tx: Tx = prisma) {
   const now = new Date();
   const y = now.getFullYear();
   const m = String(now.getMonth() + 1).padStart(2, '0');
   const d = String(now.getDate()).padStart(2, '0');
   const prefix = `INV-${y}${m}${d}-`;
-  const last = await prisma.posInvoice.findFirst({
+  const last = await tx.posInvoice.findFirst({
     where: { invoiceNo: { startsWith: prefix } },
     orderBy: { invoiceNo: 'desc' },
     select: { invoiceNo: true },
@@ -67,17 +67,22 @@ export function audit(
   action: string,
   targetId?: string | null,
   details?: Record<string, unknown> | null,
+  tx?: Tx,
 ) {
-  return prisma.auditLog
-    .create({
-      data: {
-        adminId: userId,
-        action,
-        targetId: targetId || null,
-        details: (details ?? undefined) as Prisma.InputJsonValue | undefined,
-      },
-    })
-    .catch(() => {});
+  const client = tx ?? prisma;
+  const op = client.auditLog.create({
+    data: {
+      adminId: userId,
+      action,
+      targetId: targetId || null,
+      details: (details ?? undefined) as Prisma.InputJsonValue | undefined,
+    },
+  });
+  // When called inside a tx, let failure propagate so the action and the audit row
+  // commit/rollback together. Outside a tx, keep fire-and-forget so the request
+  // doesn't fail when AuditLog is degraded.
+  if (tx) return op;
+  return op.catch(() => {});
 }
 
 export async function getActiveShift(cashierId: string, tx: Tx = prisma) {

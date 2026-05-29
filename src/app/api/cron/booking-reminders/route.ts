@@ -2,21 +2,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendBookingReminderEmail } from '@/lib/email';
 import { sendPushToUser } from '@/lib/web-push';
-import { verifyCronSecret } from '@/lib/cron-auth';
 
 export async function GET(req: NextRequest) {
-  if (!verifyCronSecret(req)) {
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // Bearer header only — query-string secret leaks into proxy/CDN access logs.
+  const authHeader = req.headers.get('authorization');
+  const secret = authHeader?.replace('Bearer ', '');
+  if (secret !== cronSecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Find APPROVED bookings for tomorrow in Thailand time (UTC+7). Booking dates are
-  // stored as UTC-midnight of the Thai calendar day, so derive "tomorrow" from the
-  // current Thai date and match against UTC midnight.
-  const TH_OFFSET_MS = 7 * 60 * 60 * 1000;
-  const nowTh = new Date(Date.now() + TH_OFFSET_MS);
-  const tomorrow = new Date(Date.UTC(nowTh.getUTCFullYear(), nowTh.getUTCMonth(), nowTh.getUTCDate() + 1));
-  const dayAfter = new Date(tomorrow);
-  dayAfter.setUTCDate(dayAfter.getUTCDate() + 1);
+  // Find APPROVED bookings for tomorrow (Bangkok-day, since booking.date is stored
+  // as Bangkok midnight UTC). Using UTC-day would skip/double-count near midnight ICT.
+  const BANGKOK_OFFSET_MS = 7 * 60 * 60 * 1000;
+  const bangkokNow = Date.now() + BANGKOK_OFFSET_MS;
+  const bangkokTodayMidnightUtc = Math.floor(bangkokNow / 86_400_000) * 86_400_000 - BANGKOK_OFFSET_MS;
+  const tomorrow = new Date(bangkokTodayMidnightUtc + 86_400_000);
+  const dayAfter = new Date(bangkokTodayMidnightUtc + 2 * 86_400_000);
 
   const bookings = await prisma.booking.findMany({
     where: {
@@ -42,7 +45,7 @@ export async function GET(req: NextRequest) {
   await Promise.allSettled(
     bookings.map(async (b) => {
       const tasks: Promise<unknown>[] = [];
-      const dateStr = new Date(b.date).toLocaleDateString('th-TH', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', timeZone: 'Asia/Bangkok' });
+      const dateStr = new Date(b.date).toLocaleDateString('th-TH', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
 
       if (b.user.notifInApp) {
         tasks.push(

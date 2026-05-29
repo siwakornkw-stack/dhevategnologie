@@ -14,6 +14,8 @@ export function SportHeader() {
   const tc = useTranslations('common');
 
   const isAdmin = session?.user?.role === 'ADMIN';
+  const isCashier = session?.user?.role === 'CASHIER';
+  const isPosUser = isAdmin || isCashier;
   const isUnverified = session && !session.user.emailVerified;
 
   return (
@@ -42,6 +44,11 @@ export function SportHeader() {
                 {t('profile')}
               </Link>
             </>
+          )}
+          {isPosUser && (
+            <Link href="/sport/pos" className="text-sm text-emerald-600 dark:text-emerald-400 font-semibold">
+              💵 POS
+            </Link>
           )}
           {isAdmin && (
             <Link href="/sport/admin" className="text-sm text-primary-600 dark:text-primary-400 font-semibold">
@@ -87,10 +94,20 @@ export function SportHeader() {
                     <Link href="/sport/bookings" onClick={() => setMenuOpen(false)} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">
                       {t('myBookings')}
                     </Link>
-                    {isAdmin && (
-                      <Link href="/sport/admin" onClick={() => setMenuOpen(false)} className="block px-4 py-2 text-sm text-primary-600 dark:text-primary-400 font-medium hover:bg-gray-50 dark:hover:bg-gray-800">
-                        {t('adminDashboard')}
+                    {isPosUser && (
+                      <Link href="/sport/pos" onClick={() => setMenuOpen(false)} className="block px-4 py-2 text-sm text-emerald-600 dark:text-emerald-400 font-medium hover:bg-gray-50 dark:hover:bg-gray-800">
+                        💵 POS
                       </Link>
+                    )}
+                    {isAdmin && (
+                      <>
+                        <Link href="/sport/admin" onClick={() => setMenuOpen(false)} className="block px-4 py-2 text-sm text-primary-600 dark:text-primary-400 font-medium hover:bg-gray-50 dark:hover:bg-gray-800">
+                          {t('adminDashboard')}
+                        </Link>
+                        <Link href="/sport/admin/help" onClick={() => setMenuOpen(false)} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">
+                          📖 {t('help')}
+                        </Link>
+                      </>
                     )}
                     <button
                       onClick={() => { signOut({ callbackUrl: '/sport' }); setMenuOpen(false); }}
@@ -144,10 +161,20 @@ export function SportHeader() {
           <Link href="/sport/profile" className="flex-1 text-center py-2 text-xs text-gray-600 dark:text-gray-400">
             {t('mobile.profile')}
           </Link>
-          {isAdmin && (
-            <Link href="/sport/admin" className="flex-1 text-center py-2 text-xs text-primary-600 dark:text-primary-400 font-medium">
-              {t('mobile.admin')}
+          {isPosUser && (
+            <Link href="/sport/pos" className="flex-1 text-center py-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+              💵 POS
             </Link>
+          )}
+          {isAdmin && (
+            <>
+              <Link href="/sport/admin" className="flex-1 text-center py-2 text-xs text-primary-600 dark:text-primary-400 font-medium">
+                {t('mobile.admin')}
+              </Link>
+              <Link href="/sport/admin/help" className="flex-1 text-center py-2 text-xs text-gray-600 dark:text-gray-400">
+                {t('mobile.help')}
+              </Link>
+            </>
           )}
         </div>
       )}
