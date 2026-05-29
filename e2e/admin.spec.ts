@@ -28,7 +28,7 @@ test.describe('admin flow', () => {
     await page.goto('/sport/auth/signin');
     await page.getByPlaceholder('example@email.com').fill(ADMIN_EMAIL);
     await page.locator('input[type="password"]').fill(ADMIN_PASSWORD);
-    await page.getByRole('button', { name: /เข้าสู่ระบบ|Sign in/i }).click();
+    await page.locator('button[type="submit"]').click();
     await page.waitForURL('**/sport', { timeout: 10_000 });
   });
 
