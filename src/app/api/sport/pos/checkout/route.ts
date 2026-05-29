@@ -66,6 +66,7 @@ export async function POST(req: NextRequest) {
       }
 
       const discNum = Number(discount) || 0;
+      if (!Number.isFinite(discNum) || discNum < 0) throw new Error('DISCOUNT_INVALID');
       const subtotalAll = subtotalProduct + subtotalBooking;
 
       let couponDiscount = 0;
@@ -236,6 +237,7 @@ export async function POST(req: NextRequest) {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'checkout failed';
     if (msg === 'SHIFT_REQUIRED') return NextResponse.json({ error: 'ต้องเปิดกะก่อนขาย' }, { status: 409 });
+    if (msg === 'DISCOUNT_INVALID') return NextResponse.json({ error: 'ส่วนลดไม่ถูกต้อง' }, { status: 400 });
     if (msg === 'POINTS_INSUFFICIENT') return NextResponse.json({ error: 'แต้มไม่พอ' }, { status: 400 });
     if (msg === 'POINTS_REDEEM_DISABLED') return NextResponse.json({ error: 'ระบบ redeem ปิดอยู่' }, { status: 400 });
     if (msg === 'SPLIT_MISMATCH') return NextResponse.json({ error: 'ผลรวม split ไม่เท่ากับยอดบิล' }, { status: 400 });

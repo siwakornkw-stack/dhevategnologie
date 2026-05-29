@@ -119,7 +119,8 @@ export async function POST(req: NextRequest) {
   if (event.type === 'charge.refunded') {
     const charge = event.data.object;
     const paymentIntentId = typeof charge.payment_intent === 'string' ? charge.payment_intent : null;
-    if (paymentIntentId) {
+    const fullyRefunded = charge.amount_refunded >= charge.amount;
+    if (paymentIntentId && fullyRefunded) {
       const booking = await prisma.booking.findFirst({
         where: { stripePaymentIntentId: paymentIntentId },
         select: { id: true, userId: true, couponCode: true, pointsRedeemed: true, status: true },

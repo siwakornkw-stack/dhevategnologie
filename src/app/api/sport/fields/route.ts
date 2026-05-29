@@ -49,8 +49,20 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { name, description, sportType, pricePerHour, imageUrl, location, facilities, openTime, closeTime, lat, lng, priceRules } = body;
 
-  if (!name || !sportType || !pricePerHour) {
+  const nameTrim = typeof name === 'string' ? name.trim() : '';
+  const sportTypeTrim = typeof sportType === 'string' ? sportType.trim() : '';
+  const locationTrim = typeof location === 'string' ? location.trim() : location;
+  const descriptionTrim = typeof description === 'string' ? description.trim() : description;
+  const priceNum = Number(pricePerHour);
+
+  if (!nameTrim || !sportTypeTrim) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+  }
+  if (!Object.values(SportType).includes(sportTypeTrim as SportType)) {
+    return NextResponse.json({ error: 'ประเภทกีฬาไม่ถูกต้อง' }, { status: 400 });
+  }
+  if (!Number.isFinite(priceNum) || priceNum <= 0) {
+    return NextResponse.json({ error: 'ราคาต่อชั่วโมงไม่ถูกต้อง' }, { status: 400 });
   }
 
   const open = openTime || '08:00';
@@ -61,8 +73,8 @@ export async function POST(req: NextRequest) {
 
   const field = await prisma.field.create({
     data: {
-      name, description, sportType, pricePerHour: Number(pricePerHour),
-      imageUrl, location, facilities,
+      name: nameTrim, description: descriptionTrim, sportType: sportTypeTrim as SportType, pricePerHour: priceNum,
+      imageUrl, location: locationTrim, facilities,
       openTime: openTime || '08:00', closeTime: closeTime || '22:00',
       lat: lat ? Number(lat) : null,
       lng: lng ? Number(lng) : null,

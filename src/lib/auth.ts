@@ -51,7 +51,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           if (!parsed.data.totpCode) {
             throw new Error('2FA_REQUIRED');
           }
-          const valid = totpVerify({ token: parsed.data.totpCode, secret: user.twoFactorSecret });
+          const { valid } = totpVerify({ token: parsed.data.totpCode, secret: user.twoFactorSecret });
           if (!valid) throw new Error('2FA_INVALID');
         }
 
@@ -90,8 +90,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
         return token;
       }
-      // Refresh role and emailVerified from DB once per hour to pick up permission changes
-      if (token.id && Date.now() - ((token.refreshedAt as number) ?? 0) > 60 * 60 * 1000) {
+      // Refresh role and emailVerified from DB every 5 min to pick up permission/password changes
+      if (token.id && Date.now() - ((token.refreshedAt as number) ?? 0) > 5 * 60 * 1000) {
         const fresh = await prisma.user.findUnique({
           where: { id: token.id as string },
           select: { role: true, emailVerified: true, passwordChangedAt: true },

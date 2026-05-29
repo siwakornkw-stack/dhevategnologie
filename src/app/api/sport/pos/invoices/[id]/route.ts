@@ -12,6 +12,14 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
     include: { payments: true, splits: true },
   });
   if (!inv) return NextResponse.json({ error: 'not found' }, { status: 404 });
+  // Cashiers may only read today's invoices (mirror list-route restriction); 404 avoids leaking existence.
+  if (session.user.role === 'CASHIER') {
+    const todayMin = new Date();
+    todayMin.setHours(0, 0, 0, 0);
+    if (!inv.paidAt || inv.paidAt < todayMin) {
+      return NextResponse.json({ error: 'not found' }, { status: 404 });
+    }
+  }
   return NextResponse.json(inv);
 }
 

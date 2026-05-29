@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { rateLimit, BOOKING_RATE_LIMIT } from '@/lib/rate-limit';
-import { expandTimeSlot } from '@/lib/booking';
+import { hasSlotConflict } from '@/lib/booking';
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -60,8 +60,6 @@ export async function POST(req: NextRequest) {
   const bookings = [];
   const errors = [];
 
-  const incomingSlots = expandTimeSlot(timeSlot);
-
   for (let i = 0; i < numWeeks; i++) {
     // Consume rate limit per booking iteration so bulk calls cannot bypass
     const iterRl = await rateLimit(`recurring:${session.user.id}`, BOOKING_RATE_LIMIT);
@@ -87,8 +85,7 @@ export async function POST(req: NextRequest) {
             where: { fieldId, date: d, status: { in: ['PENDING', 'APPROVED'] } },
             select: { timeSlot: true },
           });
-          const takenSlots = new Set(existing.flatMap((b) => expandTimeSlot(b.timeSlot)));
-          if (incomingSlots.some((s) => takenSlots.has(s))) {
+          if (hasSlotConflict(timeSlot, existing.map((b) => b.timeSlot))) {
             throw Object.assign(new Error('conflict'), { isConflict: true });
           }
           return tx.booking.create({

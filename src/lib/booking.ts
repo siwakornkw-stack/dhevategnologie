@@ -92,6 +92,38 @@ export function expandTimeSlot(ts: string): string[] {
 }
 
 /**
+ * Parse "HH:MM-HH:MM" into [startMin, endMin], normalizing overnight ranges (+1440).
+ * Returns null for malformed or zero-length ranges.
+ */
+export function parseSlot(ts: string): [number, number] | null {
+  const parts = ts.split('-');
+  if (parts.length !== 2) return null;
+  const s = toMinutes(parts[0]);
+  let e = toMinutes(parts[1]);
+  if (isNaN(s) || isNaN(e) || s === e) return null;
+  if (e < s) e += 1440;
+  return [s, e];
+}
+
+/** True if interval [aStart,aEnd) overlaps [bStart,bEnd). */
+export function slotsOverlap(aStart: number, aEnd: number, bStart: number, bEnd: number): boolean {
+  return aStart < bEnd && aEnd > bStart;
+}
+
+/**
+ * True if `incoming` ("HH:MM-HH:MM") overlaps any of `existing` slot strings.
+ * Used as the single source of truth for booking conflict detection.
+ */
+export function hasSlotConflict(incoming: string, existing: string[]): boolean {
+  const inc = parseSlot(incoming);
+  if (!inc) return false;
+  return existing.some((ts) => {
+    const p = parseSlot(ts);
+    return p ? slotsOverlap(inc[0], inc[1], p[0], p[1]) : false;
+  });
+}
+
+/**
  * Compute discount amount for a coupon (PERCENT or FIXED) against a base total.
  * Percent discounts are rounded; fixed discounts never exceed the base amount.
  */

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { stripe } from '@/lib/stripe';
@@ -106,6 +107,14 @@ export async function POST(req: NextRequest) {
           const currentBatchIds = bookings.map((b) => b.id);
           tasks.push(
             prisma.$transaction(async (tx) => {
+              // Idempotency: award at most once per referred user, even under concurrent
+              // approvals. The audit log keyed by referredUserId is the dedup marker;
+              // Serializable isolation makes concurrent checks conflict instead of both passing.
+              const alreadyAwarded = await tx.auditLog.findFirst({
+                where: { action: 'REFERRAL_BONUS_AWARDED', details: { path: ['referredUserId'], equals: booking.userId } },
+                select: { id: true },
+              });
+              if (alreadyAwarded) return;
               const otherApproved = await tx.booking.count({
                 where: { userId: booking.userId, status: 'APPROVED', id: { notIn: currentBatchIds } },
               });
@@ -131,7 +140,7 @@ export async function POST(req: NextRequest) {
                   details: { referredUserId: booking.userId, points: REFERRAL_BONUS, bookingId: booking.id },
                 },
               });
-            }).catch(() => {}),
+            }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }).catch(() => {}),
           );
         }
 

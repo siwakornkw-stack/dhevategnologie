@@ -46,7 +46,9 @@ export async function POST(req: NextRequest) {
         const q = Number(it.qty);
         if (!Number.isInteger(q) || q <= 0) throw new Error('QTY_INVALID');
         const unitPrice = it.unitPrice !== undefined ? Number(it.unitPrice) : p.price;
+        if (!Number.isFinite(unitPrice) || unitPrice < 0) throw new Error('PRICE_INVALID');
         const lineDiscount = Number(it.discount) || 0;
+        if (!Number.isFinite(lineDiscount) || lineDiscount < 0 || lineDiscount > unitPrice * q) throw new Error('DISCOUNT_INVALID');
         const line = unitPrice * q - lineDiscount;
         itemsTotal += line;
         totalCost += (p.cost || 0) * q;
@@ -197,6 +199,8 @@ export async function POST(req: NextRequest) {
     if (msg === 'PRODUCT_NOT_FOUND') return NextResponse.json({ error: 'ไม่พบสินค้า (อาจถูกลบ)' }, { status: 404 });
     if (msg === 'PRODUCT_INACTIVE') return NextResponse.json({ error: 'สินค้าปิดขาย' }, { status: 409 });
     if (msg === 'QTY_INVALID') return NextResponse.json({ error: 'qty ไม่ถูกต้อง' }, { status: 400 });
+    if (msg === 'PRICE_INVALID') return NextResponse.json({ error: 'ราคาไม่ถูกต้อง' }, { status: 400 });
+    if (msg === 'DISCOUNT_INVALID') return NextResponse.json({ error: 'ส่วนลดไม่ถูกต้อง' }, { status: 400 });
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

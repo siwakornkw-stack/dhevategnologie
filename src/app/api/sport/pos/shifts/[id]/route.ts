@@ -3,6 +3,10 @@ import { prisma } from '@/lib/prisma';
 import { requirePosRole, audit } from '@/lib/pos';
 
 async function buildSummary(shiftId: string) {
+  const shift = await prisma.posShift.findUnique({
+    where: { id: shiftId },
+    select: { openingFloat: true, countedCash: true },
+  });
   const invoices = await prisma.posInvoice.findMany({
     where: { shiftId },
     include: { payments: true, splits: true, refunds: true },
@@ -28,6 +32,12 @@ async function buildSummary(shiftId: string) {
   const payIn = movements.filter((m) => m.type === 'PAY_IN').reduce((s, m) => s + m.amount, 0);
   const payOut = movements.filter((m) => m.type === 'PAY_OUT').reduce((s, m) => s + m.amount, 0);
 
+  // Expected drawer cash. methodTotals.CASH already nets out CASH refunds (subtracted above).
+  const openingFloat = shift?.openingFloat ?? 0;
+  const expectedCash = +(openingFloat + methodTotals.CASH + payIn - payOut).toFixed(2);
+  const countedCash = shift?.countedCash ?? null;
+  const cashDiff = countedCash != null ? +(countedCash - expectedCash).toFixed(2) : null;
+
   return {
     invoiceCount: invoices.length,
     paidCount: invoices.filter((i) => i.status === 'PAID').length,
@@ -40,6 +50,10 @@ async function buildSummary(shiftId: string) {
     methodTotals,
     payIn: +payIn.toFixed(2),
     payOut: +payOut.toFixed(2),
+    openingFloat,
+    expectedCash,
+    countedCash,
+    cashDiff,
     movements,
   };
 }

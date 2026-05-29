@@ -73,8 +73,10 @@ export async function rateLimit(
       const limiter = getLimiter(r, config.limit, config.windowMs);
       const { success, remaining, reset } = await limiter.limit(key);
       return { success, remaining, resetAt: Number(reset) };
-    } catch {
-      // fall through to in-memory on Redis error
+    } catch (err) {
+      // Degrade to in-memory limiting on Redis error, but log so outages are visible
+      // instead of silently weakening rate limits.
+      console.error('rate-limit: Redis error, falling back to in-memory', err);
     }
   }
   return inMemory(key, config);

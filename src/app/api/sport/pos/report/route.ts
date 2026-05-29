@@ -27,11 +27,22 @@ export async function GET(req: NextRequest) {
   const marginPct = totalProduct > 0 ? (grossProfit / totalProduct) * 100 : 0;
   const voidCount = invoices.filter((i) => i.status === 'VOID').length;
 
+  // Refunds against invoices paid in this range reduce net revenue and per-method cash.
+  const paidIds = paid.map((i) => i.id);
+  const refunds = paidIds.length
+    ? await prisma.posRefund.findMany({ where: { invoiceId: { in: paidIds } } })
+    : [];
+  const totalRefunds = refunds.reduce((s, r) => s + r.amount, 0);
+  const netSales = +(totalSales - totalRefunds).toFixed(2);
+
   const byMethod: Record<string, number> = {};
   for (const inv of paid) {
     for (const pay of inv.payments) {
       byMethod[pay.method] = (byMethod[pay.method] || 0) + pay.amount;
     }
+  }
+  for (const r of refunds) {
+    byMethod[r.method] = (byMethod[r.method] || 0) - r.amount;
   }
 
   // Top products
@@ -57,6 +68,8 @@ export async function GET(req: NextRequest) {
       invoiceCount: paid.length,
       voidCount,
       totalSales,
+      totalRefunds,
+      netSales,
       totalProduct,
       totalBooking,
       totalDiscount,

@@ -98,6 +98,10 @@ export async function POST(req: NextRequest) {
           const prev = refundedQty.get(pid) || 0;
           if (prev + nq > orig) throw new Error(`REFUND_QTY_EXCEEDS:${pid}`);
         }
+
+        // Item-level refund: cash refunded must not exceed the value of the returned items.
+        const itemsValue = cleanItems.reduce((sum, it) => sum + it.unitPrice * it.qty, 0);
+        if (amount > itemsValue + 0.01) throw new Error('REFUND_AMOUNT_EXCEEDS_ITEMS');
       }
 
       // Atomic guard: refundedAmount cannot exceed total
@@ -189,6 +193,7 @@ export async function POST(req: NextRequest) {
     if (msg === 'REFUND_EXCEEDS') return NextResponse.json({ error: 'เกินยอดคงเหลือของบิล' }, { status: 400 });
     if (msg === 'PRODUCT_NOT_FOUND') return NextResponse.json({ error: 'ไม่พบสินค้าใน refund' }, { status: 404 });
     if (msg.startsWith('REFUND_QTY_EXCEEDS')) return NextResponse.json({ error: 'จำนวนคืนเกินที่ขาย (รวม refund ก่อนหน้า)' }, { status: 400 });
+    if (msg === 'REFUND_AMOUNT_EXCEEDS_ITEMS') return NextResponse.json({ error: 'ยอดคืนเกินมูลค่าสินค้าที่เลือกคืน' }, { status: 400 });
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

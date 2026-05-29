@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { expandTimeSlot } from '@/lib/booking';
+import { generateTimeSlots, parseSlot, slotsOverlap } from '@/lib/booking';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: decodedId } = await params;
@@ -49,11 +49,19 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     select: { timeSlot: true, status: true },
   });
 
-  const bookedSlots: Record<string, string> = {};
+  // Mark each hourly grid cell booked if any booking overlaps it (interval overlap,
+  // so non-hour-aligned bookings like 08:30-09:30 correctly block 08:00-09:00 and 09:00-10:00).
+  const parsedBookings: { range: [number, number]; status: string }[] = [];
   for (const b of bookings) {
-    for (const slot of expandTimeSlot(b.timeSlot)) {
-      bookedSlots[slot] = b.status;
-    }
+    const range = parseSlot(b.timeSlot);
+    if (range) parsedBookings.push({ range, status: b.status });
+  }
+  const bookedSlots: Record<string, string> = {};
+  for (const slot of generateTimeSlots(field.openTime, field.closeTime)) {
+    const g = parseSlot(slot);
+    if (!g) continue;
+    const hit = parsedBookings.find((b) => slotsOverlap(g[0], g[1], b.range[0], b.range[1]));
+    if (hit) bookedSlots[slot] = hit.status;
   }
 
   return NextResponse.json({ bookedSlots, openTime: field.openTime, closeTime: field.closeTime, priceRules, isBlocked: false });

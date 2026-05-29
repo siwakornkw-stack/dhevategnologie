@@ -12,6 +12,13 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   if (!productId || !Number.isInteger(qtyNum) || qtyNum <= 0) {
     return NextResponse.json({ error: 'productId + qty required' }, { status: 400 });
   }
+  if (unitPrice !== undefined && (!Number.isFinite(Number(unitPrice)) || Number(unitPrice) < 0)) {
+    return NextResponse.json({ error: 'ราคาไม่ถูกต้อง' }, { status: 400 });
+  }
+  const discountNum = Number(discount) || 0;
+  if (!Number.isFinite(discountNum) || discountNum < 0) {
+    return NextResponse.json({ error: 'ส่วนลดไม่ถูกต้อง' }, { status: 400 });
+  }
 
   const settings = await getPosSettings();
   const allowNegative = settings.allowNegativeStock;
@@ -52,7 +59,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
           productName: product.name,
           qty: qtyNum,
           unitPrice: unitPrice !== undefined ? Number(unitPrice) : product.price,
-          discount: Number(discount) || 0,
+          discount: discountNum,
           note: note?.toString().slice(0, 200) || null,
           createdBy: session.user.id,
         },

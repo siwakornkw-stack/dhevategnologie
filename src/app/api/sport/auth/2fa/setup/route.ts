@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, enabled: user.twoFactorEnabled, remaining: remaining.length });
   }
 
-  const valid = verifySync({ token: code, secret: user.twoFactorSecret });
+  const { valid } = verifySync({ token: code, secret: user.twoFactorSecret });
   if (!valid) return NextResponse.json({ error: 'รหัสไม่ถูกต้อง' }, { status: 400 });
 
   if (action === 'disable') {

@@ -43,7 +43,9 @@ export async function POST(req: NextRequest) {
 
     const exists = await prisma.user.findUnique({ where: { email } });
     if (exists) {
-      // Generic message to prevent email enumeration
+      // Run a throwaway hash so the duplicate-email path takes as long as the success
+      // path (which calls bcrypt.hash), closing the timing side-channel. Message stays generic.
+      await bcrypt.hash(password, 12);
       return NextResponse.json({ error: 'ไม่สามารถสมัครสมาชิกด้วยข้อมูลนี้ได้' }, { status: 409 });
     }
 

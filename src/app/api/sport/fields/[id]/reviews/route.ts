@@ -29,7 +29,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { id: fieldId } = await params;
 
   const hasApprovedBooking = await prisma.booking.findFirst({
-    where: { fieldId, userId: session.user.id, status: 'APPROVED' },
+    where: { fieldId, userId: session.user.id, status: 'APPROVED', date: { lte: new Date() } },
   });
   if (!hasApprovedBooking) {
     return NextResponse.json({ error: 'ต้องเคยจองสนามนี้ก่อนถึงจะรีวิวได้' }, { status: 403 });

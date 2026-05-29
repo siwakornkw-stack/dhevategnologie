@@ -6,6 +6,7 @@ import path from 'path';
 import { rateLimit, UPLOAD_RATE_LIMIT } from '@/lib/rate-limit';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const EXT_BY_TYPE: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 
 export async function POST(req: NextRequest) {
@@ -31,8 +32,7 @@ export async function POST(req: NextRequest) {
 
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
-  const rawExt = file.name.split('.').pop() ?? 'jpg';
-  const ext = rawExt.replace(/[^a-zA-Z0-9]/g, '').slice(0, 5).toLowerCase() || 'jpg';
+  const ext = EXT_BY_TYPE[file.type] ?? 'jpg';
   const prefix = session.user.role === 'ADMIN' ? 'field' : 'profile';
   const baseName = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 

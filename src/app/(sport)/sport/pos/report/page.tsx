@@ -6,7 +6,7 @@ import Link from 'next/link';
 type Report = {
   totals: {
     invoiceCount: number; voidCount: number;
-    totalSales: number; totalProduct: number; totalBooking: number;
+    totalSales: number; totalRefunds: number; netSales: number; totalProduct: number; totalBooking: number;
     totalDiscount: number; totalVat: number;
     totalServiceCharge: number; totalCost: number; grossProfit: number; marginPct: number;
   };
@@ -59,6 +59,8 @@ export default function PosReportPage() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Stat label="ยอดขาย" value={`฿${data.totals.totalSales.toFixed(2)}`} />
+        <Stat label="คืนเงิน (refund)" value={`-฿${data.totals.totalRefunds.toFixed(2)}`} />
+        <Stat label="ยอดขายสุทธิ" value={`฿${data.totals.netSales.toFixed(2)}`} />
         <Stat label="จำนวนบิล" value={data.totals.invoiceCount.toString()} />
         <Stat label="ยอดสินค้า" value={`฿${data.totals.totalProduct.toFixed(2)}`} />
         <Stat label="ยอดสนาม" value={`฿${data.totals.totalBooking.toFixed(2)}`} />

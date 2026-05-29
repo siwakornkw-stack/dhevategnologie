@@ -3,6 +3,10 @@ import { prisma } from '@/lib/prisma';
 import { rateLimit } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
+
+// Cap stream lifetime below maxDuration; the client's EventSource auto-reconnects.
+const MAX_LIFETIME_MS = 4 * 60 * 1000;
 
 export async function GET(req: Request) {
   const session = await auth();
@@ -48,12 +52,19 @@ export async function GET(req: Request) {
           }
         } catch {
           clearInterval(interval);
+          clearTimeout(lifetimeTimer);
           try { controller.close(); } catch {}
         }
       }, 10000);
 
+      const lifetimeTimer = setTimeout(() => {
+        clearInterval(interval);
+        try { controller.close(); } catch {}
+      }, MAX_LIFETIME_MS);
+
       req.signal.addEventListener('abort', () => {
         clearInterval(interval);
+        clearTimeout(lifetimeTimer);
         try { controller.close(); } catch {}
       });
     },

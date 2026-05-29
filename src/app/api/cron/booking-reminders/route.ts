@@ -2,20 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendBookingReminderEmail } from '@/lib/email';
 import { sendPushToUser } from '@/lib/web-push';
+import { verifyCronSecret } from '@/lib/cron-auth';
 
 export async function GET(req: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  const authHeader = req.headers.get('authorization');
-  const secret = authHeader?.replace('Bearer ', '') ?? req.nextUrl.searchParams.get('secret');
-  if (secret !== cronSecret) {
+  if (!verifyCronSecret(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Find APPROVED bookings for tomorrow (UTC date)
-  const tomorrow = new Date();
-  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-  tomorrow.setUTCHours(0, 0, 0, 0);
+  // Find APPROVED bookings for tomorrow in Thailand time (UTC+7). Booking dates are
+  // stored as UTC-midnight of the Thai calendar day, so derive "tomorrow" from the
+  // current Thai date and match against UTC midnight.
+  const TH_OFFSET_MS = 7 * 60 * 60 * 1000;
+  const nowTh = new Date(Date.now() + TH_OFFSET_MS);
+  const tomorrow = new Date(Date.UTC(nowTh.getUTCFullYear(), nowTh.getUTCMonth(), nowTh.getUTCDate() + 1));
   const dayAfter = new Date(tomorrow);
   dayAfter.setUTCDate(dayAfter.getUTCDate() + 1);
 
@@ -43,7 +42,7 @@ export async function GET(req: NextRequest) {
   await Promise.allSettled(
     bookings.map(async (b) => {
       const tasks: Promise<unknown>[] = [];
-      const dateStr = new Date(b.date).toLocaleDateString('th-TH', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+      const dateStr = new Date(b.date).toLocaleDateString('th-TH', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', timeZone: 'Asia/Bangkok' });
 
       if (b.user.notifInApp) {
         tasks.push(
