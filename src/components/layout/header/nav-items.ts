@@ -6,11 +6,6 @@ export const navItems = [
   },
   {
     type: 'link',
-    label: 'Chat',
-    href: '/text-generator',
-  },
-  {
-    type: 'link',
     label: 'Pricing',
     href: '/pricing',
   },
