@@ -57,6 +57,12 @@ export async function DELETE(req: NextRequest) {
   if (!target || target.role !== 'CASHIER') {
     return NextResponse.json({ error: 'ลบได้เฉพาะ CASHIER' }, { status: 400 });
   }
+  // Demoting to USER strips POS access; block while they still hold an open shift
+  // (cash would be left unreconciled) or open/held tabs.
+  const openShift = await prisma.posShift.findFirst({ where: { cashierId: id, status: 'OPEN' }, select: { id: true } });
+  if (openShift) return NextResponse.json({ error: 'cashier ยังมีกะที่เปิดอยู่ ต้องปิดกะก่อน' }, { status: 409 });
+  const openTab = await prisma.posTab.findFirst({ where: { openedBy: id, status: { in: ['OPEN', 'HELD'] } }, select: { id: true } });
+  if (openTab) return NextResponse.json({ error: 'cashier ยังมี tab ที่เปิด/พักอยู่' }, { status: 409 });
   await prisma.user.update({ where: { id }, data: { role: 'USER' } });
   prisma.auditLog
     .create({ data: { adminId: session.user.id, action: 'POS_CASHIER_DELETE', targetId: id } })

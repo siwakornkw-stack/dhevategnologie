@@ -66,29 +66,30 @@ export function StockClient({ initialProducts = [], initialMovements = [] }: Sto
     if (!confirm(`ปรับ ${rows.length} รายการ ยืนยัน?`)) return;
 
     setStProgress({ done: 0, total: rows.length, ok: 0, fail: 0 });
-    let ok = 0; let fail = 0;
-    for (const row of rows) {
-      try {
-        const r = await fetch('/api/sport/pos/stock', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            productId: row.p.id,
-            type: 'ADJUST',
-            qty: row.delta,
-            note: `STOCK-TAKE ${ymd} (was ${row.p.stockQty} → ${row.counted})`,
-          }),
-        });
-        if (r.ok) ok++; else fail++;
-      } catch { fail++; }
-      setStProgress({ done: ok + fail, total: rows.length, ok, fail });
-    }
-    await load();
-    if (fail === 0) {
-      setStockTakeOpen(false);
-      alert(`สำเร็จ ${ok} รายการ`);
-    } else {
-      alert(`สำเร็จ ${ok} / ล้มเหลว ${fail} — ดู movement log`);
+    try {
+      const r = await fetch('/api/sport/pos/stock/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          note: `STOCK-TAKE ${ymd}`,
+          rows: rows.map((row) => ({ productId: row.p.id, counted: row.counted })),
+        }),
+      });
+      if (r.ok) {
+        const data = await r.json().catch(() => ({ count: rows.length }));
+        const count = data?.count ?? rows.length;
+        setStProgress({ done: rows.length, total: rows.length, ok: count, fail: 0 });
+        await load();
+        setStockTakeOpen(false);
+        alert(`สำเร็จ ${count} รายการ`);
+      } else {
+        const e = await r.json().catch(() => ({}));
+        setStProgress(null);
+        alert(e.error || 'บันทึกไม่สำเร็จ — ไม่มีรายการใดถูกปรับ');
+      }
+    } catch {
+      setStProgress(null);
+      alert('บันทึกไม่สำเร็จ — ไม่มีรายการใดถูกปรับ');
     }
   }
 

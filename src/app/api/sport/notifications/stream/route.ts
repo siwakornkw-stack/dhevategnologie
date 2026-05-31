@@ -20,11 +20,26 @@ export async function GET(req: Request) {
 
   const stream = new ReadableStream({
     async start(controller) {
-      const send = (data: object) => {
-        try {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
-        } catch {}
+      let interval: ReturnType<typeof setInterval> | undefined;
+      let lifetimeTimer: ReturnType<typeof setTimeout> | undefined;
+      let closed = false;
+      const cleanup = () => {
+        if (closed) return;
+        closed = true;
+        if (interval) clearInterval(interval);
+        if (lifetimeTimer) clearTimeout(lifetimeTimer);
+        try { controller.close(); } catch {}
       };
+      // enqueue throws once the client socket is gone; tear down so the DB poll stops
+      // instead of running until MAX_LIFETIME_MS on a dead connection.
+      const enqueue = (chunk: string) => {
+        try {
+          controller.enqueue(encoder.encode(chunk));
+        } catch {
+          cleanup();
+        }
+      };
+      const send = (data: object) => enqueue(`data: ${JSON.stringify(data)}\n\n`);
 
       // Send initial state
       const [unreadCount, notifications] = await Promise.all([
@@ -35,7 +50,8 @@ export async function GET(req: Request) {
 
       let lastCount = unreadCount;
 
-      const interval = setInterval(async () => {
+      interval = setInterval(async () => {
+        if (closed) return;
         try {
           const count = await prisma.notification.count({ where: { userId, isRead: false } });
           if (count !== lastCount) {
@@ -48,25 +64,16 @@ export async function GET(req: Request) {
             lastCount = count;
           } else {
             // Heartbeat to keep connection alive
-            controller.enqueue(encoder.encode(': ping\n\n'));
+            enqueue(': ping\n\n');
           }
         } catch {
-          clearInterval(interval);
-          clearTimeout(lifetimeTimer);
-          try { controller.close(); } catch {}
+          cleanup();
         }
       }, 10000);
 
-      const lifetimeTimer = setTimeout(() => {
-        clearInterval(interval);
-        try { controller.close(); } catch {}
-      }, MAX_LIFETIME_MS);
+      lifetimeTimer = setTimeout(cleanup, MAX_LIFETIME_MS);
 
-      req.signal.addEventListener('abort', () => {
-        clearInterval(interval);
-        clearTimeout(lifetimeTimer);
-        try { controller.close(); } catch {}
-      });
+      req.signal.addEventListener('abort', cleanup);
     },
   });
 

@@ -15,6 +15,27 @@ if (typeof setInterval !== 'undefined') {
 
 export interface RateLimitConfig { limit: number; windowMs: number; }
 
+/**
+ * Returns a client IP that is safe to key rate limits on.
+ *
+ * On Vercel the edge sets `x-real-ip` to the actual connecting client IP and a client cannot
+ * override it, so we prefer it. We deliberately do NOT trust the leftmost `x-forwarded-for`
+ * value: that header is a client-controllable, comma-separated list, so an attacker can prepend
+ * arbitrary entries to rotate the rate-limit key and bypass per-IP throttling. `x-forwarded-for`
+ * is used only as a fallback for non-Vercel / local environments, where we take the rightmost
+ * (proxy-appended) entry rather than the spoofable leftmost one.
+ */
+export function getClientIp(req: { headers: Headers }): string {
+  const realIp = req.headers.get('x-real-ip');
+  if (realIp && realIp.trim()) return realIp.trim();
+  const xff = req.headers.get('x-forwarded-for');
+  if (xff) {
+    const parts = xff.split(',').map((s) => s.trim()).filter(Boolean);
+    if (parts.length) return parts[parts.length - 1];
+  }
+  return 'unknown';
+}
+
 let redis: Redis | null | undefined = undefined;
 const upstashLimiters = new Map<string, Ratelimit>();
 

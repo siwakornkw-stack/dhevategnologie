@@ -44,6 +44,7 @@ export async function GET(req: NextRequest) {
       user: { select: { name: true, email: true, phone: true } },
       field: { select: { name: true, sportType: true } },
     },
+    take: 5000,
   });
 
   return NextResponse.json({ bookings });

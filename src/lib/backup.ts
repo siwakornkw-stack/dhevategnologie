@@ -114,8 +114,15 @@ export async function fetchBlobResponse(pathname: string): Promise<Response> {
   return res;
 }
 
+// Same 100 MB cap the multipart upload branch enforces, so a tampered/oversized
+// stored blob can't exhaust memory when parsed into a BackupFile.
+const MAX_BACKUP_BYTES = 100 * 1024 * 1024;
+
 export async function fetchBackupByPathname(pathname: string): Promise<BackupFile> {
-  const res = await fetchBlobResponse(pathname);
+  const meta = await head(pathname);
+  if (meta.size > MAX_BACKUP_BYTES) throw new Error('Backup file too large (max 100 MB)');
+  const res = await fetch(meta.url, { cache: 'no-store', headers: blobAuthHeaders() });
+  if (!res.ok) throw new Error(`Fetch blob failed: ${res.status}`);
   const json = (await res.json()) as BackupFile;
   if (json.version !== 1 || !json.data) throw new Error('Invalid backup file');
   return json;

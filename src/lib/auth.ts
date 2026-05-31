@@ -56,7 +56,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           if (!parsed.data.totpCode) {
             throw new Error('2FA_REQUIRED');
           }
-          const { valid } = totpVerify({ token: parsed.data.totpCode, secret: user.twoFactorSecret });
+          // otplib throws on malformed tokens (non-digit / wrong length); treat as invalid.
+          let valid = false;
+          try {
+            valid = totpVerify({ token: parsed.data.totpCode, secret: user.twoFactorSecret }).valid;
+          } catch {
+            valid = false;
+          }
           if (!valid) throw new Error('2FA_INVALID');
         }
 

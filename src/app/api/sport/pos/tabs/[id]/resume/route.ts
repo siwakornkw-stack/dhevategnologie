@@ -7,6 +7,12 @@ export async function POST(_req: NextRequest, ctx: { params: Promise<{ id: strin
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { id } = await ctx.params;
 
+  const tab = await prisma.posTab.findUnique({ where: { id }, select: { openedBy: true } });
+  if (!tab) return NextResponse.json({ error: 'not found' }, { status: 404 });
+  if (session.user.role !== 'ADMIN' && tab.openedBy && tab.openedBy !== session.user.id) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const r = await prisma.posTab.updateMany({
     where: { id, status: 'HELD' },
     data: { status: 'OPEN' },

@@ -212,6 +212,8 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, priceRule
           router.push('/sport/bookings');
         } else if (data.url) {
           window.location.href = data.url;
+        } else {
+          throw new Error(t('summary.errorServer'));
         }
       }
     } catch (err) {

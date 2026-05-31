@@ -9,6 +9,15 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const from = searchParams.get('from') ? new Date(searchParams.get('from')!) : new Date(new Date().setHours(0, 0, 0, 0));
   const to = searchParams.get('to') ? new Date(searchParams.get('to')!) : new Date();
+  if (isNaN(from.getTime()) || isNaN(to.getTime())) {
+    return NextResponse.json({ error: 'ช่วงวันที่ไม่ถูกต้อง' }, { status: 400 });
+  }
+  if (to < from) {
+    return NextResponse.json({ error: 'วันสิ้นสุดต้องไม่ก่อนวันเริ่มต้น' }, { status: 400 });
+  }
+  if (to.getTime() - from.getTime() > 366 * 86_400_000) {
+    return NextResponse.json({ error: 'ช่วงวันที่ต้องไม่เกิน 366 วัน' }, { status: 400 });
+  }
 
   const invoices = await prisma.posInvoice.findMany({
     where: { paidAt: { gte: from, lte: to } },

@@ -34,6 +34,12 @@ export async function POST(req: NextRequest) {
     const bookingId = session.metadata?.bookingId;
     if (!bookingId) return NextResponse.json({ ok: true });
 
+    // For async methods (PromptPay) Stripe fires completed even when funds have not
+    // settled. Only mark paid once payment_status is actually 'paid'.
+    if (session.payment_status !== 'paid') {
+      return NextResponse.json({ ok: true, unpaid: true });
+    }
+
     // Idempotency guard: only process if paidAt is still null (first delivery)
     const updateResult = await prisma.booking.updateMany({
       where: { id: bookingId, paidAt: null },
@@ -132,7 +138,7 @@ export async function POST(req: NextRequest) {
     if (paymentIntentId && fullyRefunded) {
       const booking = await prisma.booking.findFirst({
         where: { stripePaymentIntentId: paymentIntentId },
-        select: { id: true, userId: true, couponCode: true, pointsRedeemed: true, status: true },
+        select: { id: true, userId: true, couponCode: true, pointsRedeemed: true, pointsEarned: true, status: true },
       });
 
       if (booking) {
@@ -150,6 +156,17 @@ export async function POST(req: NextRequest) {
             await tx.user.update({ where: { id: booking.userId }, data: { points: { increment: booking.pointsRedeemed } } });
             await tx.pointTransaction.create({
               data: { userId: booking.userId, points: booking.pointsRedeemed, type: 'EARN', bookingId: booking.id, note: 'คืนแต้มเนื่องจากการคืนเงิน' },
+            });
+          }
+          // Deduct points earned on approval (clamp to current balance to avoid negative)
+          if (booking.pointsEarned && booking.pointsEarned > 0) {
+            const cur = await tx.user.findUnique({ where: { id: booking.userId }, select: { points: true } });
+            const deduct = Math.min(booking.pointsEarned, cur?.points ?? 0);
+            if (deduct > 0) {
+              await tx.user.update({ where: { id: booking.userId }, data: { points: { decrement: deduct } } });
+            }
+            await tx.pointTransaction.create({
+              data: { userId: booking.userId, points: -deduct, type: 'REDEEM', bookingId: booking.id, note: 'หักแต้มเนื่องจากการคืนเงิน' },
             });
           }
         });

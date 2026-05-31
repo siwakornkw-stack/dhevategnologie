@@ -90,7 +90,13 @@ export async function POST(req: NextRequest) {
       Promise.allSettled(
         admins.map(async (admin) => {
           const recent = await prisma.notification.findFirst({
-            where: { userId: admin.id, type: 'CHAT_MESSAGE', isRead: false, createdAt: { gte: twoMinAgo } },
+            where: {
+              userId: admin.id,
+              type: 'CHAT_MESSAGE',
+              conversationId: conversation.id,
+              isRead: false,
+              createdAt: { gte: twoMinAgo },
+            },
             select: { id: true },
           });
           if (!recent) {
@@ -101,6 +107,7 @@ export async function POST(req: NextRequest) {
                 title: 'ข้อความใหม่จากลูกค้า',
                 message: `${senderName}: ${parsed.data.content.slice(0, 60)}`,
                 link: '/sport/admin/chat',
+                conversationId: conversation.id,
               },
             });
           }

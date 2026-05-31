@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
     if (to) {
       toDate = new Date(to);
       if (isNaN(toDate.getTime())) return NextResponse.json({ error: 'Invalid to date' }, { status: 400 });
-      toDate.setHours(23, 59, 59, 999);
+      toDate.setUTCHours(23, 59, 59, 999);
       dateFilter.lte = toDate;
     }
     where.date = dateFilter;

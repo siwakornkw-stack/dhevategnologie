@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { notifyWaitingList } from '@/lib/waiting-list-notify';
+import { verifyCronSecret } from '@/lib/cron-auth';
 
 // Cancel PENDING bookings from incomplete Stripe checkouts older than 2 hours.
 // Stripe sessions expire in 24h but we clean up earlier so slots aren't blocked all day.
 // Called by Vercel Cron (see vercel.json) — protected by CRON_SECRET header.
 export async function GET(req: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   // Bearer header only — query-string secret leaks into proxy/CDN access logs.
-  const authHeader = req.headers.get('authorization');
-  const secret = authHeader?.replace('Bearer ', '');
-  if (secret !== cronSecret) {
+  if (!verifyCronSecret(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

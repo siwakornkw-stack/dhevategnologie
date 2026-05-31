@@ -35,9 +35,10 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      const tab = await tx.posTab.findUnique({ where: { id: tabId }, select: { status: true } });
+      const tab = await tx.posTab.findUnique({ where: { id: tabId }, select: { status: true, openedBy: true } });
       if (!tab) throw new Error('TAB_NOT_FOUND');
       if (tab.status !== 'OPEN') throw new Error('TAB_NOT_OPEN');
+      if (!isAdmin && tab.openedBy && tab.openedBy !== session.user.id) throw new Error('FORBIDDEN');
 
       const product = await tx.posProduct.findUnique({ where: { id: productId } });
       if (!product || product.deletedAt) throw new Error('PRODUCT_NOT_FOUND');
@@ -82,6 +83,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     return NextResponse.json(result, { status: 201 });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'add failed';
+    if (msg === 'FORBIDDEN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     if (msg === 'DISCOUNT_TOO_LARGE') return NextResponse.json({ error: 'ส่วนลดเกินราคารวม' }, { status: 400 });
     if (msg === 'STOCK_INSUFFICIENT') return NextResponse.json({ error: 'สต็อกไม่พอ' }, { status: 409 });
     if (msg === 'TAB_NOT_OPEN') return NextResponse.json({ error: 'tab ปิดแล้ว' }, { status: 409 });

@@ -83,7 +83,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, enabled: user.twoFactorEnabled, remaining: remaining.length });
   }
 
-  const { valid } = verifySync({ token: code, secret: user.twoFactorSecret });
+  // otplib throws on malformed tokens (non-digit / wrong length); treat as invalid.
+  let valid = false;
+  try {
+    valid = verifySync({ token: code, secret: user.twoFactorSecret }).valid;
+  } catch {
+    valid = false;
+  }
   if (!valid) return NextResponse.json({ error: 'รหัสไม่ถูกต้อง' }, { status: 400 });
 
   if (action === 'disable') {

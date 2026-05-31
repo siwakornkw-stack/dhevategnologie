@@ -13,11 +13,8 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
   });
   if (!inv) return NextResponse.json({ error: 'not found' }, { status: 404 });
 
-  if (session.user.role !== 'ADMIN') {
-    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-    const ownInvoice = inv.cashierId === session.user.id;
-    const sameDay = inv.paidAt >= todayStart;
-    if (!ownInvoice && !sameDay) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (session.user.role !== 'ADMIN' && inv.cashierId !== session.user.id) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   return NextResponse.json(inv);

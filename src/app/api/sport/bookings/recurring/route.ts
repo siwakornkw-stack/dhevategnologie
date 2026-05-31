@@ -29,6 +29,9 @@ export async function POST(req: NextRequest) {
   if (isNaN(startDateObj.getTime())) {
     return NextResponse.json({ error: 'วันที่ไม่ถูกต้อง' }, { status: 400 });
   }
+  // Normalize to UTC midnight so blocked-date equality (stored at setUTCHours(0,0,0,0))
+  // and slot-conflict date matching work regardless of any time component the client sent.
+  startDateObj.setUTCHours(0, 0, 0, 0);
 
   // Validate timeSlot format and field operating hours
   const slotFmt = /^\d{2}:\d{2}-\d{2}:\d{2}$/;

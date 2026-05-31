@@ -19,7 +19,7 @@ export async function PATCH(req: NextRequest) {
         data: { isRead: true },
       }),
       prisma.notification.updateMany({
-        where: { userId: session.user.id, type: 'CHAT_MESSAGE', isRead: false },
+        where: { userId: session.user.id, type: 'CHAT_MESSAGE', conversationId: conversation.id, isRead: false },
         data: { isRead: true },
       }),
     ]);

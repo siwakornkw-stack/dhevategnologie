@@ -33,6 +33,13 @@ export async function POST(req: NextRequest) {
         if (c.parentTabId) throw new Error('ALREADY_MERGED');
         if (!isAdmin && c.openedBy !== session.user.id) throw new Error('CHILD_FORBIDDEN');
       }
+      // Reject merging a tab that is itself a master of other tabs: checkout only walks
+      // one level (master.children), so its grandchildren would be dropped from the bill.
+      const childIsParent = await tx.posTab.findFirst({
+        where: { parentTabId: { in: childIds } },
+        select: { id: true },
+      });
+      if (childIsParent) throw new Error('NESTED_MERGE');
       await tx.posTab.updateMany({
         where: { id: { in: childIds } },
         data: { status: 'MERGED', parentTabId: masterId },
@@ -43,6 +50,9 @@ export async function POST(req: NextRequest) {
     const msg = e instanceof Error ? e.message : 'merge failed';
     if (msg === 'MASTER_FORBIDDEN' || msg === 'CHILD_FORBIDDEN') {
       return NextResponse.json({ error: 'ไม่ใช่ tab ของคุณ' }, { status: 403 });
+    }
+    if (msg === 'NESTED_MERGE') {
+      return NextResponse.json({ error: 'ไม่สามารถรวม tab ที่ถูกใช้เป็น master อยู่แล้ว' }, { status: 409 });
     }
     return NextResponse.json({ error: msg }, { status: 409 });
   }

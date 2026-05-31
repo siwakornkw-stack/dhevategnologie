@@ -27,6 +27,9 @@ export async function POST(req: NextRequest) {
   if (!code || !discountType || !discountValue) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
+  if (discountType !== 'PERCENT' && discountType !== 'FIXED') {
+    return NextResponse.json({ error: 'ประเภทส่วนลดไม่ถูกต้อง' }, { status: 400 });
+  }
 
   const parsedValue = Number(discountValue);
   if (isNaN(parsedValue) || parsedValue <= 0) {

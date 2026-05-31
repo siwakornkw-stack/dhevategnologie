@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -47,6 +47,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
   const [coupon, setCoupon] = useState<{ code: string; discountType: string; discountValue: number } | null>(null);
   const [couponMsg, setCouponMsg] = useState<string | null>(null);
   const [couponBusy, setCouponBusy] = useState(false);
+  const custSearchSeq = useRef(0);
 
   useEffect(() => {
     (async () => {
@@ -118,7 +119,9 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
   async function searchCust(q: string) {
     setCustSearch(q);
     if (q.trim().length < 2) { setCustHits([]); return; }
+    const seq = ++custSearchSeq.current;
     const r = await fetch(`/api/sport/pos/customers?q=${encodeURIComponent(q.trim())}`);
+    if (seq !== custSearchSeq.current) return;
     if (r.ok) setCustHits(await r.json());
   }
 

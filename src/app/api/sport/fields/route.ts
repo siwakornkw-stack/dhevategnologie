@@ -72,6 +72,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'เวลาเปิดต้องไม่เท่ากับเวลาปิด' }, { status: 400 });
   }
 
+  const validRules = Array.isArray(priceRules)
+    ? priceRules.filter(
+        (r: { startTime?: string; endTime?: string; pricePerHour?: unknown }) =>
+          r.startTime && r.endTime && r.startTime !== r.endTime && Number(r.pricePerHour) > 0,
+      )
+    : [];
+  // Reject overlapping rules — ambiguous pricing otherwise (matches PUT behavior).
+  const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+  const ranges = validRules.map((r: { startTime: string; endTime: string }) => {
+    const s = toMin(r.startTime);
+    let e = toMin(r.endTime);
+    if (e <= s) e += 1440;
+    return [s, e] as const;
+  });
+  for (let i = 0; i < ranges.length; i++) {
+    for (let j = i + 1; j < ranges.length; j++) {
+      const [s1, e1] = ranges[i];
+      const [s2, e2] = ranges[j];
+      if (s1 < e2 && s2 < e1) {
+        return NextResponse.json({ error: 'ช่วงเวลาราคาซ้อนทับกัน' }, { status: 400 });
+      }
+    }
+  }
+
   const field = await prisma.field.create({
     data: {
       name: nameTrim, description: descriptionTrim, sportType: sportTypeTrim as SportType, pricePerHour: priceNum,

@@ -3,7 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { rateLimit } from '@/lib/rate-limit';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
+import { notifyWaitingList } from '@/lib/waiting-list-notify';
 
 const PROFILE_RATE_LIMIT = { limit: 10, windowMs: 15 * 60 * 1000 };
 
@@ -63,7 +64,7 @@ export async function PUT(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const ip = req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? 'unknown';
+  const ip = getClientIp(req);
   const rl = await rateLimit(`profile:${session.user.id}:${ip}`, PROFILE_RATE_LIMIT);
   if (!rl.success) return NextResponse.json({ error: 'คุณส่งคำขอมากเกินไป' }, { status: 429 });
 
@@ -103,7 +104,7 @@ export async function DELETE(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const ip = req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? 'unknown';
+  const ip = getClientIp(req);
   const rl = await rateLimit(`delete-account:${session.user.id}:${ip}`, { limit: 3, windowMs: 60 * 60 * 1000 });
   if (!rl.success) return NextResponse.json({ error: 'คุณส่งคำขอมากเกินไป' }, { status: 429 });
 
@@ -131,6 +132,18 @@ export async function DELETE(req: NextRequest) {
     );
   }
 
+  // Capture slots this user's unpaid active bookings occupy; cascade delete frees them,
+  // so the waitlist for those slots must be re-notified after the user is gone.
+  const freedSlots = await prisma.booking.findMany({
+    where: { userId: session.user.id, status: { in: ['PENDING', 'APPROVED'] } },
+    select: { fieldId: true, date: true, timeSlot: true },
+  });
+
   await prisma.user.delete({ where: { id: session.user.id } });
+
+  for (const s of freedSlots) {
+    notifyWaitingList(s.fieldId, s.date, s.timeSlot).catch(() => {});
+  }
+
   return NextResponse.json({ ok: true });
 }

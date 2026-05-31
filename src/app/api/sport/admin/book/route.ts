@@ -57,10 +57,13 @@ export async function POST(req: NextRequest) {
   }
 
   const bookingDate = new Date(date);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // Compare in Asia/Bangkok (UTC+7) — server runs UTC on Vercel; server-local setHours
+  // would block valid same-day early slots between 00:00–06:59 Bangkok time.
+  const BANGKOK_OFFSET_MS = 7 * 60 * 60 * 1000;
+  const bangkokNow = Date.now() + BANGKOK_OFFSET_MS;
+  const today = new Date(Math.floor(bangkokNow / 86_400_000) * 86_400_000 - BANGKOK_OFFSET_MS);
   const maxDate = new Date(today);
-  maxDate.setFullYear(today.getFullYear() + 1);
+  maxDate.setUTCFullYear(today.getUTCFullYear() + 1);
 
   if (isNaN(bookingDate.getTime()) || bookingDate < today || bookingDate > maxDate) {
     return NextResponse.json({ error: 'วันที่ไม่ถูกต้อง' }, { status: 400 });

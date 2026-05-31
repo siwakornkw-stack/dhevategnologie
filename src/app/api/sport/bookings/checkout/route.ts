@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { stripe } from '@/lib/stripe';
-import { rateLimit, BOOKING_RATE_LIMIT } from '@/lib/rate-limit';
+import { rateLimit, BOOKING_RATE_LIMIT, getClientIp } from '@/lib/rate-limit';
 import { hasSlotConflict, calculateCouponDiscount, isCouponUsable, calculatePriceWithRules } from '@/lib/booking';
 import { isCouponSystemEnabled } from '@/lib/settings';
 import { sendBookingCreatedEmail } from '@/lib/email';
@@ -12,7 +13,7 @@ import { sendPushToUser } from '@/lib/web-push';
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  const ip = req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? 'unknown';
+  const ip = getClientIp(req);
   const rl = await rateLimit(`booking:${session.user.id}:${ip}`, BOOKING_RATE_LIMIT);
   if (!rl.success) {
     return NextResponse.json({ error: 'คุณส่งคำขอมากเกินไป กรุณารอสักครู่' }, { status: 429 });
@@ -155,12 +156,15 @@ export async function POST(req: NextRequest) {
       }
 
       return created;
-    });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   } catch (e: unknown) {
     if (e && typeof e === 'object') {
       if ('isCouponInvalid' in e) return NextResponse.json({ error: 'คูปองนี้ไม่สามารถใช้ได้หรือหมดอายุแล้ว' }, { status: 400 });
       if ('isConflict' in e) return NextResponse.json({ error: 'ช่วงเวลานี้ถูกจองแล้ว' }, { status: 409 });
       if ('isPointsInsufficient' in e) return NextResponse.json({ error: 'แต้มไม่เพียงพอ' }, { status: 400 });
+    }
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2034') {
+      return NextResponse.json({ error: 'ช่วงเวลานี้ถูกจองแล้ว' }, { status: 409 });
     }
     console.error('[checkout] transaction error:', e);
     return NextResponse.json({ error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' }, { status: 500 });

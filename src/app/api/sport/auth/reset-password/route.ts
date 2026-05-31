@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { rateLimit, AUTH_RATE_LIMIT } from '@/lib/rate-limit';
+import { rateLimit, AUTH_RATE_LIMIT, getClientIp } from '@/lib/rate-limit';
+import { hashToken } from '@/lib/token';
 
 const schema = z.object({
   token: z.string().min(1, 'Token ไม่ถูกต้อง'),
@@ -13,7 +14,7 @@ const schema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get('x-forwarded-for') ?? 'unknown';
+  const ip = getClientIp(req);
   const rl = await rateLimit(`reset:${ip}`, AUTH_RATE_LIMIT);
   if (!rl.success) return NextResponse.json({ error: 'คุณส่งคำขอมากเกินไป กรุณารอสักครู่' }, { status: 429 });
 
@@ -22,27 +23,28 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
 
   const { token, password } = parsed.data;
+  const hashed = hashToken(token);
 
   const record = await prisma.verificationToken.findFirst({
-    where: { token, identifier: { startsWith: 'reset:' } },
+    where: { token: hashed, identifier: { startsWith: 'reset:' } },
   });
 
   if (!record) return NextResponse.json({ error: 'Token ไม่ถูกต้องหรือหมดอายุแล้ว' }, { status: 400 });
   if (record.expires < new Date()) {
-    await prisma.verificationToken.deleteMany({ where: { identifier: record.identifier, token } });
+    await prisma.verificationToken.deleteMany({ where: { identifier: record.identifier, token: hashed } });
     return NextResponse.json({ error: 'Token หมดอายุแล้ว กรุณาขอใหม่อีกครั้ง' }, { status: 400 });
   }
 
   const email = record.identifier.replace('reset:', '');
-  const hashed = await bcrypt.hash(password, 12);
+  const hashedPassword = await bcrypt.hash(password, 12);
 
   // Single-use guard: atomic deleteMany claims the token. If count !== 1 a concurrent
   // request already consumed it; abort so we don't reset to two different passwords.
   try {
     await prisma.$transaction(async (tx) => {
-      const claim = await tx.verificationToken.deleteMany({ where: { identifier: record.identifier, token } });
+      const claim = await tx.verificationToken.deleteMany({ where: { identifier: record.identifier, token: hashed } });
       if (claim.count !== 1) throw new Error('TOKEN_CONSUMED');
-      await tx.user.update({ where: { email }, data: { password: hashed, passwordChangedAt: new Date() } });
+      await tx.user.update({ where: { email }, data: { password: hashedPassword, passwordChangedAt: new Date() } });
     });
   } catch (e) {
     if (e instanceof Error && e.message === 'TOKEN_CONSUMED') {

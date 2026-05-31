@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-import { rateLimit, AUTH_RATE_LIMIT } from '@/lib/rate-limit';
+import { rateLimit, AUTH_RATE_LIMIT, getClientIp } from '@/lib/rate-limit';
 import { sendVerificationEmail } from '@/lib/email';
+import { hashToken } from '@/lib/token';
 import { randomBytes } from 'crypto';
 
 const schema = z.object({
@@ -26,7 +27,7 @@ function makeReferralCode() {
 
 export async function POST(req: NextRequest) {
   try {
-    const ip = req.headers.get('x-forwarded-for') ?? req.headers.get('x-real-ip') ?? 'unknown';
+    const ip = getClientIp(req);
     const rl = await rateLimit(`register:${ip}`, AUTH_RATE_LIMIT);
     if (!rl.success) {
       return NextResponse.json({ error: 'คุณส่งคำขอมากเกินไป กรุณารอสักครู่' }, { status: 429 });
@@ -72,18 +73,19 @@ export async function POST(req: NextRequest) {
     }
 
     const hashed = await bcrypt.hash(password, 12);
-    const user = await prisma.user.create({
+    await prisma.user.create({
       data: { name, email, phone, password: hashed, referralCode: newCode, referredById },
-      select: { id: true, name: true, email: true, phone: true, role: true },
+      select: { id: true },
     });
 
     // Send verification email (non-blocking)
     const token = randomBytes(32).toString('hex');
     const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
-    await prisma.verificationToken.create({ data: { identifier: email, token, expires } });
+    await prisma.verificationToken.create({ data: { identifier: email, token: hashToken(token), expires } });
     sendVerificationEmail(email, token).catch(() => {});
 
-    return NextResponse.json(user, { status: 201 });
+    // Same response shape as the existing-email branch to prevent enumeration.
+    return NextResponse.json({ ok: true }, { status: 201 });
   } catch {
     return NextResponse.json({ error: 'เกิดข้อผิดพลาดภายในระบบ กรุณาลองใหม่' }, { status: 500 });
   }

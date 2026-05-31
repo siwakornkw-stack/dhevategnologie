@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth';
 import { isCloudinaryEnabled, uploadToCloudinary } from '@/lib/cloudinary';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
-import { rateLimit, UPLOAD_RATE_LIMIT } from '@/lib/rate-limit';
+import { rateLimit, UPLOAD_RATE_LIMIT, getClientIp } from '@/lib/rate-limit';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const EXT_BY_TYPE: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const ip = req.headers.get('x-forwarded-for') ?? 'unknown';
+  const ip = getClientIp(req);
   const rl = await rateLimit(`upload:${ip}`, UPLOAD_RATE_LIMIT);
   if (!rl.success) return NextResponse.json({ error: 'คุณอัปโหลดมากเกินไป' }, { status: 429 });
 

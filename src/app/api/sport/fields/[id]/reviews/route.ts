@@ -28,10 +28,22 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const { id: fieldId } = await params;
 
-  const hasApprovedBooking = await prisma.booking.findFirst({
-    where: { fieldId, userId: session.user.id, status: 'APPROVED', date: { lte: new Date() } },
+  const now = Date.now();
+  const candidates = await prisma.booking.findMany({
+    where: { fieldId, userId: session.user.id, status: 'APPROVED', date: { lte: new Date(now) } },
+    select: { date: true, timeSlot: true },
+    take: 100,
   });
-  if (!hasApprovedBooking) {
+  // date is stored as the UTC instant of Bangkok midnight; the slot must have actually ended.
+  const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+  const hasPlayed = candidates.some((b) => {
+    const [start, end] = b.timeSlot.split('-');
+    if (!start || !end) return false;
+    let endMin = toMin(end);
+    if (endMin <= toMin(start)) endMin += 1440;
+    return b.date.getTime() + endMin * 60_000 <= now;
+  });
+  if (!hasPlayed) {
     return NextResponse.json({ error: 'ต้องเคยจองสนามนี้ก่อนถึงจะรีวิวได้' }, { status: 403 });
   }
 

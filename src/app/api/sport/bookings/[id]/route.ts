@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
-import { BookingStatus } from '@prisma/client';
+import { BookingStatus, Prisma } from '@prisma/client';
 import { sendBookingApprovedEmail, sendBookingCancelledEmail, sendBookingRejectedEmail } from '@/lib/email';
 import { notifyLineBookingStatus } from '@/lib/line-notify';
 import { stripe } from '@/lib/stripe';
@@ -156,7 +156,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             user: { select: { email: true, name: true, notifEmail: true, notifInApp: true } },
           },
         });
-      });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
       // Notify user of reschedule + free up the old slot for waiting list
       const dateLabel = updated.date.toLocaleDateString('th-TH');
@@ -207,11 +207,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     );
   }
 
-  // Cancellation deadline: users cannot cancel APPROVED bookings within CANCEL_DEADLINE_HOURS of start
-  // PENDING bookings (payment not completed) are always cancellable.
+  // Cancellation deadline: users cannot cancel within CANCEL_DEADLINE_HOURS of start.
+  // Applies to APPROVED bookings AND already-paid PENDING bookings (awaiting approval) —
+  // an unpaid PENDING booking has nothing to refund and stays freely cancellable.
   // booking.date stores UTC midnight of the Bangkok day; timeSlot is Bangkok local time.
   // Compute booking start in UTC as that day's UTC midnight + (hours - 7) to match Asia/Bangkok (UTC+7).
-  if (!isAdmin && status === 'CANCELLED' && booking.status === 'APPROVED') {
+  const deadlineApplies = booking.status === 'APPROVED' || (booking.status === 'PENDING' && booking.paidAt != null);
+  if (!isAdmin && status === 'CANCELLED' && deadlineApplies) {
     const [startStr] = booking.timeSlot.split('-');
     const [h, m] = startStr.split(':').map(Number);
     const BANGKOK_UTC_OFFSET_HOURS = 7;
