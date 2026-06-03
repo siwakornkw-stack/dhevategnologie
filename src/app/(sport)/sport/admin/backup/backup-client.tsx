@@ -121,7 +121,7 @@ export function BackupClient({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Backup และ Restore</h1>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Backup และ Restore</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
           Auto backup ทุกวัน 02:00 น. เก็บไว้ 30 วัน. Restore ทำใน transaction ถ้า fail rollback อัตโนมัติ.
         </p>
@@ -133,7 +133,7 @@ export function BackupClient({
         </div>
       )}
       {msg && (
-        <div className="rounded-xl border border-green-300 bg-green-50 dark:bg-green-900/20 dark:border-green-800 p-3 text-sm text-green-700 dark:text-green-300">
+        <div className="rounded-xl border border-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-800 p-3 text-sm text-emerald-700 dark:text-emerald-300">
           {msg}
         </div>
       )}
@@ -144,7 +144,7 @@ export function BackupClient({
           <button
             onClick={runBackup}
             disabled={busy}
-            className="px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 disabled:opacity-50"
+            className="px-4 py-2 rounded-lg bg-indigo-500 text-white text-sm font-medium hover:bg-indigo-600 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
             {busy ? 'Running...' : 'Backup เดี๋ยวนี้'}
           </button>
@@ -165,26 +165,26 @@ export function BackupClient({
                   <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                     {b.pathname.replace('db-backups/', '')}
                   </p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-gray-400 tabular-nums">
                     {new Date(b.uploadedAt).toLocaleString('th-TH')} · {formatBytes(b.size)}
                   </p>
                 </div>
                 <a
                   href={`/api/admin/backup/download?pathname=${encodeURIComponent(b.pathname)}`}
-                  className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 >
                   Download
                 </a>
                 <button
                   onClick={() => setRestoreTarget({ pathname: b.pathname })}
-                  className="text-xs px-3 py-1.5 rounded-lg bg-amber-600 text-white hover:bg-amber-700"
+                  className="text-xs px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                 >
                   Restore
                 </button>
                 <button
                   onClick={() => deleteBackup(b.pathname)}
                   disabled={busy}
-                  className="text-xs px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
+                  className="text-xs px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                 >
                   Delete
                 </button>
@@ -195,9 +195,9 @@ export function BackupClient({
       </section>
 
       {restoreTarget && (
-        <section className="bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-800 rounded-2xl p-5 space-y-3">
-          <h3 className="font-semibold text-amber-900 dark:text-amber-200">ยืนยัน Restore</h3>
-          <p className="text-sm text-amber-800 dark:text-amber-300">
+        <section className="bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded-2xl p-5 space-y-3">
+          <h3 className="font-semibold text-red-900 dark:text-red-200">ยืนยัน Restore</h3>
+          <p className="text-sm text-red-800 dark:text-red-300">
             ทุก table ใน database จะถูก replace ด้วยข้อมูลจาก backup นี้. พิมพ์ <code className="font-mono font-bold">RESTORE</code> เพื่อยืนยัน.
           </p>
           <input
@@ -205,13 +205,13 @@ export function BackupClient({
             value={restoreText}
             onChange={(e) => setRestoreText(e.target.value)}
             placeholder="RESTORE"
-            className="w-full px-3 py-2 rounded-lg border border-amber-300 dark:border-amber-700 bg-white dark:bg-gray-900 text-sm"
+            className="w-full px-3 py-2 rounded-lg border border-red-300 dark:border-red-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
           />
           <div className="flex gap-2">
             <button
               onClick={() => restoreFromPathname(restoreTarget.pathname)}
               disabled={busy || restoreText !== 'RESTORE'}
-              className="px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-medium hover:bg-amber-700 disabled:opacity-50"
+              className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
             >
               {busy ? 'Restoring...' : 'ยืนยัน Restore'}
             </button>
@@ -220,7 +220,7 @@ export function BackupClient({
                 setRestoreTarget(null);
                 setRestoreText('');
               }}
-              className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm"
+              className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               ยกเลิก
             </button>
@@ -241,12 +241,12 @@ export function BackupClient({
           value={restoreText}
           onChange={(e) => setRestoreText(e.target.value)}
           placeholder="พิมพ์ RESTORE เพื่อยืนยัน"
-          className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
+          className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
         <button
           onClick={restoreFromFile}
           disabled={busy || restoreText !== 'RESTORE'}
-          className="px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-medium hover:bg-amber-700 disabled:opacity-50"
+          className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
         >
           {busy ? 'Restoring...' : 'Restore จากไฟล์'}
         </button>

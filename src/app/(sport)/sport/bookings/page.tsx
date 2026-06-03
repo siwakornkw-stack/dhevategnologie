@@ -91,7 +91,7 @@ export default async function MyBookingsPage({
   return (
     <div className="wrapper py-8 max-w-3xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">📋 {t('title')}</h1>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">📋 {t('title')}</h1>
         <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{t('subtitle')}</p>
       </div>
 
@@ -104,7 +104,7 @@ export default async function MyBookingsPage({
           <div className="text-6xl mb-4">🏟️</div>
           <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">{t('empty')}</h3>
           <p className="mt-2 text-gray-400 text-sm">{t('emptyHint')}</p>
-          <a href="/sport" className="mt-4 inline-block gradient-btn text-white text-sm font-medium px-6 py-2.5 rounded-full">
+          <a href="/sport" className="mt-4 inline-block bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium px-6 py-2.5 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
             {t('viewAllFields')}
           </a>
         </div>
@@ -150,7 +150,7 @@ export default async function MyBookingsPage({
                         📅 {entry.date.toLocaleDateString('th-TH')} · ⏰ {entry.timeSlot} น.
                       </p>
                     </div>
-                    <span className="text-xs px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-medium flex-shrink-0">
+                    <span className="text-xs px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-medium flex-shrink-0 tabular-nums">
                       {t('inQueue')} #{entry.position}
                     </span>
                   </div>

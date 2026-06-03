@@ -67,13 +67,13 @@ export default async function AdminCalendarPage({ searchParams }: PageProps) {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Link href="/sport/admin" className="text-sm text-gray-400 hover:text-gray-600">← Dashboard</Link>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">📅 ปฏิทินการจอง</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">📅 ปฏิทินการจอง</h1>
         </div>
 
         {/* Week Navigation */}
         <div className="flex items-center gap-3">
           <Link href={`/sport/admin/calendar?date=${isoDate(prevWeek)}`}
-            className="px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+            className="px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
             ← สัปดาห์ก่อน
           </Link>
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -81,7 +81,7 @@ export default async function AdminCalendarPage({ searchParams }: PageProps) {
             {weekEnd.toLocaleDateString('th-TH', { month: 'short', day: 'numeric', year: 'numeric' })}
           </span>
           <Link href={`/sport/admin/calendar?date=${isoDate(nextWeek)}`}
-            className="px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+            className="px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
             สัปดาห์ถัดไป →
           </Link>
         </div>
@@ -96,11 +96,11 @@ export default async function AdminCalendarPage({ searchParams }: PageProps) {
               {days.map((day) => {
                 const isToday = isoDate(day) === isoDate(today);
                 return (
-                  <th key={isoDate(day)} className={`px-3 py-3 text-center ${isToday ? 'bg-primary-50 dark:bg-primary-900/20' : ''}`}>
-                    <div className={`text-xs font-semibold uppercase tracking-wider ${isToday ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400'}`}>
+                  <th key={isoDate(day)} className={`px-3 py-3 text-center ${isToday ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''}`}>
+                    <div className={`text-xs font-semibold uppercase tracking-wider ${isToday ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400'}`}>
                       {day.toLocaleDateString('th-TH', { weekday: 'short' })}
                     </div>
-                    <div className={`text-lg font-bold mt-0.5 ${isToday ? 'text-primary-600 dark:text-primary-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                    <div className={`text-lg font-bold mt-0.5 tabular-nums ${isToday ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-700 dark:text-gray-300'}`}>
                       {day.getDate()}
                     </div>
                   </th>
@@ -121,7 +121,7 @@ export default async function AdminCalendarPage({ searchParams }: PageProps) {
                   const dayBookings = bookingsForDayAndField(day, field.id);
                   const isToday = isoDate(day) === isoDate(today);
                   return (
-                    <td key={isoDate(day)} className={`px-2 py-2 align-top min-w-[110px] ${isToday ? 'bg-primary-50/50 dark:bg-primary-900/10' : ''}`}>
+                    <td key={isoDate(day)} className={`px-2 py-2 align-top min-w-[110px] ${isToday ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : ''}`}>
                       {dayBookings.length === 0 ? (
                         <span className="text-xs text-gray-300 dark:text-gray-700">-</span>
                       ) : (
@@ -129,7 +129,7 @@ export default async function AdminCalendarPage({ searchParams }: PageProps) {
                           {dayBookings.map((b) => {
                             const chip = (
                               <>
-                                <div className="font-semibold truncate">{b.timeSlot}</div>
+                                <div className="font-semibold truncate tabular-nums">{b.timeSlot}</div>
                                 <div className="truncate opacity-80">{b.user.name ?? '-'}</div>
                                 <div className="text-xs opacity-60">{STATUS_LABELS[b.status]}</div>
                               </>
@@ -145,7 +145,7 @@ export default async function AdminCalendarPage({ searchParams }: PageProps) {
                                 customerName={b.user.name}
                                 customerPhone={b.user.phone}
                                 note={b.note}
-                                triggerClassName={`block w-full text-left px-2 py-1 rounded-lg text-xs cursor-pointer transition hover:ring-2 hover:ring-primary-400 ${STATUS_COLORS[b.status]}`}
+                                triggerClassName={`block w-full text-left px-2 py-1 rounded-lg text-xs cursor-pointer transition hover:ring-2 hover:ring-indigo-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${STATUS_COLORS[b.status]}`}
                               >
                                 {chip}
                               </EditBookingButton>

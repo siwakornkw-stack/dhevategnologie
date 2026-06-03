@@ -14,7 +14,7 @@ export default async function AdminChatPage() {
   return (
     <div className="wrapper py-6 max-w-6xl">
       <div className="mb-4">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('title')}</h1>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">{t('title')}</h1>
         <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{t('subtitle')}</p>
       </div>
       <div className="h-[calc(100vh-11rem)] min-h-[500px]">

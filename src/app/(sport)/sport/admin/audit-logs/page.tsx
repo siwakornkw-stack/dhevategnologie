@@ -23,18 +23,18 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 const ACTION_COLORS: Record<string, string> = {
-  FIELD_CREATED: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  FIELD_UPDATED: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  FIELD_CREATED: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+  FIELD_UPDATED: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
   FIELD_DELETED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  COUPON_CREATED: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  COUPON_UPDATED: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  COUPON_CREATED: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+  COUPON_UPDATED: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
   COUPON_DELETED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  BOOKINGS_APPROVED: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-  BOOKINGS_REJECTED: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-  REFERRAL_BONUS_AWARDED: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  BOOKINGS_EXPORTED: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
-  USERS_EXPORTED: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
-  USER_ROLE_CHANGED: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+  BOOKINGS_APPROVED: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+  BOOKINGS_REJECTED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+  REFERRAL_BONUS_AWARDED: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300',
+  BOOKINGS_EXPORTED: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
+  USERS_EXPORTED: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
+  USER_ROLE_CHANGED: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300',
 };
 
 interface PageProps {
@@ -74,9 +74,9 @@ export default async function AuditLogsPage({ searchParams }: PageProps) {
           <Link href="/sport/admin" className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition">
             ← Dashboard
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Audit Logs</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Audit Logs</h1>
         </div>
-        <span className="text-sm text-gray-400">{total} รายการ</span>
+        <span className="text-sm tabular-nums text-gray-400">{total} รายการ</span>
       </div>
 
       {/* Action filter */}
@@ -85,7 +85,7 @@ export default async function AuditLogsPage({ searchParams }: PageProps) {
           href="/sport/admin/audit-logs?action=ALL&page=1"
           className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
             !actionFilter || actionFilter === 'ALL'
-              ? 'bg-primary-600 text-white'
+              ? 'bg-indigo-500 text-white'
               : 'border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
           }`}
         >
@@ -97,7 +97,7 @@ export default async function AuditLogsPage({ searchParams }: PageProps) {
             href={`/sport/admin/audit-logs?action=${action}&page=1`}
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
               actionFilter === action
-                ? 'bg-primary-600 text-white'
+                ? 'bg-indigo-500 text-white'
                 : 'border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
             }`}
           >

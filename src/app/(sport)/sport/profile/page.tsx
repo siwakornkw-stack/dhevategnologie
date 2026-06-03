@@ -158,7 +158,7 @@ export default function ProfilePage() {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  const inputCls = 'w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-800 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400 transition';
+  const inputCls = 'w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-800 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition';
 
   if (!profile) {
     return (
@@ -172,7 +172,7 @@ export default function ProfilePage() {
     <div className="wrapper py-8 max-w-2xl space-y-6">
       <div className="flex items-center gap-3">
         <a href="/sport" className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition">{t('backToHome')}</a>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">👤 {t('title')}</h1>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">👤 {t('title')}</h1>
       </div>
 
       {/* Profile Card */}
@@ -194,17 +194,17 @@ export default function ProfilePage() {
           <p className="font-semibold text-gray-900 dark:text-white text-lg">{profile.name ?? t('noName')}</p>
           <p className="text-sm text-gray-500 dark:text-gray-400">{profile.email}</p>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${profile.role === 'ADMIN' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
+            <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${profile.role === 'ADMIN' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'}`}>
               {profile.role === 'ADMIN' ? '⚙️ Admin' : t('roleUser')}
             </span>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 tabular-nums">
               ⭐ {profile.points} {t('pointsLabel')}
             </span>
             {profile.twoFactorEnabled && (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">🔐 2FA</span>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">🔐 2FA</span>
             )}
             {profile.emailVerified ? (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">{t('emailVerified')}</span>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">{t('emailVerified')}</span>
             ) : (
               <a href="/sport/auth/resend-verification" className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 hover:bg-amber-200 transition">{t('emailUnverified')}</a>
             )}
@@ -233,7 +233,7 @@ export default function ProfilePage() {
             </div>
             <button
               onClick={copyReferralLink}
-              className="flex-shrink-0 px-3 py-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold transition"
+              className="flex-shrink-0 px-3 py-2 rounded-xl bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               {copied ? t('referral.copied') : t('referral.copy')}
             </button>
@@ -278,7 +278,7 @@ export default function ProfilePage() {
         </div>
 
         <div className="flex justify-end pt-2">
-          <button type="submit" disabled={saving} className="gradient-btn px-6 py-2.5 rounded-xl text-white text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed">
+          <button type="submit" disabled={saving} className="bg-indigo-500 hover:bg-indigo-600 px-6 py-2.5 rounded-xl text-white text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
             {saving ? t('edit.saving') : t('edit.save')}
           </button>
         </div>
@@ -297,7 +297,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => set(!value)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${value ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-700'}`}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${value ? 'bg-indigo-500' : 'bg-gray-200 dark:bg-gray-700'}`}
               >
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${value ? 'translate-x-6' : 'translate-x-1'}`} />
               </button>
@@ -318,7 +318,7 @@ export default function ProfilePage() {
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700/50 p-6 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-gray-900 dark:text-white">{t('points.title')}</h2>
-            <span className="px-3 py-1 rounded-full text-sm font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+            <span className="px-3 py-1 rounded-full text-sm font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 tabular-nums">
               {pointsBalance ?? profile.points} {t('pointsLabel')}
             </span>
           </div>
@@ -328,7 +328,7 @@ export default function ProfilePage() {
                 <div className="flex items-center gap-3">
                   <div className={cn(
                     'w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0',
-                    tx.points > 0 ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/30 text-red-500 dark:text-red-400'
+                    tx.points > 0 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-300' : 'bg-red-100 dark:bg-red-900/30 text-red-500 dark:text-red-400'
                   )}>
                     {tx.points > 0 ? '+' : '-'}
                   </div>
@@ -338,8 +338,8 @@ export default function ProfilePage() {
                   </div>
                 </div>
                 <span className={cn(
-                  'text-sm font-semibold',
-                  tx.points > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'
+                  'text-sm font-semibold tabular-nums',
+                  tx.points > 0 ? 'text-emerald-600 dark:text-emerald-300' : 'text-red-500 dark:text-red-400'
                 )}>
                   {tx.points > 0 ? '+' : ''}{tx.points} {t('pointsLabel')}
                 </span>
@@ -365,7 +365,7 @@ export default function ProfilePage() {
           </div>
           <div className="flex items-center gap-2">
             {profile.twoFactorEnabled ? (
-              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">{t('security.twoFaOn')}</span>
+              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">{t('security.twoFaOn')}</span>
             ) : (
               <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">{t('security.twoFaOff')}</span>
             )}
@@ -410,7 +410,7 @@ export default function ProfilePage() {
                 type="button"
                 onClick={handleDeleteAccount}
                 disabled={deleting || !deletePassword}
-                className="flex-1 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition disabled:opacity-60"
+                className="flex-1 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
               >
                 {deleting ? 'กำลังลบ...' : 'ยืนยันลบบัญชี'}
               </button>

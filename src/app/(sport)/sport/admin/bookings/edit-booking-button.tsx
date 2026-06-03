@@ -61,7 +61,7 @@ export function EditBookingButton({ bookingId, initialDate, initialTimeSlot, chi
     <>
       <button
         onClick={() => setOpen(true)}
-        className={triggerClassName ?? 'px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition'}
+        className={triggerClassName ?? 'px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500'}
       >
         {children ?? '✎ แก้เวลา'}
       </button>
@@ -88,7 +88,7 @@ export function EditBookingButton({ bookingId, initialDate, initialTimeSlot, chi
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -98,7 +98,7 @@ export function EditBookingButton({ bookingId, initialDate, initialTimeSlot, chi
                     type="time"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                   />
                 </div>
                 <div>
@@ -107,7 +107,7 @@ export function EditBookingButton({ bookingId, initialDate, initialTimeSlot, chi
                     type="time"
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                   />
                 </div>
               </div>
@@ -123,7 +123,7 @@ export function EditBookingButton({ bookingId, initialDate, initialTimeSlot, chi
               <button
                 onClick={handleSave}
                 disabled={loading}
-                className="px-4 py-2 rounded-lg text-sm font-medium bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50"
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-500 text-white hover:bg-indigo-600 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               >
                 {loading ? 'กำลังบันทึก...' : 'บันทึก'}
               </button>

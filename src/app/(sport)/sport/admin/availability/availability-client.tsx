@@ -90,7 +90,7 @@ function TimeSelect({
   }
 
   const selectCls =
-    'rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2 py-2 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-400 text-center w-full';
+    'rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2 py-2 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center w-full tabular-nums';
 
   return (
     <div className="flex items-center gap-1">
@@ -328,12 +328,12 @@ export function AvailabilityClient({
                 <div key={field.id} className="px-5 py-4">
                   {/* Field Info */}
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/20 flex items-center justify-center text-xl flex-shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/10 to-indigo-600/20 flex items-center justify-center text-xl flex-shrink-0">
                       {SPORT_TYPE_EMOJI[field.sportType] ?? '🏟️'}
                     </div>
                     <div>
                       <p className="font-medium text-gray-900 dark:text-white text-sm">{field.name}</p>
-                      <p className="text-xs text-primary-600 dark:text-primary-400 font-medium">
+                      <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">
                         {fieldPriceRules[field.id]?.length > 0
                           ? `ราคาตามช่วงเวลา · ${field.openTime}–${field.closeTime}`
                           : `฿${field.pricePerHour.toLocaleString()}/ชม. · ${field.openTime}–${field.closeTime}`}
@@ -369,10 +369,10 @@ export function AvailabilityClient({
                             onClick={() => !isBooked && openDialog(field, slot)}
                             disabled={isBooked || loadingAvail}
                             className={cn(
-                              'px-3 py-1.5 rounded-lg text-xs font-medium border transition-all',
+                              'px-3 py-1.5 rounded-lg text-xs font-medium border transition-all tabular-nums',
                               isBooked
                                 ? 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 cursor-not-allowed'
-                                : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40 hover:border-green-300 cursor-pointer'
+                                : 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 hover:border-emerald-300 cursor-pointer'
                             )}
                           >
                             {slotStart}
@@ -416,13 +416,13 @@ export function AvailabilityClient({
                 <>
                   <div className="flex justify-between">
                     <span className="text-gray-500">เวลา</span>
-                    <span className="font-semibold text-primary-600 dark:text-primary-400">
+                    <span className="font-semibold text-indigo-600 dark:text-indigo-400 tabular-nums">
                       {startTime}–{endTime} น. ({formatDurationMin(dialogDurationMin)})
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">ราคา</span>
-                    <span className="font-bold text-gray-900 dark:text-white">
+                    <span className="font-bold text-gray-900 dark:text-white tabular-nums">
                       ฿{dialogPrice % 1 === 0 ? dialogPrice.toLocaleString() : dialogPrice.toFixed(2)}
                     </span>
                   </div>
@@ -464,7 +464,7 @@ export function AvailabilityClient({
 
             {/* Validation messages */}
             {hasConflict && isValidRange && (
-              <p className="text-xs text-orange-500 mb-3">ช่วงเวลานี้ซ้อนทับกับการจองที่มีอยู่</p>
+              <p className="text-xs text-red-600 dark:text-red-400 mb-3">ช่วงเวลานี้ซ้อนทับกับการจองที่มีอยู่</p>
             )}
 
             {/* Note */}
@@ -475,7 +475,7 @@ export function AvailabilityClient({
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="เช่น คุณสมชาย 081-234-5678"
                 rows={2}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none"
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
               />
             </div>
 
@@ -486,7 +486,7 @@ export function AvailabilityClient({
                   type="checkbox"
                   checked={repeatWeekly}
                   onChange={(e) => setRepeatWeekly(e.target.checked)}
-                  className="w-4 h-4 accent-primary-600"
+                  className="w-4 h-4 accent-indigo-500"
                 />
                 <span className="font-medium">จองซ้ำทุกสัปดาห์</span>
               </label>
@@ -499,7 +499,7 @@ export function AvailabilityClient({
                     max={26}
                     value={repeatWeeks}
                     onChange={(e) => setRepeatWeeks(Math.max(1, Math.min(26, Number(e.target.value) || 1)))}
-                    className="w-20 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary-400"
+                    className="w-20 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-2 py-1 text-sm text-center tabular-nums focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                   <span className="text-xs text-gray-400">
                     (รวมวันแรก, สูงสุด 26 สัปดาห์)
@@ -512,14 +512,14 @@ export function AvailabilityClient({
             <div className="flex gap-3">
               <button
                 onClick={closeDialog}
-                className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+                className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               >
                 ยกเลิก
               </button>
               <button
                 onClick={handleBook}
                 disabled={submitting || !isValidRange || hasConflict}
-                className="flex-1 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               >
                 {submitting ? 'กำลังจอง...' : 'จองและอนุมัติ'}
               </button>

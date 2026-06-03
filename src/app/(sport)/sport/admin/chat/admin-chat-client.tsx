@@ -86,11 +86,11 @@ export function AdminChatClient({ currentUserId }: { currentUserId: string }) {
                   <li key={c.id}>
                     <button
                       onClick={() => selectConversation(c.userId)}
-                      className={`w-full text-left px-4 py-3 flex items-center gap-3 transition ${
-                        isSel ? 'bg-primary-50 dark:bg-primary-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                      className={`w-full text-left px-4 py-3 flex items-center gap-3 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                        isSel ? 'bg-indigo-50 dark:bg-indigo-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-800'
                       }`}
                     >
-                      <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center text-primary-700 dark:text-primary-300 font-semibold text-sm flex-shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-semibold text-sm flex-shrink-0">
                         {(c.user.name ?? c.user.email)[0]?.toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -99,7 +99,7 @@ export function AdminChatClient({ currentUserId }: { currentUserId: string }) {
                             {c.user.name ?? c.user.email}
                           </p>
                           {c.unreadCount > 0 && (
-                            <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0">
+                            <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 tabular-nums">
                               {c.unreadCount}
                             </span>
                           )}
@@ -126,7 +126,7 @@ export function AdminChatClient({ currentUserId }: { currentUserId: string }) {
           <>
             <button
               onClick={() => setShowListMobile(true)}
-              className="md:hidden mb-2 text-sm text-primary-600 font-medium"
+              className="md:hidden mb-2 text-sm text-indigo-600 dark:text-indigo-400 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               ← {tc('back')}
             </button>

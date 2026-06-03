@@ -297,7 +297,7 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, priceRule
             <p className="text-xs text-gray-400 mt-0.5">{t('selectTimeHint')}</p>
           </div>
           <div className="flex items-center gap-3 text-xs text-gray-500">
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-400 inline-block" /> {t('legendAvailable')}</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" /> {t('legendAvailable')}</span>
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-400 inline-block" /> {t('legendPending')}</span>
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400 inline-block" /> {t('legendBooked')}</span>
           </div>
@@ -310,10 +310,10 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, priceRule
               key={d}
               onClick={() => { setDuration(d); setSelectedSlot(null); setQuantity(1); }}
               className={cn(
-                'px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all',
+                'px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500',
                 duration === d
-                  ? 'bg-primary-600 border-primary-600 text-white'
-                  : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-primary-400'
+                  ? 'bg-indigo-500 border-indigo-500 text-white'
+                  : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-indigo-400'
               )}
             >
               {d === 1 ? t('duration1hr') : t('duration15hr')}
@@ -349,15 +349,15 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, priceRule
               <button
                 onClick={() => setQuantity(q => Math.max(1, q - 1))}
                 disabled={quantity <= 1}
-                className="w-8 h-8 rounded-lg border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold text-lg flex items-center justify-center hover:border-primary-400 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-8 h-8 rounded-lg border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold text-lg flex items-center justify-center hover:border-indigo-400 transition disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               >−</button>
-              <span className="text-sm font-semibold min-w-[70px] text-center text-gray-800 dark:text-gray-200">
+              <span className="text-sm font-semibold min-w-[70px] text-center text-gray-800 dark:text-gray-200 tabular-nums">
                 {formatDuration(totalHours)}
               </span>
               <button
                 onClick={() => setQuantity(q => Math.min(maxQuantity, q + 1))}
                 disabled={quantity >= maxQuantity}
-                className="w-8 h-8 rounded-lg border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold text-lg flex items-center justify-center hover:border-primary-400 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                className="w-8 h-8 rounded-lg border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold text-lg flex items-center justify-center hover:border-indigo-400 transition disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               >+</button>
             </div>
           </div>
@@ -398,20 +398,20 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, priceRule
                     ({formatDuration(totalHours)}{priceRules.length > 0 ? ' · ราคาตามช่วงเวลา' : ` × ฿${pricePerHour.toLocaleString()}`})
                   </span>
                 </span>
-                <span className="font-medium text-gray-700 dark:text-gray-300">฿{basePrice.toLocaleString()}</span>
+                <span className="font-medium text-gray-700 dark:text-gray-300 tabular-nums">฿{basePrice.toLocaleString()}</span>
               </div>
               {coupon && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-green-600 dark:text-green-400 flex items-center gap-1">
+                  <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                     🎟️ {coupon.code}
                     <button onClick={() => { setCoupon(null); setCouponCode(''); }} className="text-xs text-gray-400 hover:text-red-400 ml-1">✕</button>
                   </span>
-                  <span className="text-green-600 dark:text-green-400 font-medium">-฿{couponDiscount.toLocaleString()}</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-medium tabular-nums">-฿{couponDiscount.toLocaleString()}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm pt-1 border-t border-gray-100 dark:border-gray-800">
                 <span className="text-gray-500 font-medium">{t('summary.total')}</span>
-                <span className="text-xl font-bold text-gray-900 dark:text-white">฿{totalPrice.toLocaleString()}</span>
+                <span className="text-xl font-bold text-gray-900 dark:text-white tabular-nums">฿{totalPrice.toLocaleString()}</span>
               </div>
             </div>
 
@@ -452,7 +452,7 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, priceRule
                   </span>
                 </label>
                 {redeemPoints && (
-                  <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">-฿{pointsDiscount}</span>
+                  <span className="text-sm font-semibold text-amber-600 dark:text-amber-400 tabular-nums">-฿{pointsDiscount}</span>
                 )}
               </div>
             )}
@@ -466,7 +466,7 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, priceRule
                   onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                   onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
                   placeholder={t('summary.couponPlaceholder')}
-                  className="flex-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2 text-sm font-mono uppercase text-gray-700 dark:text-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400"
+                  className="flex-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2 text-sm font-mono uppercase text-gray-700 dark:text-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
                 <button
                   type="button"
@@ -486,14 +486,14 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, priceRule
                 onChange={(e) => setNote(e.target.value)}
                 placeholder={t('summary.notePlaceholder')}
                 rows={2}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none"
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
               />
             </div>
 
             <button
               onClick={handleBook}
               disabled={booking}
-              className="w-full gradient-btn text-white font-semibold py-3 rounded-xl disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+              className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-3 rounded-xl disabled:opacity-60 disabled:cursor-not-allowed transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               {booking
                 ? t('summary.loading')
@@ -530,13 +530,13 @@ export function FieldBookingClient({ fieldId, fieldName, pricePerHour, priceRule
           onKeyDown={(e) => e.key === 'Enter' && handleSavePhone()}
           placeholder="0812345678"
           maxLength={10}
-          className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400 text-center text-lg tracking-widest"
+          className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center text-lg tracking-widest tabular-nums"
           autoFocus
         />
         <button
           onClick={handleSavePhone}
           disabled={savingPhone}
-          className="w-full gradient-btn text-white font-semibold py-3 rounded-xl disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-3 rounded-xl disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           {savingPhone ? 'กำลังบันทึก...' : 'บันทึกและจองเลย'}
         </button>

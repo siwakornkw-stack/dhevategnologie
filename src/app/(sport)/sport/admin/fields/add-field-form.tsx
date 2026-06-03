@@ -87,14 +87,14 @@ export function AddFieldForm() {
     }
   }
 
-  const inputCls = 'w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-800 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400 transition';
+  const inputCls = 'w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-800 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition';
 
   return (
     <>
       {/* Trigger Button */}
       <button
         onClick={() => setOpen(true)}
-        className="gradient-btn flex items-center gap-2 px-4 py-2 rounded-full text-white text-sm font-medium"
+        className="bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
       >
         <span className="text-base">+</span> เพิ่มสนาม
       </button>
@@ -265,7 +265,7 @@ export function AddFieldForm() {
                       <button
                         type="button"
                         onClick={addPriceRule}
-                        className="text-xs px-2.5 py-1 rounded-lg bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-900/40 transition"
+                        className="text-xs px-2.5 py-1 rounded-lg bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                       >
                         + เพิ่มช่วงราคา
                       </button>
@@ -279,14 +279,14 @@ export function AddFieldForm() {
                             type="time"
                             value={rule.startTime}
                             onChange={(e) => updatePriceRule(idx, 'startTime', e.target.value)}
-                            className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-400"
+                            className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                           />
                           <span className="text-gray-400 text-sm">-</span>
                           <input
                             type="time"
                             value={rule.endTime}
                             onChange={(e) => updatePriceRule(idx, 'endTime', e.target.value)}
-                            className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-400"
+                            className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                           />
                           <input
                             type="number"
@@ -294,14 +294,14 @@ export function AddFieldForm() {
                             placeholder="฿/ชม."
                             value={rule.pricePerHour}
                             onChange={(e) => updatePriceRule(idx, 'pricePerHour', e.target.value)}
-                            className="w-28 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-400"
+                            className="w-28 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-white tabular-nums focus:outline-none focus:ring-2 focus:ring-indigo-500"
                           />
                           <input
                             type="text"
                             placeholder="ชื่อช่วง (ไม่บังคับ)"
                             value={rule.label}
                             onChange={(e) => updatePriceRule(idx, 'label', e.target.value)}
-                            className="flex-1 min-w-[120px] rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-400"
+                            className="flex-1 min-w-[120px] rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                           />
                           <button
                             type="button"
@@ -329,7 +329,7 @@ export function AddFieldForm() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="gradient-btn px-6 py-2.5 rounded-xl text-white text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed min-w-[120px]"
+                  className="bg-indigo-500 hover:bg-indigo-600 px-6 py-2.5 rounded-xl text-white text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed min-w-[120px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 >
                   {loading ? (
                     <span className="flex items-center gap-2 justify-center">

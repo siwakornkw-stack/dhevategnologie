@@ -179,20 +179,20 @@ export default function ReportsPage() {
           <Link href="/sport/admin" className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition">
             ← Dashboard
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">📊 รีพอร์ต</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">📊 รีพอร์ต</h1>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={exportPDF}
             disabled={!data}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition shadow-sm disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 text-sm font-semibold transition shadow-sm disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
             📄 ส่งออก PDF
           </button>
           <a
             href={buildExportUrl()}
             download
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-600 hover:bg-green-700 text-white text-sm font-semibold transition shadow-sm"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold transition shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
             ⬇️ ส่งออก CSV
           </a>
@@ -210,7 +210,7 @@ export default function ReportsPage() {
               value={from}
               max={to}
               onChange={(e) => setFrom(e.target.value)}
-              className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -220,7 +220,7 @@ export default function ReportsPage() {
               value={to}
               min={from}
               onChange={(e) => setTo(e.target.value)}
-              className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -228,7 +228,7 @@ export default function ReportsPage() {
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               {STATUS_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -240,7 +240,7 @@ export default function ReportsPage() {
             <select
               value={sportType}
               onChange={(e) => setSportType(e.target.value)}
-              className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               {SPORT_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -264,10 +264,10 @@ export default function ReportsPage() {
         <>
           {/* Summary Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <SummaryCard icon="📋" label="การจองทั้งหมด" value={data.summary.total} color="from-blue-500/20 to-cyan-500/20" textColor="text-blue-600 dark:text-blue-400" />
-            <SummaryCard icon="💰" label="รายได้สุทธิ" value={`฿${data.summary.netRevenue.toLocaleString()}`} color="from-green-500/20 to-emerald-500/20" textColor="text-green-600 dark:text-green-400" />
-            <SummaryCard icon="↩️" label="ยกเลิก/คืนเงิน" value={`-฿${data.summary.cancelledRevenue.toLocaleString()}`} color="from-red-500/20 to-rose-500/20" textColor="text-red-600 dark:text-red-400" />
-            <SummaryCard icon="✅" label="อนุมัติแล้ว" value={data.summary.byStatus.APPROVED} color="from-primary-500/20 to-violet-500/20" textColor="text-primary-600 dark:text-primary-400" />
+            <SummaryCard icon="📋" label="การจองทั้งหมด" value={data.summary.total} color="from-gray-500/20 to-gray-400/20" textColor="text-gray-700 dark:text-gray-300" />
+            <SummaryCard icon="💰" label="รายได้สุทธิ" value={`฿${data.summary.netRevenue.toLocaleString()}`} color="from-emerald-500/20 to-emerald-400/20" textColor="text-emerald-600 dark:text-emerald-400" />
+            <SummaryCard icon="↩️" label="ยกเลิก/คืนเงิน" value={`-฿${data.summary.cancelledRevenue.toLocaleString()}`} color="from-red-500/20 to-red-400/20" textColor="text-red-600 dark:text-red-400" />
+            <SummaryCard icon="✅" label="อนุมัติแล้ว" value={data.summary.byStatus.APPROVED} color="from-indigo-500/20 to-indigo-400/20" textColor="text-indigo-600 dark:text-indigo-400" />
           </div>
 
           {/* Recharts */}
@@ -295,11 +295,11 @@ export default function ReportsPage() {
                     </span>
                     <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-full h-2 overflow-hidden">
                       <div
-                        className="h-full bg-primary-500 rounded-full transition-all duration-500"
+                        className="h-full bg-indigo-500 rounded-full transition-all duration-500"
                         style={{ width: data.summary.total > 0 ? `${(count / data.summary.total) * 100}%` : '0%' }}
                       />
                     </div>
-                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 w-8 text-right">{count}</span>
+                    <span className="text-sm font-semibold tabular-nums text-gray-700 dark:text-gray-300 w-8 text-right">{count}</span>
                   </div>
                 ))}
               </div>
@@ -320,11 +320,11 @@ export default function ReportsPage() {
                       </span>
                       <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-full h-2 overflow-hidden">
                         <div
-                          className="h-full bg-cyan-500 rounded-full transition-all duration-500"
+                          className="h-full bg-indigo-500 rounded-full transition-all duration-500"
                           style={{ width: `${(item.count / maxCount) * 100}%` }}
                         />
                       </div>
-                      <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 w-8 text-right">{item.count}</span>
+                      <span className="text-sm font-semibold tabular-nums text-gray-700 dark:text-gray-300 w-8 text-right">{item.count}</span>
                     </div>
                   ))}
                 </div>
@@ -361,14 +361,14 @@ export default function ReportsPage() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-center font-semibold text-gray-700 dark:text-gray-300">{f.count}</td>
-                        <td className="px-4 py-3 text-center text-green-600 dark:text-green-400 font-semibold">{f.approved}</td>
+                        <td className="px-4 py-3 text-center font-semibold tabular-nums text-gray-700 dark:text-gray-300">{f.count}</td>
+                        <td className="px-4 py-3 text-center text-emerald-600 dark:text-emerald-400 font-semibold tabular-nums">{f.approved}</td>
                         <td className="px-4 py-3 text-center">
-                          <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                          <span className="text-sm font-medium tabular-nums text-gray-600 dark:text-gray-400">
                             {f.count > 0 ? ((f.approved / f.count) * 100).toFixed(0) : 0}%
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-right font-semibold text-primary-600 dark:text-primary-400">
+                        <td className="px-4 py-3 text-right font-semibold tabular-nums text-indigo-600 dark:text-indigo-400">
                           ฿{f.revenue.toLocaleString()}
                         </td>
                       </tr>
@@ -386,7 +386,7 @@ export default function ReportsPage() {
               <a
                 href={buildExportUrl()}
                 download
-                className="text-sm text-green-600 dark:text-green-400 hover:underline font-medium"
+                className="text-sm text-emerald-600 dark:text-emerald-400 hover:underline font-medium"
               >
                 ⬇️ ดาวน์โหลด CSV
               </a>
@@ -423,18 +423,18 @@ export default function ReportsPage() {
                           <p className="font-medium text-gray-900 dark:text-white">
                             {new Date(booking.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}
                           </p>
-                          <p className="text-xs text-primary-600 dark:text-primary-400">{booking.timeSlot} น.</p>
+                          <p className="text-xs tabular-nums text-indigo-600 dark:text-indigo-400">{booking.timeSlot} น.</p>
                         </td>
                         <td className="px-4 py-3">
                           <p className="font-medium text-gray-800 dark:text-gray-200">{booking.user.name ?? '-'}</p>
                           <p className="text-xs text-gray-400">{booking.user.email}</p>
                           {booking.user.phone && (
-                            <a href={`tel:${booking.user.phone}`} className="text-xs text-green-600 dark:text-green-400 hover:underline">
+                            <a href={`tel:${booking.user.phone}`} className="text-xs tabular-nums text-emerald-600 dark:text-emerald-400 hover:underline">
                               {booking.user.phone}
                             </a>
                           )}
                         </td>
-                        <td className="px-4 py-3 font-semibold text-gray-700 dark:text-gray-300">
+                        <td className="px-4 py-3 font-semibold tabular-nums text-gray-700 dark:text-gray-300">
                           ฿{booking.field.pricePerHour.toLocaleString()}
                         </td>
                         <td className="px-4 py-3">
@@ -470,7 +470,7 @@ function SummaryCard({
   return (
     <div className={`rounded-2xl bg-gradient-to-br ${color} border border-white/50 dark:border-gray-700/50 p-5`}>
       <div className="text-3xl mb-2">{icon}</div>
-      <div className={`text-2xl font-bold ${textColor}`}>{value}</div>
+      <div className={`text-2xl font-bold tabular-nums ${textColor}`}>{value}</div>
       <div className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{label}</div>
     </div>
   );

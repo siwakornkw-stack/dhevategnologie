@@ -26,10 +26,10 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  PENDING: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-  APPROVED: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  REJECTED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  CANCELLED: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+  PENDING: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+  APPROVED: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+  REJECTED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+  CANCELLED: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
 };
 
 function firstDayOfMonth(year: number, month: number) {
@@ -158,7 +158,7 @@ export function BookingReport() {
         <button
           onClick={downloadCSV}
           disabled={loading || bookings.length === 0}
-          className="px-3 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition"
+          className="px-3 py-1.5 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           ดาวน์โหลด CSV ({bookings.length})
         </button>
@@ -238,19 +238,19 @@ export function BookingReport() {
                   className={cn(
                     'aspect-square rounded-lg border text-left p-1 sm:p-1.5 flex flex-col transition relative',
                     isSelected
-                      ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30'
+                      ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30'
                       : count > 0
-                      ? 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-primary-300'
+                      ? 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-indigo-300'
                       : 'border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30 hover:bg-gray-100 dark:hover:bg-gray-800',
-                    isToday && 'ring-1 ring-primary-400'
+                    isToday && 'ring-1 ring-indigo-400'
                   )}
                 >
-                  <span className={cn('text-xs font-medium', isToday ? 'text-primary-600 dark:text-primary-400' : 'text-gray-700 dark:text-gray-300')}>
+                  <span className={cn('text-xs font-medium tabular-nums', isToday ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-700 dark:text-gray-300')}>
                     {cell.date.getDate()}
                   </span>
                   {count > 0 && (
                     <span className="mt-auto inline-flex items-center gap-1">
-                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-primary-600 text-white">
+                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-indigo-500 text-white tabular-nums">
                         {count}
                       </span>
                     </span>
@@ -278,7 +278,7 @@ export function BookingReport() {
               <div className="divide-y divide-gray-100 dark:divide-gray-800">
                 {selectedList.map((b) => (
                   <div key={b.id} className="px-3 py-2 flex flex-wrap items-center gap-2 text-xs">
-                    <span className="font-medium text-primary-600 dark:text-primary-400 min-w-[100px]">{b.timeSlot}</span>
+                    <span className="font-medium text-indigo-600 dark:text-indigo-400 min-w-[100px] tabular-nums">{b.timeSlot}</span>
                     <span className="text-gray-800 dark:text-gray-200">{b.field.name}</span>
                     <span className="text-gray-500">·</span>
                     <span className="text-gray-600 dark:text-gray-400">{b.user.name ?? b.user.email}</span>
@@ -296,7 +296,7 @@ export function BookingReport() {
                         customerPhone={b.user.phone}
                         note={b.note}
                         onSaved={() => setRefreshKey((k) => k + 1)}
-                        triggerClassName="px-2 py-0.5 rounded-lg font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition"
+                        triggerClassName="px-2 py-0.5 rounded-lg font-semibold bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 transition"
                       >
                         ✎ แก้
                       </EditBookingButton>

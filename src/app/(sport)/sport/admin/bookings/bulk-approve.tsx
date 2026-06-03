@@ -85,14 +85,14 @@ export function PendingBookingsSection({ bookings }: { bookings: Booking[] }) {
             <button
               onClick={() => handleBulk('APPROVED')}
               disabled={bulkLoading}
-              className="px-3 py-1 rounded-full bg-green-600 hover:bg-green-700 text-white text-xs font-semibold disabled:opacity-50 transition"
+              className="px-3 py-1 rounded-full bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-semibold disabled:opacity-50 transition tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               {bulkLoading ? '...' : `✓ อนุมัติ ${selected.size} รายการ`}
             </button>
             <button
               onClick={() => handleBulk('REJECTED')}
               disabled={bulkLoading}
-              className="px-3 py-1 rounded-full bg-red-500 hover:bg-red-600 text-white text-xs font-semibold disabled:opacity-50 transition"
+              className="px-3 py-1 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs font-semibold disabled:opacity-50 transition tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               {bulkLoading ? '...' : `✕ ปฏิเสธ ${selected.size} รายการ`}
             </button>
@@ -125,11 +125,11 @@ export function PendingBookingsSection({ bookings }: { bookings: Booking[] }) {
               <div className="mt-1 flex flex-wrap gap-x-3 text-xs text-gray-500">
                 <span>👤 {booking.user.name ?? booking.user.email}</span>
                 {booking.user.phone && (
-                  <a href={`tel:${booking.user.phone}`} className="text-green-600 dark:text-green-400 hover:underline">
+                  <a href={`tel:${booking.user.phone}`} className="text-emerald-600 dark:text-emerald-400 hover:underline tabular-nums">
                     📱 {booking.user.phone}
                   </a>
                 )}
-                {booking.paidAt && <span className="text-green-600 dark:text-green-400">✓ ชำระแล้ว</span>}
+                {booking.paidAt && <span className="text-emerald-600 dark:text-emerald-400">✓ ชำระแล้ว</span>}
               </div>
               {booking.note && <p className="text-xs text-gray-400 mt-0.5 italic">💬 {booking.note}</p>}
               <div className="mt-2 flex flex-wrap items-center gap-2">

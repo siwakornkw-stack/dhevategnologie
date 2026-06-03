@@ -263,7 +263,7 @@ export default async function AdminHelpPage() {
         <h1 className="text-xl font-bold text-gray-900 dark:text-white">วิธีใช้งาน</h1>
       </div>
 
-      <div className="bg-gradient-to-br from-primary-500/10 to-violet-500/10 border border-primary-200 dark:border-primary-900/50 rounded-2xl p-5">
+      <div className="bg-gradient-to-br from-indigo-500/10 to-indigo-400/10 border border-indigo-200 dark:border-indigo-900/50 rounded-2xl p-5">
         <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">คู่มือผู้ดูแลระบบ 88ARENA</h2>
         <p className="text-sm text-gray-600 dark:text-gray-400">
           สรุปวิธีใช้งานทุกหน้าในระบบแอดมิน เลือกหัวข้อด้านล่างเพื่อดูรายละเอียด
@@ -301,7 +301,7 @@ export default async function AdminHelpPage() {
             {s.href && (
               <Link
                 href={s.href}
-                className="px-3 py-1.5 rounded-full bg-primary-600 hover:bg-primary-700 text-white text-xs font-medium transition"
+                className="px-3 py-1.5 rounded-full bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               >
                 เปิดหน้านี้ →
               </Link>
@@ -311,7 +311,7 @@ export default async function AdminHelpPage() {
           <ol className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
             {s.steps.map((step, i) => (
               <li key={i} className="flex gap-3">
-                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-xs font-semibold flex items-center justify-center">
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-semibold flex items-center justify-center tabular-nums">
                   {i + 1}
                 </span>
                 <span className="flex-1">{step}</span>
@@ -319,11 +319,11 @@ export default async function AdminHelpPage() {
             ))}
           </ol>
           {s.tips && s.tips.length > 0 && (
-            <div className="mt-4 rounded-xl bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-800/30 p-3">
-              <p className="text-xs font-semibold text-yellow-800 dark:text-yellow-400 mb-1">💡 Tips</p>
+            <div className="mt-4 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700 p-3">
+              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">💡 Tips</p>
               <ul className="space-y-1">
                 {s.tips.map((tip, i) => (
-                  <li key={i} className="text-xs text-yellow-900 dark:text-yellow-200">
+                  <li key={i} className="text-xs text-gray-600 dark:text-gray-400">
                     · {tip}
                   </li>
                 ))}

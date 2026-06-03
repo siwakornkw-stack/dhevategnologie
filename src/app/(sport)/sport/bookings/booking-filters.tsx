@@ -39,7 +39,7 @@ export function BookingFilters() {
 
   const hasFilters = status !== 'ALL' || from || to;
 
-  const inputCls = 'rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-xs text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-400 transition';
+  const inputCls = 'rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-xs text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition';
 
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -47,13 +47,13 @@ export function BookingFilters() {
       <div className="flex rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden text-xs font-medium">
         <button
           onClick={() => update('view', 'list')}
-          className={`px-3 py-2 transition ${view !== 'calendar' ? 'bg-primary-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+          className={`px-3 py-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${view !== 'calendar' ? 'bg-indigo-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
         >
           รายการ
         </button>
         <button
           onClick={() => update('view', 'calendar')}
-          className={`px-3 py-2 transition ${view === 'calendar' ? 'bg-primary-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+          className={`px-3 py-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${view === 'calendar' ? 'bg-indigo-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
         >
           ปฏิทิน
         </button>

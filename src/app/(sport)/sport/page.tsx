@@ -78,7 +78,7 @@ function FieldsPagination({
   return (
     <div className="flex items-center justify-center gap-2 pt-2">
       {currentPage > 1 && (
-        <a href={buildHref(currentPage - 1)} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 hover:border-primary-400 transition">
+        <a href={buildHref(currentPage - 1)} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 hover:border-indigo-400 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
           ก่อนหน้า
         </a>
       )}
@@ -86,17 +86,17 @@ function FieldsPagination({
         <a
           key={p}
           href={buildHref(p)}
-          className={`px-4 py-2 rounded-xl border text-sm font-medium transition ${
+          className={`px-4 py-2 rounded-xl border text-sm font-medium transition tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
             p === currentPage
-              ? 'bg-primary-600 border-primary-600 text-white'
-              : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-primary-400'
+              ? 'bg-indigo-500 border-indigo-500 text-white'
+              : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-indigo-400'
           }`}
         >
           {p}
         </a>
       ))}
       {currentPage < totalPages && (
-        <a href={buildHref(currentPage + 1)} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 hover:border-primary-400 transition">
+        <a href={buildHref(currentPage + 1)} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 hover:border-indigo-400 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
           ถัดไป
         </a>
       )}
@@ -130,7 +130,7 @@ export default async function SportHomePage({ searchParams }: PageProps) {
         {/* Stats */}
         <div className="mt-6 flex justify-center gap-6">
           <div className="text-center">
-            <div className="text-2xl font-bold text-primary-600 dark:text-primary-400">{totalFields}</div>
+            <div className="text-2xl font-bold text-primary-600 dark:text-primary-400 tabular-nums">{totalFields}</div>
             <div className="text-xs text-gray-400">{t('totalFields')}</div>
           </div>
           {sportCounts.slice(0, 3).map((s) => (

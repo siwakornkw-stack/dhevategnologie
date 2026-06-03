@@ -41,10 +41,10 @@ export default async function AdminDashboardPage() {
     ]);
 
   const stats = [
-    { label: t('stats.activeFields'), value: totalFields, icon: '🏟️', color: 'from-blue-500/20 to-cyan-500/20', textColor: 'text-blue-600 dark:text-blue-400' },
-    { label: t('stats.users'), value: totalUsers, icon: '👤', color: 'from-green-500/20 to-emerald-500/20', textColor: 'text-green-600 dark:text-green-400' },
-    { label: t('stats.totalBookings'), value: totalBookings, icon: '📋', color: 'from-primary-500/20 to-violet-500/20', textColor: 'text-primary-600 dark:text-primary-400' },
-    { label: t('stats.pending'), value: pendingBookings, icon: '⏳', color: 'from-yellow-500/20 to-orange-500/20', textColor: 'text-yellow-600 dark:text-yellow-400' },
+    { label: t('stats.activeFields'), value: totalFields, icon: '🏟️', color: 'from-gray-500/20 to-gray-400/20', textColor: 'text-gray-700 dark:text-gray-300' },
+    { label: t('stats.users'), value: totalUsers, icon: '👤', color: 'from-emerald-500/20 to-emerald-400/20', textColor: 'text-emerald-600 dark:text-emerald-400' },
+    { label: t('stats.totalBookings'), value: totalBookings, icon: '📋', color: 'from-indigo-500/20 to-indigo-400/20', textColor: 'text-indigo-600 dark:text-indigo-400' },
+    { label: t('stats.pending'), value: pendingBookings, icon: '⏳', color: 'from-gray-500/20 to-gray-400/20', textColor: 'text-gray-700 dark:text-gray-300' },
   ];
 
   return (
@@ -53,7 +53,7 @@ export default async function AdminDashboardPage() {
       {/* Header */}
       <div className="space-y-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('title')}</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">{t('title')}</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{t('subtitle')}</p>
         </div>
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
@@ -107,7 +107,7 @@ export default async function AdminDashboardPage() {
           </Link>
           <Link
             href="/sport/admin/bookings"
-            className="flex-shrink-0 px-3 py-2 rounded-full bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 transition whitespace-nowrap"
+            className="flex-shrink-0 px-3 py-2 rounded-full bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium transition whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
             {t('tabs.allBookings')}
           </Link>
@@ -143,7 +143,7 @@ export default async function AdminDashboardPage() {
         {stats.map((stat) => (
           <div key={stat.label} className={`rounded-2xl bg-gradient-to-br ${stat.color} border border-white/50 dark:border-gray-700/50 p-5`}>
             <div className="text-3xl mb-2">{stat.icon}</div>
-            <div className={`text-3xl font-bold ${stat.textColor}`}>{stat.value}</div>
+            <div className={`text-3xl font-bold tabular-nums ${stat.textColor}`}>{stat.value}</div>
             <div className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">{stat.label}</div>
           </div>
         ))}
@@ -169,7 +169,7 @@ export default async function AdminDashboardPage() {
             {fields.map((field) => (
               <div key={field.id} className="px-4 sm:px-6 py-4 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
                 {/* Sport Icon */}
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500/10 to-primary-600/20 flex items-center justify-center text-2xl flex-shrink-0">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500/10 to-indigo-600/20 flex items-center justify-center text-2xl flex-shrink-0">
                   {SPORT_TYPE_EMOJI[field.sportType]}
                 </div>
 
@@ -185,7 +185,7 @@ export default async function AdminDashboardPage() {
                     <span className="text-xs text-gray-400">
                       {SPORT_TYPE_LABELS[field.sportType]}
                     </span>
-                    <span className="text-xs font-medium text-primary-600 dark:text-primary-400">
+                    <span className="text-xs font-medium tabular-nums text-indigo-600 dark:text-indigo-400">
                       ฿{field.pricePerHour.toLocaleString()}/ชม.
                     </span>
                     <span className="text-xs text-gray-400">
@@ -220,7 +220,7 @@ export default async function AdminDashboardPage() {
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700/50 overflow-hidden">
         <div className="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
           <h2 className="font-semibold text-gray-900 dark:text-white text-lg">{t('recentBookings.title')}</h2>
-          <Link href="/sport/admin/bookings" className="text-sm text-primary-600 dark:text-primary-400 hover:underline">
+          <Link href="/sport/admin/bookings" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
             {t('recentBookings.viewAll')}
           </Link>
         </div>
@@ -240,7 +240,7 @@ export default async function AdminDashboardPage() {
                     {booking.user.name} · {booking.timeSlot} น.
                   </p>
                   {booking.user.phone && (
-                    <a href={`tel:${booking.user.phone}`} className="text-xs font-semibold text-green-600 dark:text-green-400 hover:underline">
+                    <a href={`tel:${booking.user.phone}`} className="text-xs font-semibold tabular-nums text-emerald-600 dark:text-emerald-400 hover:underline">
                       📱 {booking.user.phone}
                     </a>
                   )}

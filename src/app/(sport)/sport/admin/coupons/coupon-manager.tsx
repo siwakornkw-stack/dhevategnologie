@@ -110,12 +110,12 @@ export function CouponManager({ initialCoupons, initialCouponSystemEnabled }: Co
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">🎟️ คูปองส่วนลด</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">🎟️ คูปองส่วนลด</h1>
           <p className="text-sm text-gray-400 mt-0.5">จัดการโค้ดส่วนลดสำหรับลูกค้า</p>
         </div>
         <button
           onClick={() => setShowForm((v) => !v)}
-          className="px-4 py-2 rounded-full bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold transition"
+          className="px-4 py-2 rounded-full bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           {showForm ? 'ยกเลิก' : '+ สร้างคูปอง'}
         </button>
@@ -124,7 +124,7 @@ export function CouponManager({ initialCoupons, initialCouponSystemEnabled }: Co
       {/* Global coupon system toggle */}
       <div className={`rounded-2xl border p-5 flex items-center justify-between gap-4 transition-colors ${
         couponSystemEnabled
-          ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800/50'
+          ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800/50'
           : 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700/50'
       }`}>
         <div>
@@ -140,8 +140,8 @@ export function CouponManager({ initialCoupons, initialCouponSystemEnabled }: Co
         <button
           onClick={toggleCouponSystem}
           disabled={systemToggling}
-          className={`relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${
-            couponSystemEnabled ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
+          className={`relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-50 ${
+            couponSystemEnabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'
           }`}
         >
           <span
@@ -163,7 +163,7 @@ export function CouponManager({ initialCoupons, initialCouponSystemEnabled }: Co
                 value={form.code}
                 onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase() }))}
                 placeholder="SUMMER20"
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2 text-sm font-mono uppercase text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-400"
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2 text-sm font-mono uppercase text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
             <div>
@@ -171,7 +171,7 @@ export function CouponManager({ initialCoupons, initialCouponSystemEnabled }: Co
               <select
                 value={form.discountType}
                 onChange={(e) => setForm((f) => ({ ...f, discountType: e.target.value }))}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-400"
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="PERCENT">เปอร์เซ็นต์ (%)</option>
                 <option value="FIXED">จำนวนเงิน (฿)</option>
@@ -189,7 +189,7 @@ export function CouponManager({ initialCoupons, initialCouponSystemEnabled }: Co
                 value={form.discountValue}
                 onChange={(e) => setForm((f) => ({ ...f, discountValue: e.target.value }))}
                 placeholder={form.discountType === 'PERCENT' ? '20' : '100'}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-400"
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2 text-sm text-gray-800 dark:text-white tabular-nums focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
             <div>
@@ -200,7 +200,7 @@ export function CouponManager({ initialCoupons, initialCouponSystemEnabled }: Co
                 value={form.maxUses}
                 onChange={(e) => setForm((f) => ({ ...f, maxUses: e.target.value }))}
                 placeholder="100"
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-400"
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2 text-sm text-gray-800 dark:text-white tabular-nums focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
             <div>
@@ -209,14 +209,14 @@ export function CouponManager({ initialCoupons, initialCouponSystemEnabled }: Co
                 type="date"
                 value={form.expiresAt}
                 onChange={(e) => setForm((f) => ({ ...f, expiresAt: e.target.value }))}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-400"
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="px-6 py-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold transition disabled:opacity-50"
+            className="px-6 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold transition disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
             {loading ? 'กำลังสร้าง...' : 'สร้างคูปอง'}
           </button>
@@ -249,16 +249,16 @@ export function CouponManager({ initialCoupons, initialCouponSystemEnabled }: Co
                   return (
                     <tr key={coupon.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition">
                       <td className="px-4 py-3">
-                        <span className="font-mono font-semibold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20 px-2 py-0.5 rounded">
+                        <span className="font-mono font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 px-2 py-0.5 rounded">
                           {coupon.code}
                         </span>
                       </td>
-                      <td className="px-4 py-3 font-semibold text-gray-800 dark:text-gray-200">
+                      <td className="px-4 py-3 font-semibold text-gray-800 dark:text-gray-200 tabular-nums">
                         {coupon.discountType === 'PERCENT'
                           ? `${coupon.discountValue}%`
                           : `฿${coupon.discountValue.toLocaleString()}`}
                       </td>
-                      <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-400">
+                      <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-400 tabular-nums">
                         {coupon.usedCount}{coupon.maxUses !== null ? ` / ${coupon.maxUses}` : ''}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
@@ -272,7 +272,7 @@ export function CouponManager({ initialCoupons, initialCouponSystemEnabled }: Co
                             {isExpired ? 'หมดอายุ' : 'ใช้หมดแล้ว'}
                           </span>
                         ) : coupon.isActive ? (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">ใช้งาน</span>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">ใช้งาน</span>
                         ) : (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500">ปิดอยู่</span>
                         )}
@@ -281,7 +281,7 @@ export function CouponManager({ initialCoupons, initialCouponSystemEnabled }: Co
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => toggleActive(coupon)}
-                            className="text-xs px-3 py-1 rounded-full border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+                            className="text-xs px-3 py-1 rounded-full border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                           >
                             {coupon.isActive ? 'ปิด' : 'เปิด'}
                           </button>

@@ -52,7 +52,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Link href="/sport/admin" className="text-sm text-gray-400 hover:text-gray-600">← Dashboard</Link>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">👥 {t('users.title')}</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">👥 {t('users.title')}</h1>
         </div>
         <div className="flex items-center gap-3">
           <Suspense>
@@ -60,7 +60,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
           </Suspense>
           <a
             href="/api/sport/admin/users/export"
-            className="px-4 py-2 rounded-full bg-green-600 hover:bg-green-700 text-white text-sm font-semibold transition"
+            className="px-4 py-2 rounded-full bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
             ⬇️ Export CSV
           </a>
@@ -89,7 +89,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                 <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center text-primary-700 dark:text-primary-300 font-semibold text-xs flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-semibold text-xs flex-shrink-0">
                         {user.name?.[0]?.toUpperCase() ?? user.email[0].toUpperCase()}
                       </div>
                       <div>
@@ -100,19 +100,19 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
                     {user.phone ? (
-                      <a href={`tel:${user.phone}`} className="text-green-600 dark:text-green-400 hover:underline">{user.phone}</a>
+                      <a href={`tel:${user.phone}`} className="tabular-nums text-emerald-600 dark:text-emerald-400 hover:underline">{user.phone}</a>
                     ) : <span className="text-gray-300 dark:text-gray-600">-</span>}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span className="font-semibold text-gray-700 dark:text-gray-300">{user._count.bookings}</span>
+                    <span className="font-semibold tabular-nums text-gray-700 dark:text-gray-300">{user._count.bookings}</span>
                   </td>
                   <td className="px-4 py-3 text-center">
                     {user.emailVerified
-                      ? <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">{t('users.emailVerified')}</span>
-                      : <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">{t('users.emailUnverified')}</span>}
+                      ? <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">{t('users.emailVerified')}</span>
+                      : <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{t('users.emailUnverified')}</span>}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${user.role === 'ADMIN' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>
+                    <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${user.role === 'ADMIN' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}`}>
                       {user.role === 'ADMIN' ? 'Admin' : 'User'}
                     </span>
                   </td>

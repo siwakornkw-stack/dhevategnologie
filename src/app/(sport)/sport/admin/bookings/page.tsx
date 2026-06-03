@@ -84,7 +84,7 @@ export default async function AdminBookingsPage({ searchParams }: PageProps) {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <a href="/sport/admin" className="text-sm text-gray-400 hover:text-gray-600">{t('bookings.backDashboard')}</a>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('bookings.title')}</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">{t('bookings.title')}</h1>
         </div>
         <div className="flex items-center gap-3">
           <Suspense>
@@ -102,7 +102,7 @@ export default async function AdminBookingsPage({ searchParams }: PageProps) {
             href={`/sport/admin/bookings?status=${opt.value}&page=1`}
             className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${
               (statusFilter ?? 'ALL') === opt.value
-                ? 'bg-primary-600 text-white'
+                ? 'bg-indigo-500 hover:bg-indigo-600 text-white'
                 : 'border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
             }`}
           >
@@ -181,9 +181,9 @@ function BookingRow({ booking, showActions, paidLabel, noPhoneLabel, bookedOnLab
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
             📅 {new Date(booking.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}
           </p>
-          <p className="text-xs font-medium text-primary-600 dark:text-primary-400">⏰ {booking.timeSlot} น.</p>
+          <p className="text-xs font-medium text-indigo-600 dark:text-indigo-400 tabular-nums">⏰ {booking.timeSlot} น.</p>
           {booking.paidAt && (
-            <span className="text-xs text-green-600 dark:text-green-400 font-medium">{paidLabel}</span>
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{paidLabel}</span>
           )}
         </div>
 
@@ -191,7 +191,7 @@ function BookingRow({ booking, showActions, paidLabel, noPhoneLabel, bookedOnLab
           <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{booking.user.name}</p>
           <p className="text-xs text-gray-400 mt-0.5">{booking.user.email}</p>
           {booking.user.phone ? (
-            <a href={`tel:${booking.user.phone}`} className="inline-flex items-center gap-1 mt-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50 transition">
+            <a href={`tel:${booking.user.phone}`} className="inline-flex items-center gap-1 mt-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition tabular-nums">
               📱 {booking.user.phone}
             </a>
           ) : (

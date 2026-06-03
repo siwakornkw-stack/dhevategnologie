@@ -77,7 +77,7 @@ export default async function FieldDetailPage({ params }: PageProps) {
               <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300">
                 {emoji} {sportLabel}
               </span>
-              <h1 className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">{field.name}</h1>
+              <h1 className="mt-2 text-xl font-bold text-gray-900 dark:text-white">{field.name}</h1>
               {field.location && (
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   <p className="text-sm text-gray-500 dark:text-gray-400">📍 {field.location}</p>
@@ -85,7 +85,7 @@ export default async function FieldDetailPage({ params }: PageProps) {
                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(field.location)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition"
+                    className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                   >
                     {t('viewMap')}
                   </a>
@@ -103,7 +103,7 @@ export default async function FieldDetailPage({ params }: PageProps) {
                 {field.priceRules.length > 0 ? (
                   <p className="text-base font-bold text-primary-600 dark:text-primary-400">ราคาตามช่วงเวลา</p>
                 ) : (
-                  <p className="text-xl font-bold text-primary-600 dark:text-primary-400">
+                  <p className="text-xl font-bold text-primary-600 dark:text-primary-400 tabular-nums">
                     ฿{field.pricePerHour.toLocaleString()}
                     <span className="text-sm font-normal text-gray-400">/ชม.</span>
                   </p>
@@ -126,14 +126,14 @@ export default async function FieldDetailPage({ params }: PageProps) {
                       <span className="text-gray-600 dark:text-gray-400">
                         {r.startTime} – {r.endTime} น.{r.label ? ` (${r.label})` : ''}
                       </span>
-                      <span className="font-semibold text-primary-600 dark:text-primary-400">
+                      <span className="font-semibold text-primary-600 dark:text-primary-400 tabular-nums">
                         ฿{r.pricePerHour.toLocaleString()}/ชม.
                       </span>
                     </div>
                   ))}
                   <div className="flex items-center justify-between text-sm text-gray-400">
                     <span>ช่วงเวลาอื่น</span>
-                    <span>฿{field.pricePerHour.toLocaleString()}/ชม.</span>
+                    <span className="tabular-nums">฿{field.pricePerHour.toLocaleString()}/ชม.</span>
                   </div>
                 </div>
               </div>

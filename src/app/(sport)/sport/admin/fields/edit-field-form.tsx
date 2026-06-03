@@ -144,13 +144,13 @@ export function EditFieldForm({ field }: { field: Field }) {
     }
   }
 
-  const inputCls = 'w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-800 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400 transition';
+  const inputCls = 'w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-800 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition';
 
   return (
     <>
       <button
         onClick={() => setOpen(true)}
-        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition"
+        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
       >
         แก้ไข
       </button>
@@ -233,7 +233,7 @@ export function EditFieldForm({ field }: { field: Field }) {
                         </button>
                       </div>
                     ))}
-                    <label className={`h-20 w-20 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex flex-col items-center justify-center cursor-pointer hover:border-primary-400 transition text-gray-400 text-xs ${uploadingExtra ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <label className={`h-20 w-20 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 transition text-gray-400 text-xs ${uploadingExtra ? 'opacity-50 pointer-events-none' : ''}`}>
                       {uploadingExtra ? '...' : '+'}
                       <span className="text-[10px] mt-0.5">{uploadingExtra ? 'กำลังอัป' : 'เพิ่มรูป'}</span>
                       <input type="file" accept="image/*" className="hidden" onChange={handleExtraImageUpload} disabled={uploadingExtra} />
@@ -251,11 +251,11 @@ export function EditFieldForm({ field }: { field: Field }) {
                   <button
                     type="button"
                     onClick={() => set('isActive', !form.isActive)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.isActive ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${form.isActive ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'}`}
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${form.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
                   </button>
-                  <span className={`text-xs font-medium ${form.isActive ? 'text-green-600' : 'text-gray-400'}`}>
+                  <span className={`text-xs font-medium ${form.isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400'}`}>
                     {form.isActive ? 'เปิดให้บริการ' : 'ปิดให้บริการ'}
                   </span>
                 </div>
@@ -278,7 +278,7 @@ export function EditFieldForm({ field }: { field: Field }) {
                       <button
                         type="button"
                         onClick={addPriceRule}
-                        className="text-xs px-2.5 py-1 rounded-lg bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-900/40 transition"
+                        className="text-xs px-2.5 py-1 rounded-lg bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                       >
                         + เพิ่มช่วงราคา
                       </button>
@@ -292,14 +292,14 @@ export function EditFieldForm({ field }: { field: Field }) {
                             type="time"
                             value={rule.startTime}
                             onChange={(e) => updatePriceRule(idx, 'startTime', e.target.value)}
-                            className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-400"
+                            className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                           />
                           <span className="text-gray-400 text-sm">-</span>
                           <input
                             type="time"
                             value={rule.endTime}
                             onChange={(e) => updatePriceRule(idx, 'endTime', e.target.value)}
-                            className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-400"
+                            className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                           />
                           <input
                             type="number"
@@ -307,14 +307,14 @@ export function EditFieldForm({ field }: { field: Field }) {
                             placeholder="฿/ชม."
                             value={rule.pricePerHour}
                             onChange={(e) => updatePriceRule(idx, 'pricePerHour', e.target.value)}
-                            className="w-28 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-400"
+                            className="w-28 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-white tabular-nums focus:outline-none focus:ring-2 focus:ring-indigo-500"
                           />
                           <input
                             type="text"
                             placeholder="ชื่อช่วง (ไม่บังคับ)"
                             value={rule.label}
                             onChange={(e) => updatePriceRule(idx, 'label', e.target.value)}
-                            className="flex-1 min-w-[120px] rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-400"
+                            className="flex-1 min-w-[120px] rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                           />
                           <button
                             type="button"
@@ -334,7 +334,7 @@ export function EditFieldForm({ field }: { field: Field }) {
                 <button type="button" onClick={handleClose} className="px-5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
                   ยกเลิก
                 </button>
-                <button type="submit" disabled={loading} className="gradient-btn px-6 py-2.5 rounded-xl text-white text-sm font-semibold disabled:opacity-60 min-w-[120px]">
+                <button type="submit" disabled={loading} className="bg-indigo-500 hover:bg-indigo-600 px-6 py-2.5 rounded-xl text-white text-sm font-semibold disabled:opacity-60 min-w-[120px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
                   {loading ? <span className="flex items-center gap-2 justify-center"><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />บันทึก...</span> : 'บันทึกการแก้ไข'}
                 </button>
               </div>

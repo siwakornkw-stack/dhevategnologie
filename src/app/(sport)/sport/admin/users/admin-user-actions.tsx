@@ -39,10 +39,10 @@ export function AdminUserActions({ userId, currentRole, currentUserId }: {
     <button
       onClick={toggleRole}
       disabled={loading}
-      className={`text-xs px-3 py-1 rounded-full font-medium transition disabled:opacity-50 ${
+      className={`text-xs px-3 py-1 rounded-full font-medium transition disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
         currentRole === 'ADMIN'
-          ? 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200'
-          : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 hover:bg-purple-200'
+          ? 'bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600'
+          : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 hover:bg-indigo-200'
       }`}
     >
       {loading ? '...' : currentRole === 'ADMIN' ? 'ถอด Admin' : 'ตั้งเป็น Admin'}

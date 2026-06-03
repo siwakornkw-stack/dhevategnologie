@@ -22,7 +22,7 @@ export function BookingSearch() {
       defaultValue={params.get('q') ?? ''}
       onChange={handleSearch}
       placeholder="ค้นหาชื่อ / อีเมล..."
-      className="h-9 rounded-full border border-gray-200 dark:border-gray-700 px-4 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400 transition w-56"
+      className="h-9 rounded-full border border-gray-200 dark:border-gray-700 px-4 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition w-56"
     />
   );
 }

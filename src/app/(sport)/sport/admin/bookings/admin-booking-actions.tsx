@@ -38,14 +38,14 @@ export function AdminBookingActions({ bookingId }: { bookingId: string }) {
       <button
         onClick={() => updateStatus('APPROVED')}
         disabled={!!loading}
-        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50 disabled:opacity-50 transition"
+        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 disabled:opacity-50 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
       >
         {loading === 'APPROVED' ? '...' : '✓ อนุมัติ'}
       </button>
       <button
         onClick={() => updateStatus('REJECTED')}
         disabled={!!loading}
-        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 disabled:opacity-50 transition"
+        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50 disabled:opacity-50 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
       >
         {loading === 'REJECTED' ? '...' : '✗ ปฏิเสธ'}
       </button>
@@ -78,7 +78,7 @@ export function AdminCancelAction({ bookingId }: { bookingId: string }) {
       onClick={handleCancel}
       onBlur={() => setConfirm(false)}
       disabled={loading}
-      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition disabled:opacity-50 ${
+      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
         confirm
           ? 'bg-red-600 text-white hover:bg-red-700'
           : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400'

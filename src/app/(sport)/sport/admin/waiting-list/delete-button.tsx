@@ -39,7 +39,7 @@ export function WaitingListDeleteButton({ entryId, userName }: Props) {
     <button
       onClick={handleDelete}
       disabled={loading}
-      className="px-2.5 py-1 rounded-lg text-xs font-medium border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition disabled:opacity-50"
+      className="px-2.5 py-1 rounded-lg text-xs font-medium border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
     >
       {loading ? '...' : 'ลบ'}
     </button>

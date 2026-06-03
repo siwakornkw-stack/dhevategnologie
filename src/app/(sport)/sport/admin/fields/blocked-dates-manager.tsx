@@ -79,7 +79,7 @@ function MiniCalendar({
                 'h-8 w-full rounded-lg text-xs font-medium transition-all',
                 isPast ? 'text-gray-300 dark:text-gray-700 cursor-not-allowed' :
                 isBlocked ? 'bg-red-100 dark:bg-red-900/30 text-red-400 cursor-not-allowed' :
-                isSelected ? 'bg-primary-600 text-white shadow-sm' :
+                isSelected ? 'bg-indigo-500 text-white shadow-sm' :
                 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 cursor-pointer',
               ].join(' ')}
             >
@@ -89,7 +89,7 @@ function MiniCalendar({
         })}
       </div>
       <div className="flex items-center gap-3 mt-3 text-xs text-gray-400">
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-primary-600 inline-block" /> เลือก</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-indigo-500 inline-block" /> เลือก</span>
         <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-100 dark:bg-red-900/30 inline-block" /> ปิดแล้ว</span>
       </div>
     </div>
@@ -179,7 +179,7 @@ export function BlockedDatesManager({ fieldId, fieldName }: { fieldId: string; f
     <>
       <button
         onClick={() => setOpen(true)}
-        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition"
+        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
       >
         วันปิด
       </button>
@@ -214,10 +214,10 @@ export function BlockedDatesManager({ fieldId, fieldName }: { fieldId: string; f
                     {selectedDates.sort().map((d) => (
                       <span
                         key={d}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 text-xs font-medium"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 text-xs font-medium tabular-nums"
                       >
                         {new Date(d + 'T00:00:00').toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}
-                        <button type="button" onClick={() => toggleDate(d)} className="text-primary-400 hover:text-red-500 transition">✕</button>
+                        <button type="button" onClick={() => toggleDate(d)} className="text-indigo-400 hover:text-red-500 transition">✕</button>
                       </span>
                     ))}
                   </div>
@@ -229,7 +229,7 @@ export function BlockedDatesManager({ fieldId, fieldName }: { fieldId: string; f
                   </label>
                   <input
                     type="text"
-                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-400 transition"
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
                     placeholder="เช่น ซ่อมสนาม, วันหยุดพิเศษ"
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
@@ -239,7 +239,7 @@ export function BlockedDatesManager({ fieldId, fieldName }: { fieldId: string; f
                 <button
                   type="submit"
                   disabled={adding || selectedDates.length === 0}
-                  className="w-full gradient-btn py-2.5 rounded-xl text-white text-sm font-semibold disabled:opacity-60"
+                  className="w-full bg-indigo-500 hover:bg-indigo-600 py-2.5 rounded-xl text-white text-sm font-semibold disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 >
                   {adding ? 'กำลังบันทึก...' : `บล็อก ${selectedDates.length > 0 ? `${selectedDates.length} วัน` : 'วันที่เลือก'}`}
                 </button>

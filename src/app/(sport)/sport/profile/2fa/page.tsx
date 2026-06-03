@@ -68,7 +68,7 @@ export default function TwoFAPage() {
     router.push('/sport/profile');
   }
 
-  const inputCls = 'w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-400 transition text-center tracking-widest text-xl';
+  const inputCls = 'w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition text-center tracking-widest text-xl tabular-nums';
 
   if (loading) return <div className="wrapper py-20 text-center text-gray-400">{t('loading')}</div>;
 
@@ -76,7 +76,7 @@ export default function TwoFAPage() {
   if (backupCodes) {
     return (
       <div className="wrapper py-8 max-w-md space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('title')}</h1>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">{t('title')}</h1>
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-amber-300 dark:border-amber-700 p-6 space-y-4">
           <div className="flex items-center gap-3">
             <span className="text-2xl">⚠️</span>
@@ -94,7 +94,7 @@ export default function TwoFAPage() {
           </div>
           <button
             onClick={() => { setBackupCodes(null); router.push('/sport/profile'); }}
-            className="w-full py-2.5 rounded-xl gradient-btn text-white text-sm font-semibold"
+            className="w-full py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
             บันทึกแล้ว กลับหน้าโปรไฟล์
           </button>
@@ -107,13 +107,13 @@ export default function TwoFAPage() {
     <div className="wrapper py-8 max-w-md space-y-6">
       <div className="flex items-center gap-3">
         <a href="/sport/profile" className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition">{t('backToProfile')}</a>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('title')}</h1>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">{t('title')}</h1>
       </div>
 
       {enabled ? (
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700/50 p-6 space-y-5">
           <div className="text-center">
-            <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
+            <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
               <span className="text-3xl">✅</span>
             </div>
             <p className="font-semibold text-gray-900 dark:text-white">{t('enabledTitle')}</p>
@@ -129,7 +129,7 @@ export default function TwoFAPage() {
               <button
                 onClick={() => handleSubmit('disable')}
                 disabled={submitting || code.length !== 6}
-                className="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition disabled:opacity-60"
+                className="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
               >
                 {submitting ? t('disabling') : t('disableBtn')}
               </button>
@@ -156,7 +156,7 @@ export default function TwoFAPage() {
               <button
                 onClick={handleUseBackup}
                 disabled={submitting || !backupCode.trim()}
-                className="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition disabled:opacity-60"
+                className="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
               >
                 {submitting ? 'กำลังดำเนินการ...' : 'ปิด 2FA ด้วยรหัสสำรอง'}
               </button>
@@ -201,7 +201,7 @@ export default function TwoFAPage() {
           <button
             onClick={() => handleSubmit('enable')}
             disabled={submitting || code.length !== 6}
-            className="w-full gradient-btn py-2.5 rounded-xl text-white text-sm font-semibold disabled:opacity-60"
+            className="w-full bg-indigo-500 hover:bg-indigo-600 py-2.5 rounded-xl text-white text-sm font-semibold disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
             {submitting ? t('enabling') : t('enableBtn')}
           </button>
