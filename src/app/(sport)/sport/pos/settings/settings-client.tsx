@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 
 type Settings = {
   shopName: string;
@@ -56,8 +57,8 @@ export function SettingsClient({ initialSettings = null }: SettingsClientProps =
       method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
     });
     setSaving(false);
-    if (!r.ok) { alert('บันทึกไม่สำเร็จ'); return; }
-    alert('บันทึกแล้ว');
+    if (!r.ok) { toast.error('บันทึกไม่สำเร็จ'); return; }
+    toast.success('บันทึกแล้ว');
     load();
   }
 
@@ -67,7 +68,7 @@ export function SettingsClient({ initialSettings = null }: SettingsClientProps =
     <div className="wrapper py-8 max-w-2xl space-y-4">
       <div>
         <Link href="/sport/pos" className="text-xs text-gray-500 hover:underline">← POS</Link>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">ตั้งค่า POS</h1>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">ตั้งค่า POS</h1>
       </div>
       <form
         onSubmit={(e) => { e.preventDefault(); save(new FormData(e.currentTarget)); }}
@@ -135,10 +136,9 @@ export function SettingsClient({ initialSettings = null }: SettingsClientProps =
           </label>
         </section>
 
-        <button disabled={saving} className="px-5 py-2 rounded-lg bg-primary-600 text-white text-sm disabled:opacity-60">
+        <button disabled={saving} className="px-5 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white text-sm disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
           {saving ? 'กำลังบันทึก...' : 'บันทึก'}
         </button>
-        <style>{`.input{padding:.5rem .75rem;border-radius:.5rem;border:1px solid #e5e7eb;background:white}.dark .input{background:#111827;border-color:#374151;color:white}`}</style>
       </form>
     </div>
   );

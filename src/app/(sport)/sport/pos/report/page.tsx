@@ -41,26 +41,26 @@ export default function PosReportPage() {
     <div className="wrapper py-6 max-w-5xl space-y-4">
       <div>
         <Link href="/sport/pos" className="text-xs text-gray-500 hover:underline">← POS</Link>
-        <h1 className="text-2xl font-bold">รายงานยอดขาย</h1>
+        <h1 className="text-xl font-bold">รายงานยอดขาย</h1>
       </div>
 
       <div className="flex gap-2 text-sm flex-wrap items-center">
-        <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700" />
-        <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700" />
+        <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" />
+        <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" />
         <a
           href={(() => {
             const f = new Date(from); f.setHours(0, 0, 0, 0);
             const t = new Date(to); t.setHours(23, 59, 59, 999);
             return `/api/sport/pos/report/csv?from=${f.toISOString()}&to=${t.toISOString()}`;
           })()}
-          className="px-3 py-2 rounded bg-primary-600 text-white text-xs"
+          className="px-3 py-2 rounded bg-indigo-500 hover:bg-indigo-600 text-white text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >ดาวน์โหลด CSV (ภพ.30)</a>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Stat label="ยอดขาย" value={`฿${data.totals.totalSales.toFixed(2)}`} />
-        <Stat label="คืนเงิน (refund)" value={`-฿${data.totals.totalRefunds.toFixed(2)}`} />
-        <Stat label="ยอดขายสุทธิ" value={`฿${data.totals.netSales.toFixed(2)}`} />
+        <Stat label="คืนเงิน (refund)" value={`-฿${data.totals.totalRefunds.toFixed(2)}`} tone={data.totals.totalRefunds > 0 ? 'negative' : undefined} />
+        <Stat label="ยอดขายสุทธิ" value={`฿${data.totals.netSales.toFixed(2)}`} tone="positive" />
         <Stat label="จำนวนบิล" value={data.totals.invoiceCount.toString()} />
         <Stat label="ยอดสินค้า" value={`฿${data.totals.totalProduct.toFixed(2)}`} />
         <Stat label="ยอดสนาม" value={`฿${data.totals.totalBooking.toFixed(2)}`} />
@@ -68,7 +68,7 @@ export default function PosReportPage() {
         <Stat label="VAT รวม" value={`฿${data.totals.totalVat.toFixed(2)}`} />
         <Stat label="Service Charge" value={`฿${data.totals.totalServiceCharge.toFixed(2)}`} />
         <Stat label="ทุนสินค้า" value={`฿${data.totals.totalCost.toFixed(2)}`} />
-        <Stat label={`กำไรขั้นต้น (${data.totals.marginPct.toFixed(1)}%)`} value={`฿${data.totals.grossProfit.toFixed(2)}`} />
+        <Stat label={`กำไรขั้นต้น (${data.totals.marginPct.toFixed(1)}%)`} value={`฿${data.totals.grossProfit.toFixed(2)}`} tone={data.totals.grossProfit < 0 ? 'negative' : 'positive'} />
         <Stat label="Void" value={data.totals.voidCount.toString()} />
       </div>
 
@@ -77,7 +77,7 @@ export default function PosReportPage() {
         {Object.keys(data.byMethod).length === 0 ? <div className="text-xs text-gray-400">ไม่มี</div> :
           <div className="space-y-1 text-sm">
             {Object.entries(data.byMethod).map(([m, v]) => (
-              <div key={m} className="flex justify-between"><span>{m}</span><span>฿{v.toFixed(2)}</span></div>
+              <div key={m} className="flex justify-between"><span>{m}</span><span className="tabular-nums">฿{v.toFixed(2)}</span></div>
             ))}
           </div>
         }
@@ -94,8 +94,8 @@ export default function PosReportPage() {
               data.topProducts.map((p) => (
                 <tr key={p.productId}>
                   <td className="px-4 py-2">{p.name}</td>
-                  <td className="px-4 py-2 text-right">{p.qty}</td>
-                  <td className="px-4 py-2 text-right">{p.revenue.toFixed(2)}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{p.qty}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{p.revenue.toFixed(2)}</td>
                 </tr>
               ))
             }
@@ -106,11 +106,12 @@ export default function PosReportPage() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, tone }: { label: string; value: string; tone?: 'positive' | 'negative' }) {
+  const toneClass = tone === 'positive' ? 'text-emerald-600 dark:text-emerald-400' : tone === 'negative' ? 'text-red-600' : '';
   return (
     <div className="p-4 rounded-lg border bg-white dark:bg-gray-900 dark:border-gray-700/50">
       <div className="text-xs text-gray-500">{label}</div>
-      <div className="text-lg font-bold mt-1">{value}</div>
+      <div className={`text-lg font-bold mt-1 tabular-nums ${toneClass}`}>{value}</div>
     </div>
   );
 }

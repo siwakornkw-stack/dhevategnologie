@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 
 type Cashier = { id: string; name: string | null; email: string; createdAt: string };
 
@@ -25,7 +26,8 @@ export function CashiersClient({ initialList = [] }: CashiersClientProps = {}) {
       body: JSON.stringify({ name: form.get('name'), email: form.get('email'), password: form.get('password') }),
     });
     setCreating(false);
-    if (!r.ok) { const e = await r.json().catch(() => ({})); alert(e.error || 'สร้างไม่สำเร็จ'); return; }
+    if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.error || 'สร้างไม่สำเร็จ'); return; }
+    toast.success('สร้างแล้ว');
     (document.getElementById('cashier-form') as HTMLFormElement | null)?.reset();
     load();
   }
@@ -42,7 +44,7 @@ export function CashiersClient({ initialList = [] }: CashiersClientProps = {}) {
     <div className="wrapper py-8 space-y-4 max-w-3xl">
       <div>
         <Link href="/sport/pos" className="text-xs text-gray-500 hover:underline">← POS</Link>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Cashiers</h1>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Cashiers</h1>
       </div>
 
       <form
@@ -53,10 +55,9 @@ export function CashiersClient({ initialList = [] }: CashiersClientProps = {}) {
         <input name="name" required placeholder="ชื่อ *" className="input" />
         <input name="email" type="email" required placeholder="email *" className="input" />
         <input name="password" type="password" required minLength={8} placeholder="password >=8 *" className="input" />
-        <button disabled={creating} className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm disabled:opacity-60">
+        <button disabled={creating} className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-sm disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
           {creating ? '...' : 'สร้าง'}
         </button>
-        <style>{`.input{padding:.5rem .75rem;border-radius:.5rem;border:1px solid #e5e7eb;background:white}.dark .input{background:#111827;border-color:#374151;color:white}`}</style>
       </form>
 
       <div className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-700/50 overflow-hidden">
@@ -79,7 +80,7 @@ export function CashiersClient({ initialList = [] }: CashiersClientProps = {}) {
                   <td className="px-4 py-2 text-gray-500">{c.email}</td>
                   <td className="px-4 py-2 text-xs text-gray-500">{new Date(c.createdAt).toLocaleDateString('th-TH')}</td>
                   <td className="px-4 py-2 text-right">
-                    <button onClick={() => remove(c.id)} className="text-red-600 text-xs hover:underline">ลบ</button>
+                    <button onClick={() => remove(c.id)} className="text-red-600 text-xs hover:underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">ลบ</button>
                   </td>
                 </tr>
               ))}
