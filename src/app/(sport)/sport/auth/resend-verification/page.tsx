@@ -41,13 +41,13 @@ export default function ResendVerificationPage() {
               <button
                 onClick={handleResend}
                 disabled={loading}
-                className="w-full gradient-btn text-white font-semibold h-12 rounded-full text-sm disabled:opacity-60"
+                className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-semibold h-12 rounded-full text-sm disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               >
                 {loading ? t('sending') : t('resendAgain')}
               </button>
             </>
           )}
-          <a href="/sport" className="block text-sm text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition">
+          <a href="/sport" className="block text-sm text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition">
             {t('backHome')}
           </a>
         </div>

@@ -25,7 +25,7 @@ export default async function SportSignUpPage() {
           </Suspense>
           <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
             {t('hasAccount')}{' '}
-            <a href="/sport/auth/signin" className="text-primary-600 dark:text-primary-400 font-medium hover:underline">
+            <a href="/sport/auth/signin" className="text-indigo-600 dark:text-indigo-400 font-medium hover:underline">
               {t('signinButton')}
             </a>
           </p>

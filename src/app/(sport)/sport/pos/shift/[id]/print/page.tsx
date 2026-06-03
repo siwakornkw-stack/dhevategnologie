@@ -60,7 +60,7 @@ export default function ShiftPrintPage({ params }: { params: Promise<{ id: strin
       `}</style>
 
       <div className="no-print max-w-md mx-auto mb-3 flex gap-2 justify-end">
-        <button onClick={() => window.print()} className="px-3 py-1 bg-primary-600 text-white text-xs rounded">พิมพ์ซ้ำ</button>
+        <button onClick={() => window.print()} className="px-3 py-1 bg-indigo-500 hover:bg-indigo-600 text-white text-xs rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">พิมพ์ซ้ำ</button>
         <button onClick={() => window.close()} className="px-3 py-1 border rounded text-xs">ปิด</button>
       </div>
 

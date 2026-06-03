@@ -22,7 +22,7 @@ export function SignInForm() {
   const [loading, setLoading] = useState(false);
   const [needs2FA, setNeeds2FA] = useState(false);
 
-  const inputClass = "w-full h-12 rounded-full border border-gray-200 dark:border-gray-700 px-5 text-sm text-gray-800 dark:text-white placeholder:text-gray-400 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400 transition";
+  const inputClass = "w-full h-12 rounded-full border border-gray-200 dark:border-gray-700 px-5 text-sm text-gray-800 dark:text-white placeholder:text-gray-400 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -95,7 +95,7 @@ export function SignInForm() {
         </>
       ) : (
         <div className="space-y-3">
-          <div className="bg-primary-50 dark:bg-primary-900/20 rounded-2xl p-4 text-center">
+          <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl p-4 text-center">
             <p className="text-2xl mb-2">🔐</p>
             <p className="font-semibold text-gray-900 dark:text-white">{t('twoFaTitle')}</p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('twoFaHint')}</p>
@@ -123,7 +123,7 @@ export function SignInForm() {
       <button
         type="submit"
         disabled={loading || (needs2FA && totpCode.length !== 6)}
-        className="w-full gradient-btn text-white font-semibold h-12 rounded-full text-sm disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+        className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-semibold h-12 rounded-full text-sm disabled:opacity-60 disabled:cursor-not-allowed mt-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
       >
         {loading ? t('signinLoading') : needs2FA ? t('confirm') : t('signinButton')}
       </button>

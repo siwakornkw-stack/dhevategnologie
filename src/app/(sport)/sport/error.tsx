@@ -14,7 +14,7 @@ export default function SportError({ error, reset }: { error: Error & { digest?:
       <p className="text-gray-500 dark:text-gray-400 mb-6 text-sm">{t('errorHint')}</p>
       <button
         onClick={reset}
-        className="px-5 py-2.5 rounded-full bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold transition"
+        className="px-5 py-2.5 rounded-full bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
       >
         {t('retry')}
       </button>

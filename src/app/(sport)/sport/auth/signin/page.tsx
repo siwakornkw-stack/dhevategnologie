@@ -24,12 +24,12 @@ export default async function SportSignInPage({ searchParams }: PageProps) {
         </div>
 
         {verified === '1' && (
-          <div className="mb-4 px-4 py-3 rounded-2xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 text-sm text-center">
+          <div className="mb-4 px-4 py-3 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-sm text-center">
             {t('verifiedOk')}
           </div>
         )}
         {reset === '1' && (
-          <div className="mb-4 px-4 py-3 rounded-2xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 text-sm text-center">
+          <div className="mb-4 px-4 py-3 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-sm text-center">
             {t('resetOk')}
           </div>
         )}
@@ -39,13 +39,13 @@ export default async function SportSignInPage({ searchParams }: PageProps) {
             <SignInForm />
           </Suspense>
           <p className="mt-4 text-center text-sm">
-            <a href="/sport/auth/forgot-password" className="text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition">
+            <a href="/sport/auth/forgot-password" className="text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition">
               {t('forgotLink')}
             </a>
           </p>
           <p className="mt-3 text-center text-sm text-gray-500 dark:text-gray-400">
             {t('noAccount')}{' '}
-            <a href="/sport/auth/signup" className="text-primary-600 dark:text-primary-400 font-medium hover:underline">
+            <a href="/sport/auth/signup" className="text-indigo-600 dark:text-indigo-400 font-medium hover:underline">
               {t('signupButton')}
             </a>
           </p>

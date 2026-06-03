@@ -37,12 +37,12 @@ function ResetForm() {
     }
   }
 
-  const inputCls = 'w-full h-12 rounded-full border border-gray-200 dark:border-gray-700 px-5 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400 transition';
+  const inputCls = 'w-full h-12 rounded-full border border-gray-200 dark:border-gray-700 px-5 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition';
 
   if (!token) return (
     <div className="text-center text-red-500">
       <p>{t('tokenInvalid')}</p>
-      <a href="/sport/auth/forgot-password" className="text-primary-600 hover:underline text-sm mt-2 block">{t('requestNewLink')}</a>
+      <a href="/sport/auth/forgot-password" className="text-indigo-600 dark:text-indigo-400 hover:underline text-sm mt-2 block">{t('requestNewLink')}</a>
     </div>
   );
 
@@ -59,7 +59,7 @@ function ResetForm() {
         <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">{t('confirmNewLabel')}</label>
         <input type={show ? 'text' : 'password'} className={inputCls} placeholder={t('confirmPassword')} value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
       </div>
-      <button type="submit" disabled={loading} className="w-full gradient-btn text-white font-semibold h-12 rounded-full text-sm disabled:opacity-60">
+      <button type="submit" disabled={loading} className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-semibold h-12 rounded-full text-sm disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
         {loading ? t('saving') : t('resetButton')}
       </button>
     </form>

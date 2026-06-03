@@ -19,7 +19,7 @@ export function SignUpForm() {
     if (ref) setForm((f) => ({ ...f, referralCode: ref.toUpperCase() }));
   }, [searchParams]);
 
-  const inputClass = "w-full h-12 rounded-full border border-gray-200 dark:border-gray-700 px-5 text-sm text-gray-800 dark:text-white placeholder:text-gray-400 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400 transition";
+  const inputClass = "w-full h-12 rounded-full border border-gray-200 dark:border-gray-700 px-5 text-sm text-gray-800 dark:text-white placeholder:text-gray-400 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition";
   const errorInputClass = "w-full h-12 rounded-full border border-red-400 dark:border-red-500 px-5 text-sm text-gray-800 dark:text-white placeholder:text-gray-400 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-red-400 transition";
 
   function setField(k: string, v: string) {
@@ -70,7 +70,7 @@ export function SignUpForm() {
         <p className="text-xs text-gray-400">{t('linkExpires24h')}</p>
         <a
           href="/sport/auth/signin"
-          className="inline-block mt-2 text-sm text-primary-600 dark:text-primary-400 hover:underline"
+          className="inline-block mt-2 text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
         >
           {t('backToSigninLink')}
         </a>
@@ -140,7 +140,7 @@ export function SignUpForm() {
         <input type="text" className={inputClass} placeholder={t('referralHint')} value={form.referralCode} onChange={(e) => setField('referralCode', e.target.value.toUpperCase().slice(0, 8))} maxLength={8} />
       </div>
 
-      <button type="submit" disabled={loading} className="w-full gradient-btn text-white font-semibold h-12 rounded-full text-sm disabled:opacity-60 disabled:cursor-not-allowed mt-2">
+      <button type="submit" disabled={loading} className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-semibold h-12 rounded-full text-sm disabled:opacity-60 disabled:cursor-not-allowed mt-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
         {loading ? t('signupLoading') : t('signupButton')}
       </button>
     </form>

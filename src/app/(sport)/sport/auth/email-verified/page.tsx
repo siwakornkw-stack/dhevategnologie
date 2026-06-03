@@ -31,7 +31,7 @@ export default function EmailVerifiedPage() {
           <div className="text-5xl">✅</div>
           <p className="text-xl font-bold text-gray-900 dark:text-white">ยืนยันอีเมลสำเร็จ!</p>
           <p className="text-sm text-gray-500 dark:text-gray-400">กำลังพาคุณไปหน้าหลัก...</p>
-          <a href="/sport" className="block text-sm text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition mt-2">
+          <a href="/sport" className="block text-sm text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition mt-2">
             กลับหน้าหลักทันที
           </a>
         </div>

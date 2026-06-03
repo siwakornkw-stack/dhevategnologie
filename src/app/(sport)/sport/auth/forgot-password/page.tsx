@@ -51,7 +51,7 @@ export default function ForgotPasswordPage() {
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">{t('email')}</label>
                 <input
                   type="email"
-                  className="w-full h-12 rounded-full border border-gray-200 dark:border-gray-700 px-5 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400 transition"
+                  className="w-full h-12 rounded-full border border-gray-200 dark:border-gray-700 px-5 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
                   placeholder="example@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -61,14 +61,14 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full gradient-btn text-white font-semibold h-12 rounded-full text-sm disabled:opacity-60"
+                className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-semibold h-12 rounded-full text-sm disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               >
                 {loading ? t('sending') : t('sendResetLink')}
               </button>
             </form>
           )}
           <p className="mt-6 text-center text-sm">
-            <a href="/sport/auth/signin" className="text-primary-600 dark:text-primary-400 hover:underline">
+            <a href="/sport/auth/signin" className="text-indigo-600 dark:text-indigo-400 hover:underline">
               {t('backToSignin')}
             </a>
           </p>

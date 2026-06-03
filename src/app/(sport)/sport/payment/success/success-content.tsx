@@ -50,7 +50,7 @@ export function SuccessContent() {
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">{t('timeLabel')}</span>
-            <span className="font-semibold text-primary-600 dark:text-primary-400">{detail.timeSlot} น.</span>
+            <span className="font-semibold text-indigo-600 dark:text-indigo-400 tabular-nums">{detail.timeSlot} น.</span>
           </div>
         </div>
       )}
@@ -59,7 +59,7 @@ export function SuccessContent() {
       <p className="text-sm text-gray-400 mb-8">{t('successEmail')}</p>
       <Link
         href="/sport/bookings"
-        className="px-6 py-3 rounded-full bg-primary-600 hover:bg-primary-700 text-white font-semibold transition"
+        className="px-6 py-3 rounded-full bg-indigo-500 hover:bg-indigo-600 text-white font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
       >
         {t('viewBookings')}
       </Link>

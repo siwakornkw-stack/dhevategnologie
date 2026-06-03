@@ -48,12 +48,12 @@ function VerifyResult({ error, expired }: { error: string; expired?: boolean }) 
           {expired && (
             <a
               href="/sport/auth/resend-verification"
-              className="inline-block w-full gradient-btn text-white font-semibold h-12 rounded-full text-sm leading-[3rem]"
+              className="inline-block w-full bg-indigo-500 hover:bg-indigo-600 text-white font-semibold h-12 rounded-full text-sm leading-[3rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               ขอลิงก์ยืนยันใหม่
             </a>
           )}
-          <a href="/sport" className="block text-sm text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition">
+          <a href="/sport" className="block text-sm text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition">
             กลับหน้าหลัก
           </a>
         </div>

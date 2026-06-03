@@ -29,13 +29,13 @@ export function CancelContent() {
       <div className="flex gap-3">
         <Link
           href="/sport"
-          className="px-6 py-3 rounded-full border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-semibold transition hover:bg-gray-50 dark:hover:bg-gray-800"
+          className="px-6 py-3 rounded-full bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white font-semibold transition hover:bg-gray-300 dark:hover:bg-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           {t('backToHome')}
         </Link>
         <Link
           href="/sport/bookings"
-          className="px-6 py-3 rounded-full bg-primary-600 hover:bg-primary-700 text-white font-semibold transition"
+          className="px-6 py-3 rounded-full bg-indigo-500 hover:bg-indigo-600 text-white font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           {t('myBookings')}
         </Link>
