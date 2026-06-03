@@ -62,13 +62,13 @@ export default async function HomePage() {
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
             <Link
               href="/sport"
-              className="gradient-btn inline-flex items-center gap-2 px-7 py-3.5 rounded-full text-white font-semibold text-base shadow-lg hover:shadow-primary-500/30 transition"
+              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-indigo-500 hover:bg-indigo-600 text-white font-semibold text-base shadow-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               ดูสนามทั้งหมด →
             </Link>
             <Link
               href="/sport/auth/signup"
-              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white font-semibold text-base hover:bg-gray-50 dark:hover:bg-gray-700 transition shadow-sm"
+              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white font-semibold text-base hover:bg-gray-300 dark:hover:bg-gray-600 transition shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               สมัครสมาชิกฟรี
             </Link>
@@ -77,22 +77,22 @@ export default async function HomePage() {
           {/* Stats bar */}
           <div className="mt-14 inline-flex flex-wrap justify-center gap-8 px-8 py-5 rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700/50 shadow-theme-xs">
             <div className="text-center">
-              <div className="text-3xl font-bold text-primary-600 dark:text-primary-400">{fieldCount}</div>
+              <div className="text-3xl font-bold tabular-nums text-indigo-600 dark:text-indigo-400">{fieldCount}</div>
               <div className="text-xs text-gray-400 mt-0.5">สนามทั้งหมด</div>
             </div>
             <div className="w-px bg-gray-200 dark:bg-gray-700 hidden sm:block" />
             <div className="text-center">
-              <div className="text-3xl font-bold text-primary-600 dark:text-primary-400">{userCount.toLocaleString()}</div>
+              <div className="text-3xl font-bold tabular-nums text-indigo-600 dark:text-indigo-400">{userCount.toLocaleString()}</div>
               <div className="text-xs text-gray-400 mt-0.5">สมาชิก</div>
             </div>
             <div className="w-px bg-gray-200 dark:bg-gray-700 hidden sm:block" />
             <div className="text-center">
-              <div className="text-3xl font-bold text-primary-600 dark:text-primary-400">{bookingCount.toLocaleString()}</div>
+              <div className="text-3xl font-bold tabular-nums text-indigo-600 dark:text-indigo-400">{bookingCount.toLocaleString()}</div>
               <div className="text-xs text-gray-400 mt-0.5">การจองสำเร็จ</div>
             </div>
             <div className="w-px bg-gray-200 dark:bg-gray-700 hidden sm:block" />
             <div className="text-center">
-              <div className="text-3xl font-bold text-primary-600 dark:text-primary-400">{sportCounts.length}</div>
+              <div className="text-3xl font-bold tabular-nums text-indigo-600 dark:text-indigo-400">{sportCounts.length}</div>
               <div className="text-xs text-gray-400 mt-0.5">ประเภทกีฬา</div>
             </div>
           </div>
@@ -113,12 +113,12 @@ export default async function HomePage() {
                 <Link
                   key={type}
                   href={`/sport?sport=${type}`}
-                  className="group flex flex-col items-center gap-3 p-5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700/50 hover:border-primary-400 dark:hover:border-primary-600 hover:shadow-theme-sm transition text-center"
+                  className="group flex flex-col items-center gap-3 p-5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700/50 hover:border-primary-400 dark:hover:border-primary-600 hover:shadow-theme-sm transition text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 >
                   <span className="text-4xl group-hover:scale-110 transition-transform">{SPORT_TYPE_EMOJI[type]}</span>
                   <div>
                     <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">{SPORT_TYPE_LABELS[type]}</div>
-                    <div className="text-xs text-gray-400 mt-0.5">{count} สนาม</div>
+                    <div className="text-xs text-gray-400 mt-0.5"><span className="tabular-nums">{count}</span> สนาม</div>
                   </div>
                 </Link>
               );
@@ -190,13 +190,13 @@ export default async function HomePage() {
               <div className="flex flex-wrap items-center justify-center gap-4">
                 <Link
                   href="/sport/auth/signup"
-                  className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-white text-primary-700 font-bold text-base hover:bg-primary-50 transition shadow-lg"
+                  className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-white text-primary-700 font-bold text-base hover:bg-primary-50 transition shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 >
                   สมัครสมาชิกฟรี
                 </Link>
                 <Link
                   href="/sport"
-                  className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-white/10 border border-white/30 text-white font-semibold text-base hover:bg-white/20 transition"
+                  className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-white/10 border border-white/30 text-white font-semibold text-base hover:bg-white/20 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 >
                   ดูสนามทั้งหมด →
                 </Link>

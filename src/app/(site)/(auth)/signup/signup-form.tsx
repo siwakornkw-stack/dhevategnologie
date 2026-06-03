@@ -138,7 +138,7 @@ export default function SignupForm() {
         <button
           type="submit"
           disabled={isLoading}
-          className="bg-primary-500 hover:bg-primary-600 transition py-3 px-6 w-full font-medium text-white text-sm rounded-full col-span-full disabled:opacity-75"
+          className="bg-indigo-500 hover:bg-indigo-600 text-white transition py-3 px-6 w-full font-medium text-sm rounded-full col-span-full disabled:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           {isLoading ? 'Signing up...' : 'Sign Up'}
         </button>

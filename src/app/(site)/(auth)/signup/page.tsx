@@ -82,7 +82,7 @@ export default function SignUpPage() {
                 Already have an account?{' '}
                 <Link
                   href="/signin"
-                  className="text-sm font-semibold text-primary-500"
+                  className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 >
                   Sign In
                 </Link>

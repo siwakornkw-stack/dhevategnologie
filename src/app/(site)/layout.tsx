@@ -19,11 +19,11 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
                 <span className="text-xs text-gray-400 ml-2">ระบบจองสนามกีฬาออนไลน์</span>
               </div>
               <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-gray-500 dark:text-gray-400">
-                <Link href="/sport" className="hover:text-primary-600 dark:hover:text-primary-400 transition">สนามทั้งหมด</Link>
-                <Link href="/sport/auth/signin" className="hover:text-primary-600 dark:hover:text-primary-400 transition">เข้าสู่ระบบ</Link>
-                <Link href="/sport/auth/signup" className="hover:text-primary-600 dark:hover:text-primary-400 transition">สมัครสมาชิก</Link>
-                <Link href="/contact" className="hover:text-primary-600 dark:hover:text-primary-400 transition">ติดต่อเรา</Link>
-                <Link href="/privacy" className="hover:text-primary-600 dark:hover:text-primary-400 transition">นโยบายความเป็นส่วนตัว</Link>
+                <Link href="/sport" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition">สนามทั้งหมด</Link>
+                <Link href="/sport/auth/signin" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition">เข้าสู่ระบบ</Link>
+                <Link href="/sport/auth/signup" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition">สมัครสมาชิก</Link>
+                <Link href="/contact" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition">ติดต่อเรา</Link>
+                <Link href="/privacy" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition">นโยบายความเป็นส่วนตัว</Link>
               </nav>
               <p className="text-xs text-gray-400">© {new Date().getFullYear()} 88ARENA — All rights reserved.</p>
             </div>

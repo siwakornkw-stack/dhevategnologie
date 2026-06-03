@@ -102,7 +102,10 @@ export default function SignInForm() {
             name="remember_me"
           />
 
-          <Link href="/reset-password" className="text-primary-500 text-sm">
+          <Link
+            href="/reset-password"
+            className="text-indigo-600 dark:text-indigo-400 text-sm rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          >
             Forgot password?
           </Link>
         </div>
@@ -110,7 +113,7 @@ export default function SignInForm() {
         <button
           type="submit"
           disabled={isLoading}
-          className="bg-primary-500 hover:bg-primary-600 transition py-3 px-6 w-full font-medium text-white text-sm rounded-full"
+          className="bg-indigo-500 hover:bg-indigo-600 text-white transition py-3 px-6 w-full font-medium text-sm rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           {isLoading ? 'Signing in...' : 'Sign In'}
         </button>

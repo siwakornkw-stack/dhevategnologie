@@ -82,7 +82,7 @@ export default function TermsPage() {
               <h2 className="mb-3 text-2xl font-semibold text-gray-800 dark:text-white/90">8. ติดต่อเรา</h2>
               <p>
                 หากมีข้อสงสัยเกี่ยวกับข้อกำหนดการใช้บริการ กรุณาติดต่อเราผ่าน{' '}
-                <a href="/contact" className="text-primary-500 font-semibold hover:underline">หน้าติดต่อเรา</a>
+                <a href="/contact" className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">หน้าติดต่อเรา</a>
               </p>
             </div>
           </div>

@@ -84,7 +84,7 @@ export default function ForgotPasswordForm({ invalidToken }: PropsType) {
           />
 
           <button
-            className="bg-primary-500 hover:bg-primary-600 transition py-3 px-6 w-full font-medium text-white text-sm rounded-full"
+            className="bg-indigo-500 hover:bg-indigo-600 text-white transition py-3 px-6 w-full font-medium text-sm rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             disabled={isLoading}
           >
             {isLoading ? 'Sending...' : 'Send Reset Link'}
@@ -94,7 +94,10 @@ export default function ForgotPasswordForm({ invalidToken }: PropsType) {
 
       <p className="text-gray-700 dark:text-gray-400 font-normal text-sm mt-5">
         Remembered password?{' '}
-        <Link href="/signin" className="text-sm font-semibold text-primary-500">
+        <Link
+          href="/signin"
+          className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+        >
           Sign In
         </Link>
       </p>

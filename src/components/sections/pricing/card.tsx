@@ -30,7 +30,7 @@ export function PricingCard({ plan, billingPeriod }: Props) {
             )}
           </div>
           <p className="flex items-baseline mt-4">
-            <span className="text-4xl font-semibold text-gray-800 dark:text-white/90">
+            <span className="text-4xl font-semibold text-gray-800 dark:text-white/90 tabular-nums">
               {plan.pricing[billingPeriod].formattedPrice}
             </span>
 
@@ -49,12 +49,12 @@ export function PricingCard({ plan, billingPeriod }: Props) {
           ) : (
             <button
               className={cn(
-                'block w-full px-8 py-3.5 mt-7 text-sm font-medium text-center rounded-full transition',
+                'block w-full px-8 py-3.5 mt-7 text-sm font-medium text-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500',
                 {
-                  'dark:bg-dark-primary dark:text-white/90 dark:hover:bg-gray-800 dark:border-gray-800 text-gray-800 bg-white border border-gray-200 hover:bg-gray-50':
+                  'bg-gray-200 text-gray-900 hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600':
                     plan.name.includes('Free'),
-                  'gradient-btn text-white': plan.popular,
-                  'dark:hover:bg-primary-500 dark:bg-white/[0.03] hover:bg-gray-900 text-white bg-gray-700':
+                  'bg-indigo-600 hover:bg-indigo-700 text-white': plan.popular,
+                  'bg-indigo-500 hover:bg-indigo-600 text-white':
                     !plan.popular && !plan.name.includes('Free'),
                 }
               )}
@@ -91,7 +91,7 @@ function ContactSalesLink({ children }: PropsWithChildren) {
   return (
     <Link
       href="/contact"
-      className="block w-full px-8 py-3.5 mt-7 text-sm font-medium text-center rounded-full transition dark:hover:bg-primary-500 dark:bg-white/[0.03] hover:bg-gray-900 text-white bg-gray-700"
+      className="block w-full px-8 py-3.5 mt-7 text-sm font-medium text-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 bg-indigo-500 hover:bg-indigo-600 text-white"
     >
       {children}
     </Link>

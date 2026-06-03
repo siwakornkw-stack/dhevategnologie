@@ -103,7 +103,7 @@ export default function PrivacyPage() {
               </p>
               <p className="text-gray-500 font-normal dark:text-gray-400 leading-6">
                 Still have any questions? feel free to open{' '}
-                <Link href="/" className="text-primary-500 font-semibold">
+                <Link href="/" className="text-indigo-600 dark:text-indigo-400 font-semibold rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
                   Support Ticket
                 </Link>{' '}
                 to communicate directly!
