@@ -40,13 +40,13 @@ export function AuditClient() {
     <div className="wrapper py-6 max-w-6xl space-y-4">
       <div>
         <Link href="/sport/pos" className="text-xs text-gray-500 hover:underline">← POS</Link>
-        <h1 className="text-2xl font-bold">Audit Log</h1>
+        <h1 className="text-xl font-bold">Audit Log</h1>
       </div>
 
       <div className="flex flex-wrap gap-2 text-sm">
-        <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700" />
-        <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700" />
-        <select value={action} onChange={(e) => setAction(e.target.value)} className="px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700">
+        <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" />
+        <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" />
+        <select value={action} onChange={(e) => setAction(e.target.value)} className="px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
           <option value="">ทุก action</option>
           {ACTIONS.map((a) => <option key={a} value={a}>{a}</option>)}
         </select>

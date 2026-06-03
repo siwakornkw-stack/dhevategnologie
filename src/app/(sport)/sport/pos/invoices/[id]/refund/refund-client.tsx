@@ -95,8 +95,8 @@ export function RefundClient({ invoiceId }: { invoiceId: string }) {
     <div className="wrapper py-6 max-w-3xl space-y-5">
       <div>
         <Link href="/sport/pos/invoices" className="text-xs text-gray-500 hover:underline">← บิลย้อนหลัง</Link>
-        <h1 className="text-2xl font-bold">Refund: {inv.invoiceNo}</h1>
-        <div className="text-sm text-gray-500 mt-1">
+        <h1 className="text-xl font-bold">Refund: {inv.invoiceNo}</h1>
+        <div className="text-sm text-gray-500 mt-1 tabular-nums">
           ยอดบิล {inv.total.toFixed(2)} | คืนแล้ว {inv.refundedAmount.toFixed(2)} | คงเหลือ <b>{remaining.toFixed(2)}</b>
         </div>
       </div>
@@ -128,9 +128,9 @@ export function RefundClient({ invoiceId }: { invoiceId: string }) {
               return (
                 <tr key={idx}>
                   <td className="px-4 py-2">{it.productName}</td>
-                  <td className="px-4 py-2 text-right">{it.unitPrice.toFixed(2)}</td>
-                  <td className="px-4 py-2 text-right">{it.qty}</td>
-                  <td className="px-4 py-2 text-right text-xs text-gray-500">{refQty > 0 ? refQty : '-'}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{it.unitPrice.toFixed(2)}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{it.qty}</td>
+                  <td className="px-4 py-2 text-right text-xs text-gray-500 tabular-nums">{refQty > 0 ? refQty : '-'}</td>
                   <td className="px-4 py-2 text-right">
                     {it.productId && left > 0 ? (
                       <input
@@ -143,7 +143,7 @@ export function RefundClient({ invoiceId }: { invoiceId: string }) {
                           const v = Math.min(Number(e.target.value) || 0, left);
                           setQtyMap((m) => ({ ...m, [idx]: v }));
                         }}
-                        className="w-20 px-2 py-1 border rounded text-right dark:bg-gray-800 dark:border-gray-700"
+                        className="w-20 px-2 py-1 border rounded text-right tabular-nums dark:bg-gray-800 dark:border-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                         placeholder={`/${left}`}
                       />
                     ) : <span className="text-xs text-gray-400">{!it.productId ? '-' : 'คืนหมด'}</span>}
@@ -165,7 +165,7 @@ export function RefundClient({ invoiceId }: { invoiceId: string }) {
               step="0.01"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="mt-1 w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+              className="mt-1 w-full px-3 py-2 border rounded tabular-nums dark:bg-gray-800 dark:border-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             />
           </label>
           <label className="block text-sm">
@@ -184,20 +184,20 @@ export function RefundClient({ invoiceId }: { invoiceId: string }) {
           <input
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            className="mt-1 w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700"
+            className="mt-1 w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           />
         </label>
         {msg && <div className="text-sm text-red-600">{msg}</div>}
         <button
           onClick={submit}
           disabled={busy || inv.status !== 'PAID'}
-          className="px-4 py-2 rounded bg-red-600 text-white text-sm hover:bg-red-700 disabled:opacity-50"
+          className="px-4 py-2 rounded bg-indigo-500 hover:bg-indigo-600 text-white text-sm disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           {busy ? '...' : 'ทำ Refund'}
         </button>
         <button
           onClick={() => router.refresh()}
-          className="ml-2 px-4 py-2 rounded border text-sm dark:border-gray-700"
+          className="ml-2 px-4 py-2 rounded border text-sm dark:border-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           รีเฟรช
         </button>
@@ -223,7 +223,7 @@ export function RefundClient({ invoiceId }: { invoiceId: string }) {
                 <td className="px-4 py-2 font-mono text-xs">{r.refundNo}</td>
                 <td className="px-4 py-2 text-xs">{new Date(r.createdAt).toLocaleString('th-TH')}</td>
                 <td className="px-4 py-2 text-xs">{r.method}</td>
-                <td className="px-4 py-2 text-right">{r.amount.toFixed(2)}</td>
+                <td className="px-4 py-2 text-right text-red-600 tabular-nums">-{r.amount.toFixed(2)}</td>
                 <td className="px-4 py-2 text-xs text-gray-500">{r.reason || '-'}</td>
               </tr>
             ))}

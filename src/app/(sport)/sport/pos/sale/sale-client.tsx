@@ -269,12 +269,12 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
               <div className="flex items-center justify-between gap-2">
                 <div className="font-semibold text-gray-900 dark:text-white">
                   {currentTab.name}
-                  {currentTab.status === 'HELD' && <span className="ml-2 inline-block px-2 py-0.5 text-xs rounded bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">พัก</span>}
+                  {currentTab.status === 'HELD' && <span className="ml-2 inline-block px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">พัก</span>}
                 </div>
                 {currentTab.status === 'OPEN' ? (
-                  <button onClick={holdTab} className="px-2 py-1 text-xs rounded border dark:border-gray-700 text-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">พัก</button>
+                  <button onClick={holdTab} className="px-2 py-1 text-xs rounded border dark:border-gray-700 text-gray-600 dark:text-gray-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">พัก</button>
                 ) : currentTab.status === 'HELD' ? (
-                  <button onClick={resumeTab} className="px-2 py-1 text-xs rounded bg-amber-500 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">เรียกคืน</button>
+                  <button onClick={resumeTab} className="px-2 py-1 text-xs rounded bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">เรียกคืน</button>
                 ) : null}
               </div>
               {currentTab.teamLabel && <div className="text-xs text-gray-500">ทีม: {currentTab.teamLabel}</div>}
@@ -313,7 +313,7 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
                     ))}
                     {(currentTab.children || []).map((c) => c.items.length > 0 && (
                       <div key={c.id} className="border-t dark:border-gray-800 pt-2">
-                        <div className="text-xs text-amber-600 mb-1">↳ {c.teamLabel || c.name} (merged)</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">↳ {c.teamLabel || c.name} (merged)</div>
                         {c.items.map((it) => (
                           <div key={it.id} className="flex items-center justify-between text-sm pb-1">
                             <div className="flex-1 min-w-0 ml-3">

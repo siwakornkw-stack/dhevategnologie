@@ -38,7 +38,7 @@ export default async function PosHubPage() {
   return (
     <div className="wrapper py-8 space-y-6 max-w-5xl">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">POS</h1>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">POS</h1>
         <p className="text-sm text-gray-500 mt-1">
           role: <span className="font-mono">{role}</span>
         </p>
@@ -47,9 +47,9 @@ export default async function PosHubPage() {
       {lowStockCount > 0 && (
         <Link
           href="/sport/pos/stock"
-          className="block px-4 py-3 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 text-sm text-amber-800 dark:text-amber-200 hover:border-amber-500"
+          className="block px-4 py-3 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 text-sm text-amber-800 dark:text-amber-200 hover:border-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
-          <b>เตือน:</b> มีสินค้า {lowStockCount} รายการ stock ต่ำกว่าจุดเตือน → ดู/รับเข้าสต๊อก
+          <b>เตือน:</b> มีสินค้า <span className="tabular-nums">{lowStockCount}</span> รายการ stock ต่ำกว่าจุดเตือน → ดู/รับเข้าสต๊อก
         </Link>
       )}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -60,7 +60,7 @@ export default async function PosHubPage() {
               key={it.href}
               href={disabled ? '#' : it.href}
               aria-disabled={disabled}
-              className={`p-5 rounded-lg border bg-white dark:bg-gray-900 dark:border-gray-700/50 ${
+              className={`p-5 rounded-lg border bg-white dark:bg-gray-900 dark:border-gray-700/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                 disabled ? 'opacity-40 pointer-events-none' : 'hover:border-primary-500 hover:shadow-sm'
               }`}
             >
