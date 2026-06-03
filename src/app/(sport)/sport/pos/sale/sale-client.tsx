@@ -123,6 +123,31 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
     }
   }
 
+  async function changeQty(itemId: string, nextQty: number) {
+    if (!currentTabId || nextQty < 1) return;
+    const tabId = currentTabId;
+    const tab = tabs.find((t) => t.id === tabId);
+    const item = tab?.items.find((i) => i.id === itemId);
+    if (!item || item.qty === nextQty) return;
+    const prevQty = item.qty;
+    setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: t.items.map((i) => i.id === itemId ? { ...i, qty: nextQty } : i) } : t));
+    try {
+      const r = await fetch(`/api/sport/pos/tabs/${tabId}/items/${itemId}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ qty: nextQty }),
+      });
+      if (!r.ok) {
+        const e = await r.json().catch(() => ({}));
+        toast.error(e.error || 'ปรับจำนวนไม่สำเร็จ');
+        setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: t.items.map((i) => i.id === itemId ? { ...i, qty: prevQty } : i) } : t));
+        return;
+      }
+      const updated: Item = await r.json();
+      setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: t.items.map((i) => i.id === itemId ? updated : i) } : t));
+    } catch {
+      setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: t.items.map((i) => i.id === itemId ? { ...i, qty: prevQty } : i) } : t));
+    }
+  }
+
   function addQuick(p: Product) {
     setQuickCart((c) => {
       const ex = c.find((x) => x.productId === p.id);
@@ -263,7 +288,22 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
                       <div key={it.id} className="flex items-center justify-between text-sm border-b dark:border-gray-800 pb-1">
                         <div className="flex-1 min-w-0">
                           <div className="truncate">{it.productName}</div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">x{it.qty} @ {it.unitPrice}</div>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <button
+                              onClick={() => (it.qty <= 1 ? voidItem(it.id) : changeQty(it.id, it.qty - 1))}
+                              disabled={it.id.startsWith('tmp-') || currentTab.status === 'HELD'}
+                              aria-label={`ลดจำนวน ${it.productName}`}
+                              className="w-6 h-6 rounded-lg border dark:border-gray-700 text-gray-600 dark:text-gray-300 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                            >−</button>
+                            <span className="w-7 text-center text-xs tabular-nums" aria-live="polite">{it.qty}</span>
+                            <button
+                              onClick={() => changeQty(it.id, it.qty + 1)}
+                              disabled={it.id.startsWith('tmp-') || currentTab.status === 'HELD'}
+                              aria-label={`เพิ่มจำนวน ${it.productName}`}
+                              className="w-6 h-6 rounded-lg border dark:border-gray-700 text-gray-600 dark:text-gray-300 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                            >+</button>
+                            <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">@ {it.unitPrice}</span>
+                          </div>
                         </div>
                         <div className="text-right">
                           <div className="tabular-nums">{(it.unitPrice * it.qty - it.discount).toFixed(2)}</div>
@@ -599,9 +639,9 @@ function QuickSaleModal({ cart, setCart, onClose, onPaid }: {
           {coupon && couponDiscount > 0 && (
             <div className="flex justify-between text-emerald-600 text-xs"><span>คูปอง {coupon.code} ({coupon.discountType === 'PERCENT' ? `${coupon.discountValue}%` : `฿${coupon.discountValue}`})</span><span>-{couponDiscount.toFixed(2)}</span></div>
           )}
-          {serviceCharge > 0 && <div className="flex justify-between text-gray-500"><span>SC {serviceChargeRate}%</span><span>{serviceCharge.toFixed(2)}</span></div>}
-          {vatMode === 'EXCLUDED' && vatAmount > 0 && <div className="flex justify-between text-gray-500"><span>VAT {vatRate}%</span><span>{vatAmount.toFixed(2)}</span></div>}
-          {vatMode === 'INCLUDED' && vatAmount > 0 && <div className="flex justify-between text-gray-500 dark:text-gray-400 text-xs"><span>(VAT รวม {vatRate}%)</span><span>{vatAmount.toFixed(2)}</span></div>}
+          {serviceCharge > 0 && <div className="flex justify-between text-gray-500"><span title={`Service charge — ค่าบริการ ${serviceChargeRate}% ของยอดหลังส่วนลด`} className="underline decoration-dotted cursor-help">SC {serviceChargeRate}%</span><span>{serviceCharge.toFixed(2)}</span></div>}
+          {vatMode === 'EXCLUDED' && vatAmount > 0 && <div className="flex justify-between text-gray-500"><span title="VAT บวกเพิ่มจากยอด (ราคายังไม่รวม VAT)" className="underline decoration-dotted cursor-help">VAT {vatRate}%</span><span>{vatAmount.toFixed(2)}</span></div>}
+          {vatMode === 'INCLUDED' && vatAmount > 0 && <div className="flex justify-between text-gray-500 dark:text-gray-400 text-xs"><span title="VAT รวมในราคาแล้ว — แสดงเพื่ออ้างอิง ไม่บวกเพิ่ม" className="underline decoration-dotted cursor-help">(VAT รวม {vatRate}%)</span><span>{vatAmount.toFixed(2)}</span></div>}
           {ptUsed > 0 && <div className="flex justify-between text-emerald-600"><span>หัก redeem</span><span>-{redeemValue.toFixed(2)}</span></div>}
           <div className="flex justify-between font-bold text-lg"><span>TOTAL</span><span className="tabular-nums">{total.toFixed(2)}</span></div>
           {earnPreview > 0 && <div className="text-xs text-gray-500 dark:text-gray-400 text-right">จะได้ {earnPreview} pt</div>}

@@ -1,6 +1,68 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requirePosRole } from '@/lib/pos';
+import { requirePosRole, getPosSettings } from '@/lib/pos';
+
+export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string; itemId: string }> }) {
+  const session = await requirePosRole(['ADMIN', 'CASHIER']);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const { id: tabId, itemId } = await ctx.params;
+
+  const { qty } = await req.json();
+  const qtyNum = Number(qty);
+  if (!Number.isInteger(qtyNum) || qtyNum <= 0 || qtyNum > 10_000) {
+    return NextResponse.json({ error: 'qty required (1-10000)' }, { status: 400 });
+  }
+  const isAdmin = session.user.role === 'ADMIN';
+  const allowNegative = (await getPosSettings()).allowNegativeStock;
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const item = await tx.posOrderItem.findUnique({ where: { id: itemId } });
+      if (!item || item.tabId !== tabId) throw new Error('NOT_FOUND');
+      if (item.status !== 'ACTIVE') throw new Error('ALREADY_VOID');
+      const tab = await tx.posTab.findUnique({ where: { id: tabId }, select: { status: true, openedBy: true } });
+      if (!tab || (tab.status !== 'OPEN' && tab.status !== 'MERGED')) throw new Error('TAB_NOT_OPEN');
+      if (!isAdmin && tab.openedBy && tab.openedBy !== session.user.id) throw new Error('FORBIDDEN');
+
+      const delta = qtyNum - item.qty;
+      if (delta !== 0) {
+        if (delta > 0) {
+          if (allowNegative) {
+            await tx.posProduct.update({ where: { id: item.productId }, data: { stockQty: { decrement: delta } } });
+          } else {
+            const r = await tx.posProduct.updateMany({
+              where: { id: item.productId, stockQty: { gte: delta } },
+              data: { stockQty: { decrement: delta } },
+            });
+            if (r.count === 0) throw new Error('STOCK_INSUFFICIENT');
+          }
+        } else {
+          await tx.posProduct.update({ where: { id: item.productId }, data: { stockQty: { increment: -delta } } });
+        }
+        await tx.posStockMovement.create({
+          data: {
+            productId: item.productId,
+            type: 'ADJUST',
+            qty: -delta,
+            refType: 'ITEM_QTY',
+            refId: itemId,
+            userId: session.user.id,
+          },
+        });
+      }
+      const maxDiscount = item.unitPrice * qtyNum;
+      const nextDiscount = Math.min(item.discount, maxDiscount);
+      return tx.posOrderItem.update({ where: { id: itemId }, data: { qty: qtyNum, discount: nextDiscount } });
+    });
+    return NextResponse.json(result);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : 'update failed';
+    if (msg === 'FORBIDDEN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (msg === 'STOCK_INSUFFICIENT') return NextResponse.json({ error: 'สต็อกไม่พอ' }, { status: 409 });
+    if (msg === 'NOT_FOUND') return NextResponse.json({ error: 'not found' }, { status: 404 });
+    return NextResponse.json({ error: msg }, { status: 409 });
+  }
+}
 
 export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: string; itemId: string }> }) {
   const session = await requirePosRole(['ADMIN', 'CASHIER']);
