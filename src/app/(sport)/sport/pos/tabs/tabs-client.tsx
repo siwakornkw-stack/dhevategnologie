@@ -104,7 +104,7 @@ export function TabsClient({ initialTabs = [], initialBookings = [] }: TabsClien
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border dark:border-gray-700/50 divide-y dark:divide-gray-800">
+      <div className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-700/50 divide-y dark:divide-gray-800">
         {roots.length === 0 ? (
           <div className="p-12 text-center text-gray-400 text-sm">ไม่มี tab เปิดอยู่</div>
         ) : roots.map((t) => {
@@ -170,7 +170,7 @@ export function TabsClient({ initialTabs = [], initialBookings = [] }: TabsClien
 
       {mergeOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setMergeOpen(false)}>
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 max-w-md w-full space-y-3" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white dark:bg-gray-900 rounded-lg p-5 max-w-md w-full space-y-3" onClick={(e) => e.stopPropagation()}>
             <div className="font-bold text-lg">เลือก Master Tab</div>
             <div className="text-xs text-gray-500">รายการอื่นจะถูก merge เข้า master</div>
             <div className="space-y-1 max-h-72 overflow-y-auto">

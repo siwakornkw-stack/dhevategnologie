@@ -142,7 +142,7 @@ export function ShiftClient() {
       {msg && <div className="text-sm text-red-600 bg-red-50 dark:bg-red-900/30 px-3 py-2 rounded">{msg}</div>}
 
       {!current ? (
-        <div className="bg-white dark:bg-gray-900 border dark:border-gray-700/50 rounded-2xl p-5 space-y-3">
+        <div className="bg-white dark:bg-gray-900 border dark:border-gray-700/50 rounded-lg p-5 space-y-3">
           <h2 className="font-semibold">เปิดกะใหม่</h2>
           <label className="block text-sm">
             เงินทอนตั้งต้น (Opening float)
@@ -172,7 +172,7 @@ export function ShiftClient() {
           </button>
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-900 border dark:border-gray-700/50 rounded-2xl p-5 space-y-4">
+        <div className="bg-white dark:bg-gray-900 border dark:border-gray-700/50 rounded-lg p-5 space-y-4">
           <div className="flex justify-between items-start">
             <div>
               <div className="text-xs text-gray-500">กะปัจจุบัน</div>
@@ -272,7 +272,7 @@ export function ShiftClient() {
         </div>
       )}
 
-      <div className="bg-white dark:bg-gray-900 border dark:border-gray-700/50 rounded-2xl overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 border dark:border-gray-700/50 rounded-lg overflow-hidden">
         <div className="px-4 py-3 border-b dark:border-gray-800 font-semibold text-sm flex flex-wrap items-center gap-2">
           <span>กะย้อนหลัง</span>
           <div className="ml-auto flex flex-wrap items-center gap-1 text-xs font-normal">

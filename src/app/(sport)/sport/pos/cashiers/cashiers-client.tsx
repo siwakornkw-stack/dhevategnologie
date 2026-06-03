@@ -48,7 +48,7 @@ export function CashiersClient({ initialList = [] }: CashiersClientProps = {}) {
       <form
         id="cashier-form"
         onSubmit={(e) => { e.preventDefault(); create(new FormData(e.currentTarget)); }}
-        className="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 border rounded-xl bg-gray-50 dark:bg-gray-800 dark:border-gray-700"
+        className="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 border rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700"
       >
         <input name="name" required placeholder="ชื่อ *" className="input" />
         <input name="email" type="email" required placeholder="email *" className="input" />
@@ -59,7 +59,7 @@ export function CashiersClient({ initialList = [] }: CashiersClientProps = {}) {
         <style>{`.input{padding:.5rem .75rem;border-radius:.5rem;border:1px solid #e5e7eb;background:white}.dark .input{background:#111827;border-color:#374151;color:white}`}</style>
       </form>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border dark:border-gray-700/50 overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-700/50 overflow-hidden">
         {list.length === 0 ? (
           <div className="p-8 text-center text-gray-400">ยังไม่มี cashier</div>
         ) : (

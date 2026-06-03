@@ -71,7 +71,7 @@ export function SettingsClient({ initialSettings = null }: SettingsClientProps =
       </div>
       <form
         onSubmit={(e) => { e.preventDefault(); save(new FormData(e.currentTarget)); }}
-        className="space-y-4 bg-white dark:bg-gray-900 p-6 rounded-2xl border dark:border-gray-700/50"
+        className="space-y-4 bg-white dark:bg-gray-900 p-6 rounded-lg border dark:border-gray-700/50"
       >
         <section className="space-y-2">
           <div className="text-sm font-semibold">ร้าน</div>

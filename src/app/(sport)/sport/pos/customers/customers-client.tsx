@@ -48,7 +48,7 @@ export function CustomersClient() {
         <p className="text-sm text-gray-500 mt-1">ค้นชื่อ/อีเมล/เบอร์ ดูแต้ม + ประวัติซื้อ</p>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 border dark:border-gray-700/50 rounded-2xl p-4">
+      <div className="bg-white dark:bg-gray-900 border dark:border-gray-700/50 rounded-lg p-4">
         <input
           autoFocus
           value={q}
@@ -60,7 +60,7 @@ export function CustomersClient() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white dark:bg-gray-900 border dark:border-gray-700/50 rounded-2xl overflow-hidden">
+        <div className="bg-white dark:bg-gray-900 border dark:border-gray-700/50 rounded-lg overflow-hidden">
           <div className="px-4 py-3 border-b dark:border-gray-800 text-sm font-semibold">ผลการค้นหา ({list.length})</div>
           <div className="max-h-[60vh] overflow-auto">
             {list.length === 0 ? (
@@ -81,7 +81,7 @@ export function CustomersClient() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-900 border dark:border-gray-700/50 rounded-2xl overflow-hidden">
+        <div className="bg-white dark:bg-gray-900 border dark:border-gray-700/50 rounded-lg overflow-hidden">
           {!selected ? (
             <div className="p-8 text-center text-xs text-gray-400">เลือกลูกค้าเพื่อดูประวัติ</div>
           ) : (

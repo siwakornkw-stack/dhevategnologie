@@ -126,7 +126,7 @@ export function ProductsClient({ initialList = [] }: ProductsClientProps = {}) {
             e.preventDefault();
             save(new FormData(e.currentTarget));
           }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 border rounded-xl bg-gray-50 dark:bg-gray-800 dark:border-gray-700"
+          className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 border rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700"
         >
           <div className="col-span-full flex items-center gap-3">
             {imageUrl ? (
@@ -186,7 +186,7 @@ export function ProductsClient({ initialList = [] }: ProductsClientProps = {}) {
         </form>
       )}
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border dark:border-gray-700/50 overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-700/50 overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-gray-400">กำลังโหลด...</div>
         ) : list.length === 0 ? (

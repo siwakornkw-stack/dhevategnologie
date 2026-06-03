@@ -173,7 +173,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
         <h1 className="text-2xl font-bold">Checkout · {tab.name}</h1>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border dark:border-gray-700/50 p-4 space-y-3">
+      <div className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-700/50 p-4 space-y-3">
         <div className="text-sm font-semibold">รายการสินค้า</div>
         {allItems.length === 0 ? <div className="text-xs text-gray-400">ไม่มี</div> : (
           <table className="w-full text-sm">
@@ -255,7 +255,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border dark:border-gray-700/50 p-4 space-y-2">
+      <div className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-700/50 p-4 space-y-2">
         <div className="text-sm font-semibold">ลูกค้า (optional)</div>
         <div className="relative">
           <input
@@ -317,7 +317,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
         )}
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border dark:border-gray-700/50 p-4 space-y-3">
+      <div className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-700/50 p-4 space-y-3">
         <label className="flex items-center gap-2 text-sm font-semibold">
           <input type="checkbox" checked={splitMode} onChange={(e) => setSplitMode(e.target.checked)} /> แยกจ่าย (split)
         </label>
@@ -368,7 +368,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
         <button
           onClick={submit}
           disabled={busy || total <= 0 || (splitMode && Math.abs(splitSum - total) > 0.01) || (!splitMode && payMethod === 'CASH' && Number(cashReceived) < total)}
-          className="w-full py-3 bg-primary-600 text-white rounded-xl font-semibold disabled:opacity-50"
+          className="w-full py-3 bg-primary-600 text-white rounded-lg font-semibold disabled:opacity-50"
         >
           {busy ? 'กำลังบันทึก...' : 'ยืนยัน + พิมพ์บิล'}
         </button>

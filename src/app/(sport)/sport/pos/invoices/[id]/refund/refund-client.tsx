@@ -107,7 +107,7 @@ export function RefundClient({ invoiceId }: { invoiceId: string }) {
         </div>
       )}
 
-      <div className="bg-white dark:bg-gray-900 border dark:border-gray-700/50 rounded-2xl overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 border dark:border-gray-700/50 rounded-lg overflow-hidden">
         <div className="px-4 py-3 border-b dark:border-gray-800 text-sm font-semibold">เลือกสินค้าที่คืน (optional - คืนเข้า stock)</div>
         <table className="w-full text-sm">
           <thead className="bg-gray-50 dark:bg-gray-800 text-left text-xs text-gray-500">
@@ -155,7 +155,7 @@ export function RefundClient({ invoiceId }: { invoiceId: string }) {
         </table>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 border dark:border-gray-700/50 rounded-2xl p-5 space-y-3">
+      <div className="bg-white dark:bg-gray-900 border dark:border-gray-700/50 rounded-lg p-5 space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <label className="block text-sm">
             ยอดคืน (฿)
@@ -203,7 +203,7 @@ export function RefundClient({ invoiceId }: { invoiceId: string }) {
         </button>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 border dark:border-gray-700/50 rounded-2xl overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 border dark:border-gray-700/50 rounded-lg overflow-hidden">
         <div className="px-4 py-3 border-b dark:border-gray-800 font-semibold text-sm">ประวัติคืนเงินบิลนี้</div>
         <table className="w-full text-sm">
           <thead className="bg-gray-50 dark:bg-gray-800 text-left text-xs text-gray-500">

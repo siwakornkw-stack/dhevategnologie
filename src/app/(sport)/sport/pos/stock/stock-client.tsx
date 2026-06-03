@@ -131,7 +131,7 @@ export function StockClient({ initialProducts = [], initialMovements = [] }: Sto
           e.preventDefault();
           submit(new FormData(e.currentTarget));
         }}
-        className="grid grid-cols-1 md:grid-cols-5 gap-3 p-4 border rounded-xl bg-gray-50 dark:bg-gray-800 dark:border-gray-700"
+        className="grid grid-cols-1 md:grid-cols-5 gap-3 p-4 border rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700"
       >
         <select name="productId" required className="input md:col-span-2">
           <option value="">-- เลือกสินค้า --</option>
@@ -156,7 +156,7 @@ export function StockClient({ initialProducts = [], initialMovements = [] }: Sto
 
       {stockTakeOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => !stProgress && setStockTakeOpen(false)}>
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border dark:border-gray-700/50 max-w-3xl w-full max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-700/50 max-w-3xl w-full max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="p-4 border-b dark:border-gray-800 flex items-center justify-between">
               <h2 className="font-bold">นับสต๊อก (Stock-take)</h2>
               <button onClick={() => !stProgress && setStockTakeOpen(false)} className="text-gray-400 hover:text-gray-600">✕</button>
@@ -218,7 +218,7 @@ export function StockClient({ initialProducts = [], initialMovements = [] }: Sto
         </div>
       )}
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border dark:border-gray-700/50 overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-700/50 overflow-hidden">
         <div className="px-4 py-3 border-b dark:border-gray-800 text-sm font-semibold">Movement Log (50 ล่าสุด)</div>
         {movements.length === 0 ? (
           <div className="p-8 text-center text-gray-400">ยังไม่มี movement</div>

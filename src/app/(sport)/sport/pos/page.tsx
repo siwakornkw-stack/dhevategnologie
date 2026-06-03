@@ -47,7 +47,7 @@ export default async function PosHubPage() {
       {lowStockCount > 0 && (
         <Link
           href="/sport/pos/stock"
-          className="block px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 text-sm text-amber-800 dark:text-amber-200 hover:border-amber-500"
+          className="block px-4 py-3 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 text-sm text-amber-800 dark:text-amber-200 hover:border-amber-500"
         >
           <b>เตือน:</b> มีสินค้า {lowStockCount} รายการ stock ต่ำกว่าจุดเตือน → ดู/รับเข้าสต๊อก
         </Link>
@@ -60,7 +60,7 @@ export default async function PosHubPage() {
               key={it.href}
               href={disabled ? '#' : it.href}
               aria-disabled={disabled}
-              className={`p-5 rounded-2xl border bg-white dark:bg-gray-900 dark:border-gray-700/50 ${
+              className={`p-5 rounded-lg border bg-white dark:bg-gray-900 dark:border-gray-700/50 ${
                 disabled ? 'opacity-40 pointer-events-none' : 'hover:border-primary-500 hover:shadow-sm'
               }`}
             >

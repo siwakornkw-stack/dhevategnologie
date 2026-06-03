@@ -56,7 +56,7 @@ export default function InvoicesPage() {
         </select>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border dark:border-gray-700/50 overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-700/50 overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 dark:bg-gray-800 text-left text-xs text-gray-500">
             <tr>

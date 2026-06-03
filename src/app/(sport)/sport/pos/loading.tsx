@@ -16,7 +16,7 @@ export default function PosLoading() {
           <div className="h-10 bg-gray-200 dark:bg-gray-800 rounded-lg" />
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="rounded-xl border dark:border-gray-700 overflow-hidden">
+              <div key={i} className="rounded-lg border dark:border-gray-700 overflow-hidden">
                 <div className="h-24 bg-gray-200 dark:bg-gray-800" />
                 <div className="p-3 space-y-2">
                   <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded" />
@@ -26,7 +26,7 @@ export default function PosLoading() {
             ))}
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border dark:border-gray-700/50 p-4 space-y-3 h-fit">
+        <div className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-700/50 p-4 space-y-3 h-fit">
           <div className="h-5 bg-gray-200 dark:bg-gray-800 rounded w-2/3" />
           <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-1/2" />
           <div className="space-y-2 pt-4">
