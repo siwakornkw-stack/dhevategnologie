@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 
 type Product = { id: string; name: string; stockQty: number; stockUnit: string };
 type Movement = {
@@ -62,7 +63,7 @@ export function StockClient({ initialProducts = [], initialMovements = [] }: Sto
       })
       .filter((x): x is { p: Product; counted: number; delta: number } => x !== null);
 
-    if (rows.length === 0) { alert('ไม่มีรายการที่ต้องปรับ'); return; }
+    if (rows.length === 0) { toast.error('ไม่มีรายการที่ต้องปรับ'); return; }
     if (!confirm(`ปรับ ${rows.length} รายการ ยืนยัน?`)) return;
 
     setStProgress({ done: 0, total: rows.length, ok: 0, fail: 0 });
@@ -81,15 +82,15 @@ export function StockClient({ initialProducts = [], initialMovements = [] }: Sto
         setStProgress({ done: rows.length, total: rows.length, ok: count, fail: 0 });
         await load();
         setStockTakeOpen(false);
-        alert(`สำเร็จ ${count} รายการ`);
+        toast.success(`สำเร็จ ${count} รายการ`);
       } else {
         const e = await r.json().catch(() => ({}));
         setStProgress(null);
-        alert(e.error || 'บันทึกไม่สำเร็จ — ไม่มีรายการใดถูกปรับ');
+        toast.error(e.error || 'บันทึกไม่สำเร็จ — ไม่มีรายการใดถูกปรับ');
       }
     } catch {
       setStProgress(null);
-      alert('บันทึกไม่สำเร็จ — ไม่มีรายการใดถูกปรับ');
+      toast.error('บันทึกไม่สำเร็จ — ไม่มีรายการใดถูกปรับ');
     }
   }
 
@@ -108,7 +109,7 @@ export function StockClient({ initialProducts = [], initialMovements = [] }: Sto
     setSubmitting(false);
     if (!r.ok) {
       const e = await r.json().catch(() => ({}));
-      alert(e.error || 'บันทึกไม่สำเร็จ');
+      toast.error(e.error || 'บันทึกไม่สำเร็จ');
       return;
     }
     (document.getElementById('stock-form') as HTMLFormElement | null)?.reset();
@@ -120,9 +121,9 @@ export function StockClient({ initialProducts = [], initialMovements = [] }: Sto
       <div className="flex items-end justify-between">
         <div>
           <Link href="/sport/pos" className="text-xs text-gray-500 hover:underline">← POS</Link>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Stock</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Stock</h1>
         </div>
-        <button onClick={openStockTake} className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm">นับสต๊อก (Stock-take)</button>
+        <button onClick={openStockTake} className="px-3 py-2 rounded-lg bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">นับสต๊อก (Stock-take)</button>
       </div>
 
       <form
@@ -148,10 +149,9 @@ export function StockClient({ initialProducts = [], initialMovements = [] }: Sto
         </select>
         <input name="qty" type="number" required placeholder="จำนวน" className="input" />
         <input name="note" placeholder="หมายเหตุ" className="input" />
-        <button disabled={submitting} className="md:col-span-5 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm disabled:opacity-60">
+        <button disabled={submitting} className="md:col-span-5 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-sm disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
           {submitting ? 'กำลังบันทึก...' : 'บันทึก movement'}
         </button>
-        <style>{`.input{padding:.5rem .75rem;border-radius:.5rem;border:1px solid #e5e7eb;background:white}.dark .input{background:#111827;border-color:#374151;color:white}`}</style>
       </form>
 
       {stockTakeOpen && (
@@ -180,17 +180,17 @@ export function StockClient({ initialProducts = [], initialMovements = [] }: Sto
                     return (
                       <tr key={p.id}>
                         <td className="px-3 py-2">{p.name}</td>
-                        <td className="px-3 py-2 text-right text-gray-500">{p.stockQty} {p.stockUnit}</td>
+                        <td className="px-3 py-2 text-right text-gray-500 tabular-nums">{p.stockQty} {p.stockUnit}</td>
                         <td className="px-3 py-2 text-right">
                           <input
                             type="number"
                             min={0}
                             value={raw ?? ''}
                             onChange={(e) => setCounts((c) => ({ ...c, [p.id]: e.target.value }))}
-                            className="w-20 px-2 py-1 text-right border rounded dark:bg-gray-800 dark:border-gray-700"
+                            className="w-20 px-2 py-1 text-right tabular-nums border rounded dark:bg-gray-800 dark:border-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                           />
                         </td>
-                        <td className={`px-3 py-2 text-right font-mono text-xs ${delta === null || delta === 0 ? 'text-gray-400' : delta > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <td className={`px-3 py-2 text-right font-mono text-xs tabular-nums ${delta === null || delta === 0 ? 'text-gray-400' : delta > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                           {delta === null ? '-' : delta > 0 ? `+${delta}` : delta}
                         </td>
                       </tr>
@@ -208,8 +208,8 @@ export function StockClient({ initialProducts = [], initialMovements = [] }: Sto
                 <div className="text-xs text-gray-400">เว้นว่างเพื่อข้าม row</div>
               )}
               <div className="flex gap-2">
-                <button disabled={!!stProgress} onClick={() => setStockTakeOpen(false)} className="px-3 py-2 border rounded text-sm disabled:opacity-50">ยกเลิก</button>
-                <button disabled={!!stProgress} onClick={runStockTake} className="px-4 py-2 bg-emerald-600 text-white rounded text-sm disabled:opacity-50">
+                <button disabled={!!stProgress} onClick={() => setStockTakeOpen(false)} className="px-3 py-2 border dark:border-gray-700 rounded text-sm disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">ยกเลิก</button>
+                <button disabled={!!stProgress} onClick={runStockTake} className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded text-sm disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
                   {stProgress ? 'กำลังบันทึก...' : 'บันทึก stock-take'}
                 </button>
               </div>
@@ -240,14 +240,14 @@ export function StockClient({ initialProducts = [], initialMovements = [] }: Sto
                   <td className="px-4 py-2">{m.product?.name}</td>
                   <td className="px-4 py-2">
                     <span className={`text-xs px-2 py-0.5 rounded ${
-                      m.type === 'IN' ? 'bg-green-100 text-green-700' :
-                      m.type === 'OUT' ? 'bg-red-100 text-red-700' :
-                      m.type === 'SALE' ? 'bg-blue-100 text-blue-700' :
-                      m.type === 'VOID' ? 'bg-orange-100 text-orange-700' :
-                      'bg-gray-100 text-gray-700'
+                      m.type === 'IN' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' :
+                      m.type === 'OUT' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' :
+                      m.type === 'SALE' ? 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300' :
+                      m.type === 'VOID' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' :
+                      'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
                     }`}>{m.type}</span>
                   </td>
-                  <td className={`px-4 py-2 text-right font-mono ${m.qty < 0 ? 'text-red-600' : 'text-green-700'}`}>
+                  <td className={`px-4 py-2 text-right font-mono tabular-nums ${m.qty < 0 ? 'text-red-600' : 'text-emerald-700 dark:text-emerald-400'}`}>
                     {m.qty > 0 ? `+${m.qty}` : m.qty}
                   </td>
                   <td className="px-4 py-2 text-xs text-gray-500">{m.note || '-'}</td>

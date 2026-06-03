@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 
 type Product = {
   id: string;
@@ -27,6 +28,7 @@ export function ProductsClient({ initialList = [] }: ProductsClientProps = {}) {
   const [showForm, setShowForm] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const skipFirst = useRef(initialList.length > 0);
 
   async function load() {
@@ -51,7 +53,7 @@ export function ProductsClient({ initialList = [] }: ProductsClientProps = {}) {
       const r = await fetch('/api/sport/upload', { method: 'POST', body: fd });
       const data = await r.json();
       if (!r.ok) {
-        alert(data.error || 'อัปโหลดไม่สำเร็จ');
+        toast.error(data.error || 'อัปโหลดไม่สำเร็จ');
         return;
       }
       setImageUrl(data.url);
@@ -75,12 +77,15 @@ export function ProductsClient({ initialList = [] }: ProductsClientProps = {}) {
     };
     const url = editing ? `/api/sport/pos/products/${editing.id}` : `/api/sport/pos/products`;
     const method = editing ? 'PATCH' : 'POST';
+    setSaving(true);
     const r = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    setSaving(false);
     if (!r.ok) {
       const e = await r.json().catch(() => ({}));
-      alert(e.error || 'บันทึกไม่สำเร็จ');
+      toast.error(e.error || 'บันทึกไม่สำเร็จ');
       return;
     }
+    toast.success('บันทึกแล้ว');
     setEditing(null);
     setShowForm(false);
     setImageUrl(null);
@@ -98,7 +103,7 @@ export function ProductsClient({ initialList = [] }: ProductsClientProps = {}) {
       <div className="flex items-center justify-between">
         <div>
           <Link href="/sport/pos" className="text-xs text-gray-500 hover:underline">← POS</Link>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">สินค้า</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">สินค้า</h1>
         </div>
         <button
           onClick={() => {
@@ -106,7 +111,7 @@ export function ProductsClient({ initialList = [] }: ProductsClientProps = {}) {
             setImageUrl(null);
             setShowForm(true);
           }}
-          className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700"
+          className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           + เพิ่มสินค้า
         </button>
@@ -116,7 +121,7 @@ export function ProductsClient({ initialList = [] }: ProductsClientProps = {}) {
         value={q}
         onChange={(e) => setQ(e.target.value)}
         placeholder="ค้นหา ชื่อ / SKU"
-        className="w-full px-3 py-2 rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900"
+        className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
       />
 
       {(showForm || editing) && (
@@ -176,13 +181,12 @@ export function ProductsClient({ initialList = [] }: ProductsClientProps = {}) {
                 setShowForm(false);
                 setImageUrl(null);
               }}
-              className="px-4 py-2 text-sm rounded-lg border dark:border-gray-700"
+              className="px-4 py-2 text-sm rounded-lg border dark:border-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               ยกเลิก
             </button>
-            <button className="px-4 py-2 text-sm rounded-lg bg-primary-600 text-white">บันทึก</button>
+            <button disabled={saving} className="px-4 py-2 text-sm rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">{saving ? '...' : 'บันทึก'}</button>
           </div>
-          <style>{`.input{padding:.5rem .75rem;border-radius:.5rem;border:1px solid #e5e7eb;background:white}.dark .input{background:#111827;border-color:#374151;color:white}`}</style>
         </form>
       )}
 
@@ -220,19 +224,19 @@ export function ProductsClient({ initialList = [] }: ProductsClientProps = {}) {
                   <td className="px-4 py-2 text-gray-900 dark:text-white">{p.name}</td>
                   <td className="px-4 py-2 text-gray-500">{p.sku || '-'}</td>
                   <td className="px-4 py-2 text-gray-500">{p.category || '-'}</td>
-                  <td className="px-4 py-2 text-right">{p.price.toFixed(2)}</td>
-                  <td className="px-4 py-2 text-right text-gray-500">{p.cost.toFixed(2)}</td>
-                  <td className={`px-4 py-2 text-right ${p.stockQty <= p.lowStockAlert ? 'text-amber-600 font-semibold' : ''}`}>
+                  <td className="px-4 py-2 text-right tabular-nums">{p.price.toFixed(2)}</td>
+                  <td className="px-4 py-2 text-right text-gray-500 tabular-nums">{p.cost.toFixed(2)}</td>
+                  <td className={`px-4 py-2 text-right tabular-nums ${p.stockQty <= p.lowStockAlert ? 'text-red-600 font-semibold' : ''}`}>
                     {p.stockQty} {p.stockUnit}
                   </td>
                   <td className="px-4 py-2">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${p.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded ${p.isActive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
                       {p.isActive ? 'Active' : 'Off'}
                     </span>
                   </td>
                   <td className="px-4 py-2 text-right space-x-2">
-                    <button onClick={() => { setEditing(p); setImageUrl(p.imageUrl); setShowForm(true); }} className="text-primary-600 text-xs hover:underline">แก้</button>
-                    <button onClick={() => remove(p.id)} className="text-red-600 text-xs hover:underline">ลบ</button>
+                    <button onClick={() => { setEditing(p); setImageUrl(p.imageUrl); setShowForm(true); }} className="text-indigo-600 dark:text-indigo-400 text-xs hover:underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">แก้</button>
+                    <button onClick={() => remove(p.id)} className="text-red-600 text-xs hover:underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">ลบ</button>
                   </td>
                 </tr>
               ))}
