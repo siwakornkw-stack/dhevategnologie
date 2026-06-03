@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
 
 type Invoice = {
   id: string; invoiceNo: string; type: string; status: string;
@@ -18,6 +19,9 @@ export default function InvoicesPage() {
   const [status, setStatus] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [voidId, setVoidId] = useState<string | null>(null);
+  const [voidReason, setVoidReason] = useState('');
+  const [voidBusy, setVoidBusy] = useState(false);
 
   async function load() {
     const p = new URLSearchParams();
@@ -29,13 +33,19 @@ export default function InvoicesPage() {
   }
   useEffect(() => { load(); }, [status, from, to]);
 
-  async function voidInvoice(id: string) {
-    const reason = prompt('เหตุผลที่ void:');
-    if (!reason) return;
-    const r = await fetch(`/api/sport/pos/invoices/${id}`, {
+  async function confirmVoid() {
+    if (!voidId) return;
+    const reason = voidReason.trim();
+    if (!reason) { toast.error('กรอกเหตุผล'); return; }
+    setVoidBusy(true);
+    const r = await fetch(`/api/sport/pos/invoices/${voidId}`, {
       method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason }),
     });
-    if (!r.ok) { alert((await r.json()).error || 'void failed'); return; }
+    setVoidBusy(false);
+    if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.error || 'void ไม่สำเร็จ'); return; }
+    toast.success('void บิลแล้ว');
+    setVoidId(null);
+    setVoidReason('');
     load();
   }
 
@@ -43,7 +53,7 @@ export default function InvoicesPage() {
     <div className="wrapper py-6 max-w-5xl space-y-4">
       <div>
         <Link href="/sport/pos" className="text-xs text-gray-500 hover:underline">← POS</Link>
-        <h1 className="text-2xl font-bold">บิลย้อนหลัง</h1>
+        <h1 className="text-xl font-bold">บิลย้อนหลัง</h1>
       </div>
 
       <div className="flex flex-wrap gap-2 text-sm">
@@ -78,25 +88,25 @@ export default function InvoicesPage() {
                   <td className="px-4 py-2 font-mono text-xs">{inv.invoiceNo}</td>
                   <td className="px-4 py-2 text-xs">{new Date(inv.paidAt).toLocaleString('th-TH')}</td>
                   <td className="px-4 py-2 text-xs">{inv.type}</td>
-                  <td className="px-4 py-2 text-right">{inv.subtotalProduct.toFixed(2)}</td>
-                  <td className="px-4 py-2 text-right">{inv.subtotalBooking.toFixed(2)}</td>
-                  <td className="px-4 py-2 text-right text-gray-500">{inv.vatAmount.toFixed(2)}</td>
-                  <td className="px-4 py-2 text-right font-semibold">
+                  <td className="px-4 py-2 text-right tabular-nums">{inv.subtotalProduct.toFixed(2)}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{inv.subtotalBooking.toFixed(2)}</td>
+                  <td className="px-4 py-2 text-right text-gray-500 tabular-nums">{inv.vatAmount.toFixed(2)}</td>
+                  <td className="px-4 py-2 text-right font-semibold tabular-nums">
                     {inv.total.toFixed(2)}
                     {inv.refundedAmount > 0 && (
-                      <div className="text-[10px] text-amber-600">-{inv.refundedAmount.toFixed(2)} คืน</div>
+                      <div className="text-[10px] text-red-600">-{inv.refundedAmount.toFixed(2)} คืน</div>
                     )}
                   </td>
                   <td className="px-4 py-2">
-                    <span className={`text-xs px-2 py-0.5 rounded ${inv.status === 'PAID' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{inv.status}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded ${inv.status === 'PAID' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'}`}>{inv.status}</span>
                   </td>
                   <td className="px-4 py-2 text-right space-x-2 whitespace-nowrap">
-                    <a href={`/sport/pos/invoices/${inv.id}/print`} target="_blank" className="text-primary-600 text-xs hover:underline">พิมพ์</a>
+                    <a href={`/sport/pos/invoices/${inv.id}/print`} target="_blank" className="text-indigo-600 dark:text-indigo-400 text-xs hover:underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">พิมพ์</a>
                     {inv.status === 'PAID' && isAdmin && (inv.total - (inv.refundedAmount || 0) > 0.01) && (
-                      <Link href={`/sport/pos/invoices/${inv.id}/refund`} className="text-amber-600 text-xs hover:underline">refund</Link>
+                      <Link href={`/sport/pos/invoices/${inv.id}/refund`} className="text-gray-600 dark:text-gray-300 text-xs hover:underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">refund</Link>
                     )}
                     {inv.status === 'PAID' && isAdmin && (
-                      <button onClick={() => voidInvoice(inv.id)} className="text-red-600 text-xs hover:underline">void</button>
+                      <button onClick={() => { setVoidId(inv.id); setVoidReason(''); }} className="text-red-600 text-xs hover:underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">void</button>
                     )}
                   </td>
                 </tr>
@@ -105,6 +115,29 @@ export default function InvoicesPage() {
           </tbody>
         </table>
       </div>
+
+      {voidId && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setVoidId(null)}>
+          <div className="bg-white dark:bg-gray-900 rounded-lg p-5 max-w-md w-full space-y-3" onClick={(e) => e.stopPropagation()}>
+            <div className="font-semibold">Void บิล</div>
+            <label className="block text-sm">
+              เหตุผล
+              <input
+                autoFocus
+                value={voidReason}
+                onChange={(e) => setVoidReason(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') confirmVoid(); }}
+                aria-label="เหตุผลที่ void"
+                className="mt-1 w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              />
+            </label>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setVoidId(null)} className="px-3 py-2 text-sm border dark:border-gray-700 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">ยกเลิก</button>
+              <button onClick={confirmVoid} disabled={voidBusy || !voidReason.trim()} className="px-3 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">{voidBusy ? '...' : 'Void'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

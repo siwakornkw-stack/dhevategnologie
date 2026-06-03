@@ -44,7 +44,7 @@ export function CustomersClient() {
     <div className="wrapper py-6 max-w-6xl space-y-5">
       <div>
         <Link href="/sport/pos" className="text-xs text-gray-500 hover:underline">← POS Hub</Link>
-        <h1 className="text-2xl font-bold">ลูกค้า</h1>
+        <h1 className="text-xl font-bold">ลูกค้า</h1>
         <p className="text-sm text-gray-500 mt-1">ค้นชื่อ/อีเมล/เบอร์ ดูแต้ม + ประวัติซื้อ</p>
       </div>
 
@@ -69,13 +69,13 @@ export function CustomersClient() {
               <button
                 key={c.id}
                 onClick={() => pick(c)}
-                className={`w-full text-left px-4 py-3 border-b dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 ${
-                  selected?.id === c.id ? 'bg-primary-50 dark:bg-primary-900/20' : ''
+                className={`w-full text-left px-4 py-3 border-b dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
+                  selected?.id === c.id ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''
                 }`}
               >
                 <div className="text-sm font-medium">{c.name || '(ไม่มีชื่อ)'}</div>
                 <div className="text-xs text-gray-500">{c.phone || '-'} · {c.email || '-'}</div>
-                <div className="text-xs text-primary-600 mt-1">แต้ม: {c.points}</div>
+                <div className="text-xs text-indigo-600 dark:text-indigo-400 mt-1 tabular-nums">แต้ม: {c.points}</div>
               </button>
             ))}
           </div>
@@ -90,9 +90,9 @@ export function CustomersClient() {
                 <div className="text-sm font-semibold">{selected.name || '(ไม่มีชื่อ)'}</div>
                 <div className="text-xs text-gray-500 mt-1">{selected.phone || '-'} · {selected.email || '-'}</div>
                 <div className="flex gap-4 mt-2 text-xs">
-                  <span>แต้มคงเหลือ: <b className="text-primary-600">{selected.points}</b></span>
-                  <span>บิลที่จ่าย: <b>{paidCount}</b></span>
-                  <span>ยอดสุทธิ: <b>{totalSpent.toFixed(2)}</b></span>
+                  <span>แต้มคงเหลือ: <b className="text-indigo-600 dark:text-indigo-400 tabular-nums">{selected.points}</b></span>
+                  <span>บิลที่จ่าย: <b className="tabular-nums">{paidCount}</b></span>
+                  <span>ยอดสุทธิ: <b className="tabular-nums">{totalSpent.toFixed(2)}</b></span>
                 </div>
               </div>
               <div className="max-h-[55vh] overflow-auto">
@@ -125,10 +125,10 @@ export function CustomersClient() {
                               'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
                             }`}>{i.status}</span>
                           </td>
-                          <td className="px-3 py-2 text-right">{i.total.toFixed(2)}</td>
-                          <td className="px-3 py-2 text-right text-red-600">{i.refundedAmount > 0 ? '-' + i.refundedAmount.toFixed(2) : '-'}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{i.total.toFixed(2)}</td>
+                          <td className="px-3 py-2 text-right text-red-600 tabular-nums">{i.refundedAmount > 0 ? '-' + i.refundedAmount.toFixed(2) : '-'}</td>
                           <td className="px-3 py-2 text-right">
-                            <Link href={`/sport/pos/invoices/${i.id}/print`} target="_blank" className="text-primary-600 hover:underline">พิมพ์</Link>
+                            <Link href={`/sport/pos/invoices/${i.id}/print`} target="_blank" className="text-indigo-600 dark:text-indigo-400 hover:underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">พิมพ์</Link>
                           </td>
                         </tr>
                       ))}

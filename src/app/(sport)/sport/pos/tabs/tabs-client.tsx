@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 type Tab = {
   id: string; name: string; teamLabel: string | null; bookingId: string | null;
@@ -23,6 +24,7 @@ export function TabsClient({ initialTabs = [], initialBookings = [] }: TabsClien
   const [bookings, setBookings] = useState<Booking[]>(initialBookings);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [linkOpenId, setLinkOpenId] = useState<string | null>(null);
+  const [linkTeamLabel, setLinkTeamLabel] = useState('');
   const [mergeOpen, setMergeOpen] = useState(false);
   const [mergeMaster, setMergeMaster] = useState<string>('');
 
@@ -47,29 +49,34 @@ export function TabsClient({ initialTabs = [], initialBookings = [] }: TabsClien
   }
 
   function openMerge() {
-    if (selected.size < 2) { alert('เลือกอย่างน้อย 2 tab'); return; }
+    if (selected.size < 2) { toast.error('เลือกอย่างน้อย 2 tab'); return; }
     setMergeMaster(Array.from(selected)[0]);
     setMergeOpen(true);
   }
   async function doMerge() {
     const ids = Array.from(selected);
-    if (!mergeMaster || !ids.includes(mergeMaster)) { alert('เลือก master'); return; }
+    if (!mergeMaster || !ids.includes(mergeMaster)) { toast.error('เลือก master'); return; }
     const childIds = ids.filter((x) => x !== mergeMaster);
     const r = await fetch('/api/sport/pos/tabs/merge', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ masterId: mergeMaster, childIds }),
     });
-    if (!r.ok) { alert((await r.json()).error || 'merge failed'); return; }
+    if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.error || 'merge ไม่สำเร็จ'); return; }
     setSelected(new Set());
     setMergeOpen(false);
     load();
   }
 
+  function openLink(tabId: string, teamLabel: string | null) {
+    if (linkOpenId === tabId) { setLinkOpenId(null); return; }
+    setLinkTeamLabel(teamLabel || '');
+    setLinkOpenId(tabId);
+  }
   async function linkBooking(tabId: string, bookingId: string, teamLabel?: string) {
     const r = await fetch(`/api/sport/pos/tabs/${tabId}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ bookingId, teamLabel: teamLabel || undefined }),
     });
-    if (!r.ok) { alert('ผูกไม่สำเร็จ'); return; }
+    if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.error || 'ผูกไม่สำเร็จ'); return; }
     setLinkOpenId(null);
     load();
   }
@@ -80,7 +87,7 @@ export function TabsClient({ initialTabs = [], initialBookings = [] }: TabsClien
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ bookingId: null }),
     });
-    if (!r.ok) { const e = await r.json().catch(() => ({})); alert(e.error || 'ยกเลิกไม่สำเร็จ'); return; }
+    if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.error || 'ยกเลิกไม่สำเร็จ'); return; }
     load();
   }
 
@@ -95,10 +102,10 @@ export function TabsClient({ initialTabs = [], initialBookings = [] }: TabsClien
       <div className="flex items-center justify-between mb-4">
         <div>
           <Link href="/sport/pos" className="text-xs text-gray-500 hover:underline">← POS</Link>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Tabs / โต๊ะ</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Tabs / โต๊ะ</h1>
         </div>
         <div className="flex gap-2">
-          <button onClick={openMerge} disabled={selected.size < 2} className="px-3 py-2 rounded-lg bg-amber-600 text-white text-sm disabled:opacity-50">
+          <button onClick={openMerge} disabled={selected.size < 2} className="px-3 py-2 rounded-lg bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white text-sm disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
             Merge ({selected.size})
           </button>
         </div>
@@ -113,23 +120,22 @@ export function TabsClient({ initialTabs = [], initialBookings = [] }: TabsClien
           return (
             <div key={t.id} className="p-3">
               <div className="flex items-center gap-3">
-                <input type="checkbox" checked={selected.has(t.id)} onChange={() => toggle(t.id)} />
+                <input type="checkbox" checked={selected.has(t.id)} onChange={() => toggle(t.id)} aria-label={`เลือก tab ${t.name}`} className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" />
                 <div className="flex-1">
                   <div className="font-medium">{t.name} {t.teamLabel && <span className="text-xs text-gray-500">/ {t.teamLabel}</span>}</div>
                   <div className="text-xs text-gray-500">
-                    {t.items.length} รายการ · ฿{subtotal.toFixed(2)}
-                    {t.bookingId && <span className="ml-2 text-emerald-600">🔗 booking</span>}
-                    {children.length > 0 && <span className="ml-2 text-amber-600">+ {children.length} merged</span>}
+                    {t.items.length} รายการ · <span className="tabular-nums">฿{subtotal.toFixed(2)}</span>
+                    {t.bookingId && <span className="ml-2 text-emerald-600">booking</span>}
+                    {children.length > 0 && <span className="ml-2 text-gray-500">+ {children.length} merged</span>}
                   </div>
                 </div>
-                <code className="text-[10px] text-gray-400">{t.id}</code>
                 {t.bookingId || t.teamLabel ? (
-                  <button onClick={() => unlinkBooking(t.id)} className="text-xs text-amber-600 hover:underline">ยกเลิกผูก booking</button>
+                  <button onClick={() => unlinkBooking(t.id)} className="text-xs text-gray-500 hover:underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">ยกเลิกผูก booking</button>
                 ) : (
-                  <button onClick={() => setLinkOpenId(linkOpenId === t.id ? null : t.id)} className="text-xs text-emerald-600 hover:underline">ผูก booking</button>
+                  <button onClick={() => openLink(t.id, t.teamLabel)} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">ผูก booking</button>
                 )}
-                <button onClick={() => router.push(`/sport/pos/checkout/${t.id}`)} className="px-3 py-1 rounded bg-primary-600 text-white text-xs">Checkout</button>
-                <button onClick={() => voidTab(t.id)} className="text-xs text-red-500 hover:underline">ยกเลิก</button>
+                <button onClick={() => router.push(`/sport/pos/checkout/${t.id}`)} className="px-3 py-1 rounded bg-indigo-500 hover:bg-indigo-600 text-white text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">Checkout</button>
+                <button onClick={() => voidTab(t.id)} className="text-xs text-red-500 hover:underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">ยกเลิก</button>
               </div>
 
               {children.length > 0 && (
@@ -145,16 +151,20 @@ export function TabsClient({ initialTabs = [], initialBookings = [] }: TabsClien
               {linkOpenId === t.id && (
                 <div className="mt-3 p-3 border rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700 space-y-2">
                   <div className="text-xs font-semibold">เลือก booking (วันนี้-อนาคต, ยังไม่จ่าย)</div>
+                  <input
+                    value={linkTeamLabel}
+                    onChange={(e) => setLinkTeamLabel(e.target.value)}
+                    placeholder='ทีม (option, เช่น "ทีมแดง")'
+                    aria-label="ชื่อทีม"
+                    className="w-full px-2 py-1 text-xs border rounded dark:bg-gray-900 dark:border-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                  />
                   <div className="max-h-48 overflow-y-auto space-y-1">
                     {bookings.length === 0 ? <div className="text-xs text-gray-400">ไม่มี</div> :
                       bookings.map((b) => (
                         <button
                           key={b.id}
-                          onClick={() => {
-                            const teamLabel = prompt(`ทีม (option, เช่น "ทีมแดง")`, t.teamLabel || '');
-                            linkBooking(t.id, b.id, teamLabel || undefined);
-                          }}
-                          className="w-full text-left p-2 rounded hover:bg-white dark:hover:bg-gray-900 text-xs"
+                          onClick={() => linkBooking(t.id, b.id, linkTeamLabel.trim() || undefined)}
+                          className="w-full text-left p-2 rounded hover:bg-white dark:hover:bg-gray-900 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                         >
                           {new Date(b.date).toLocaleDateString('th-TH')} {b.timeSlot} · {b.field.name} · {b.user.name}
                         </button>
@@ -186,8 +196,8 @@ export function TabsClient({ initialTabs = [], initialBookings = [] }: TabsClien
               })}
             </div>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setMergeOpen(false)} className="px-3 py-2 text-sm border dark:border-gray-700 rounded">ยกเลิก</button>
-              <button onClick={doMerge} className="px-3 py-2 text-sm bg-amber-600 text-white rounded">Merge</button>
+              <button onClick={() => setMergeOpen(false)} className="px-3 py-2 text-sm border dark:border-gray-700 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">ยกเลิก</button>
+              <button onClick={doMerge} className="px-3 py-2 text-sm bg-indigo-500 hover:bg-indigo-600 text-white rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">Merge</button>
             </div>
           </div>
         </div>

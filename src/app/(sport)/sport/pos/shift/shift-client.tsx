@@ -136,7 +136,7 @@ export function ShiftClient() {
     <div className="wrapper py-6 max-w-4xl space-y-6">
       <div>
         <Link href="/sport/pos" className="text-xs text-gray-500 hover:underline">← POS</Link>
-        <h1 className="text-2xl font-bold">กะ (Shift)</h1>
+        <h1 className="text-xl font-bold">กะ (Shift)</h1>
       </div>
 
       {msg && <div className="text-sm text-red-600 bg-red-50 dark:bg-red-900/30 px-3 py-2 rounded">{msg}</div>}
@@ -166,7 +166,7 @@ export function ShiftClient() {
           <button
             onClick={openShift}
             disabled={busy}
-            className="px-4 py-2 rounded bg-primary-600 text-white text-sm hover:bg-primary-700 disabled:opacity-50"
+            className="px-4 py-2 rounded bg-indigo-500 hover:bg-indigo-600 text-white text-sm disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
             {busy ? '...' : 'เปิดกะ'}
           </button>
@@ -181,7 +181,7 @@ export function ShiftClient() {
                 เปิด: {new Date(current.openedAt).toLocaleString('th-TH')}
               </div>
             </div>
-            <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-700">OPEN</span>
+            <span className="text-xs px-2 py-1 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">OPEN</span>
           </div>
 
           {detail?.summary && (
@@ -210,7 +210,7 @@ export function ShiftClient() {
               <input placeholder="เหตุผล" value={mvReason} onChange={(e) => setMvReason(e.target.value)}
                 className="px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700 text-sm" />
               <button onClick={addMovement} disabled={busy || !mvAmount}
-                className="px-4 py-2 rounded bg-gray-800 text-white text-sm hover:bg-gray-700 disabled:opacity-50">
+                className="px-4 py-2 rounded bg-gray-800 text-white text-sm hover:bg-gray-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
                 บันทึก
               </button>
             </div>
@@ -218,8 +218,8 @@ export function ShiftClient() {
               <div className="text-xs space-y-1 max-h-40 overflow-y-auto">
                 {detail.summary.movements.map((m) => (
                   <div key={m.id} className="flex justify-between text-gray-600 dark:text-gray-300">
-                    <span>{m.type === 'PAY_IN' ? '+' : '-'} {m.amount.toFixed(2)} - {m.reason || '-'}</span>
-                    <span className="text-gray-400">{new Date(m.createdAt).toLocaleTimeString('th-TH')}</span>
+                    <span className="tabular-nums">{m.type === 'PAY_IN' ? '+' : '-'} {m.amount.toFixed(2)} - {m.reason || '-'}</span>
+                    <span className="text-gray-400 tabular-nums">{new Date(m.createdAt).toLocaleTimeString('th-TH')}</span>
                   </div>
                 ))}
               </div>
@@ -234,7 +234,7 @@ export function ShiftClient() {
               {detail?.summary?.payIn ? ` + เติม: ${detail.summary.payIn.toFixed(2)}` : ''}
               {detail?.summary?.payOut ? ` - ถอน: ${detail.summary.payOut.toFixed(2)}` : ''}
               {' '}= ควรมีในลิ้นชัก:{' '}
-              <span className="font-semibold">{expectedCash?.toFixed(2) ?? '-'}</span>
+              <span className="font-semibold tabular-nums">{expectedCash?.toFixed(2) ?? '-'}</span>
             </div>
             <label className="block text-sm">
               เงินสดในลิ้นชัก (นับจริง)
@@ -248,7 +248,7 @@ export function ShiftClient() {
               />
             </label>
             {diff !== null && (
-              <div className={`text-sm ${diff === 0 ? 'text-gray-500' : diff > 0 ? 'text-blue-600' : 'text-red-600'}`}>
+              <div className={`text-sm tabular-nums ${diff === 0 ? 'text-gray-500' : diff > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                 ส่วนต่าง: {diff > 0 ? '+' : ''}
                 {diff.toFixed(2)}
               </div>
@@ -264,7 +264,7 @@ export function ShiftClient() {
             <button
               onClick={closeShift}
               disabled={busy || !countedCash}
-              className="px-4 py-2 rounded bg-red-600 text-white text-sm hover:bg-red-700 disabled:opacity-50"
+              className="px-4 py-2 rounded bg-red-600 text-white text-sm hover:bg-red-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               {busy ? '...' : 'ปิดกะ'}
             </button>
@@ -284,8 +284,8 @@ export function ShiftClient() {
               <option value="OPEN">OPEN</option>
               <option value="CLOSED">CLOSED</option>
             </select>
-            <button onClick={() => loadList()} className="px-3 py-1 bg-primary-600 text-white rounded">ค้นหา</button>
-            <button onClick={() => { setFilterFrom(''); setFilterTo(''); setFilterStatus(''); loadList({ from: '', to: '', status: '' }); }} className="px-2 py-1 border rounded">ล้าง</button>
+            <button onClick={() => loadList()} className="px-3 py-1 bg-indigo-500 hover:bg-indigo-600 text-white rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">ค้นหา</button>
+            <button onClick={() => { setFilterFrom(''); setFilterTo(''); setFilterStatus(''); loadList({ from: '', to: '', status: '' }); }} className="px-2 py-1 border rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">ล้าง</button>
           </div>
         </div>
         <table className="w-full text-sm">
@@ -308,15 +308,15 @@ export function ShiftClient() {
                 <td className="px-4 py-2 font-mono text-xs">{s.shiftNo}</td>
                 <td className="px-4 py-2 text-xs">{new Date(s.openedAt).toLocaleString('th-TH')}</td>
                 <td className="px-4 py-2 text-xs">{s.closedAt ? new Date(s.closedAt).toLocaleString('th-TH') : '-'}</td>
-                <td className="px-4 py-2 text-right">{s.openingFloat.toFixed(2)}</td>
-                <td className="px-4 py-2 text-right">{s.countedCash != null ? s.countedCash.toFixed(2) : '-'}</td>
+                <td className="px-4 py-2 text-right tabular-nums">{s.openingFloat.toFixed(2)}</td>
+                <td className="px-4 py-2 text-right tabular-nums">{s.countedCash != null ? s.countedCash.toFixed(2) : '-'}</td>
                 <td className="px-4 py-2">
-                  <span className={`text-xs px-2 py-0.5 rounded ${s.status === 'OPEN' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded ${s.status === 'OPEN' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}`}>
                     {s.status}
                   </span>
                 </td>
                 <td className="px-4 py-2">
-                  <a href={`/sport/pos/shift/${s.id}/print`} target="_blank" rel="noreferrer" className="text-xs text-primary-600 hover:underline">Z-report</a>
+                  <a href={`/sport/pos/shift/${s.id}/print`} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">Z-report</a>
                 </td>
               </tr>
             ))}
@@ -331,7 +331,7 @@ function Stat({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="bg-gray-50 dark:bg-gray-800 rounded p-3">
       <div className="text-xs text-gray-500">{label}</div>
-      <div className="font-semibold">{value}</div>
+      <div className="font-semibold tabular-nums">{value}</div>
     </div>
   );
 }
