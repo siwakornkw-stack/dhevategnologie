@@ -157,7 +157,7 @@ export function ChatWindow({ userId, asAdmin, currentUserId, title, subtitle }: 
           onChange={(e) => setDraft(e.target.value)}
           placeholder={t('placeholder')}
           disabled={sending}
-          className="flex-1 h-11 rounded-full border border-gray-200 dark:border-gray-700 px-4 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400"
+          className="flex-1 h-11 rounded-full border border-gray-200 dark:border-gray-700 px-4 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           maxLength={2000}
         />
         <button

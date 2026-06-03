@@ -35,7 +35,7 @@ export function SearchFilter() {
           placeholder={t('search.placeholder')}
           defaultValue={searchParams.get('search') ?? ''}
           onChange={(e) => update('search', e.target.value)}
-          className="w-full h-11 pl-10 pr-4 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-800 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400 transition"
+          className="w-full h-11 pl-10 pr-4 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-800 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
         />
       </div>
 
@@ -43,7 +43,7 @@ export function SearchFilter() {
       <select
         defaultValue={searchParams.get('sport') ?? ''}
         onChange={(e) => update('sport', e.target.value)}
-        className="h-11 px-4 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-400 cursor-pointer"
+        className="h-11 px-4 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
       >
         <option value="">{t('search.allSports')}</option>
         {SPORT_TYPES.map(([value, label]) => (
@@ -59,7 +59,7 @@ export function SearchFilter() {
           update('minPrice', min);
           update('maxPrice', max);
         }}
-        className="h-11 px-4 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-400 cursor-pointer"
+        className="h-11 px-4 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
       >
         <option value="">{t('search.allPrices')}</option>
         <option value="0,200">{t('search.priceUnder200')}</option>

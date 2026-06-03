@@ -97,7 +97,7 @@ export function FieldReviews({ fieldId }: { fieldId: string }) {
             placeholder="แสดงความคิดเห็น (ไม่บังคับ)"
             rows={3}
             maxLength={500}
-            className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-primary-400 transition"
+            className="w-full rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm bg-white dark:bg-gray-800 text-gray-800 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
           />
           <button
             type="submit"

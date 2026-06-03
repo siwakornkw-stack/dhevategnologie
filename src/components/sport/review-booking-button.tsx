@@ -95,7 +95,7 @@ export function ReviewBookingButton({ fieldId, fieldName, existingRating, existi
               placeholder="บอกเล่าประสบการณ์ของคุณ... (ไม่บังคับ)"
               rows={3}
               maxLength={500}
-              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none"
+              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
             />
             <p className="text-xs text-gray-400 text-right mt-1 mb-5">{comment.length}/500</p>
 
