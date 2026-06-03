@@ -3,6 +3,7 @@
 import { use, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 type Item = { id: string; productName: string; qty: number; unitPrice: number; discount: number };
 type Tab = {
@@ -160,9 +161,11 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     });
     setBusy(false);
-    if (!r.ok) { alert((await r.json()).error || 'ชำระไม่สำเร็จ'); return; }
+    if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.error || 'ชำระไม่สำเร็จ'); return; }
     const inv = await r.json();
-    window.open(`/sport/pos/invoices/${inv.id}/print`, '_blank');
+    toast.success(!splitMode && payMethod === 'CASH' && change > 0 ? `บันทึกบิลแล้ว · ทอน ฿${change.toFixed(2)}` : 'บันทึกบิลแล้ว');
+    const w = window.open(`/sport/pos/invoices/${inv.id}/print`, '_blank');
+    if (!w) toast.error('เปิดหน้าพิมพ์ไม่ได้ — ตรวจ popup blocker แล้วเปิดบิลจากรายการ invoices', { duration: 8000 });
     router.push('/sport/pos/tabs');
   }
 
@@ -170,7 +173,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
     <div className="wrapper py-6 max-w-3xl space-y-4">
       <div>
         <Link href="/sport/pos/tabs" className="text-xs text-gray-500 hover:underline">← Tabs</Link>
-        <h1 className="text-2xl font-bold">Checkout · {tab.name}</h1>
+        <h1 className="text-xl font-bold">Checkout · {tab.name}</h1>
       </div>
 
       <div className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-700/50 p-4 space-y-3">
@@ -182,7 +185,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
                 <tr key={it.id}>
                   <td className="py-1 text-xs text-gray-500 w-32">[{it.teamLabel || it.tabName}]</td>
                   <td className="py-1">{it.productName} x{it.qty}</td>
-                  <td className="py-1 text-right">{(it.unitPrice * it.qty - it.discount).toFixed(2)}</td>
+                  <td className="py-1 text-right tabular-nums">{(it.unitPrice * it.qty - it.discount).toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>
@@ -194,14 +197,14 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={includeBooking} onChange={(e) => setIncludeBooking(e.target.checked)} disabled={!!tab.booking.paidAt} />
               รวมค่าสนาม: {tab.booking.field.name} {tab.booking.timeSlot}
-              {tab.booking.paidAt ? <span className="text-xs text-green-600">(จ่ายแล้ว)</span> : <span className="ml-2 font-semibold">฿{subtotalBooking.toFixed(2)}</span>}
+              {tab.booking.paidAt ? <span className="text-xs text-emerald-600">(จ่ายแล้ว)</span> : <span className="ml-2 font-semibold tabular-nums">฿{subtotalBooking.toFixed(2)}</span>}
             </label>
           </div>
         )}
 
         <div className="border-t dark:border-gray-800 pt-3 space-y-1 text-sm">
-          <div className="flex justify-between"><span>Subtotal สินค้า</span><span>{subtotalProduct.toFixed(2)}</span></div>
-          {subtotalBooking > 0 && <div className="flex justify-between"><span>Subtotal สนาม</span><span>{subtotalBooking.toFixed(2)}</span></div>}
+          <div className="flex justify-between"><span>Subtotal สินค้า</span><span className="tabular-nums">{subtotalProduct.toFixed(2)}</span></div>
+          {subtotalBooking > 0 && <div className="flex justify-between"><span>Subtotal สนาม</span><span className="tabular-nums">{subtotalBooking.toFixed(2)}</span></div>}
           <div className="flex justify-between items-center">
             <span>ส่วนลด</span>
             <input type="number" value={discount} onChange={(e) => setDiscount(e.target.value)} className="w-24 px-2 py-1 border rounded text-right dark:bg-gray-800 dark:border-gray-700" />
@@ -229,7 +232,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
                     const c = await r.json();
                     setCoupon({ code: c.code, discountType: c.discountType, discountValue: c.discountValue });
                   }}
-                  className="px-3 py-1 bg-primary-600 text-white rounded text-xs disabled:opacity-50"
+                  className="px-3 py-1 bg-indigo-500 hover:bg-indigo-600 text-white rounded text-xs disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 >{couponBusy ? '...' : 'ใช้'}</button>
               ) : (
                 <button type="button" onClick={() => { setCoupon(null); setCouponInput(''); setCouponMsg(null); }} className="px-3 py-1 border rounded text-xs dark:border-gray-700">ลบ</button>
@@ -241,17 +244,17 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
             )}
           </div>
           {serviceCharge > 0 && (
-            <div className="flex justify-between text-gray-500"><span>Service Charge {scRate}%</span><span>{serviceCharge.toFixed(2)}</span></div>
+            <div className="flex justify-between text-gray-500"><span title={`Service charge — ค่าบริการ ${scRate}% ของยอดหลังส่วนลด`} className="underline decoration-dotted cursor-help">Service Charge {scRate}%</span><span className="tabular-nums">{serviceCharge.toFixed(2)}</span></div>
           )}
           {settings.vatMode !== 'NONE' && (
-            <div className="flex justify-between text-gray-500"><span>VAT {settings.vatRate}% ({settings.vatMode === 'INCLUDED' ? 'incl' : 'excl'})</span><span>{vat.toFixed(2)}</span></div>
+            <div className="flex justify-between text-gray-500"><span title={settings.vatMode === 'INCLUDED' ? 'VAT รวมในราคาแล้ว — แสดงเพื่ออ้างอิง ไม่บวกเพิ่ม' : 'VAT บวกเพิ่มจากยอด (ราคายังไม่รวม VAT)'} className="underline decoration-dotted cursor-help">VAT {settings.vatRate}% ({settings.vatMode === 'INCLUDED' ? 'incl' : 'excl'})</span><span className="tabular-nums">{vat.toFixed(2)}</span></div>
           )}
-          {settings.vatMode === 'EXCLUDED' && <div className="flex justify-between text-xs text-gray-400"><span>Pre-VAT</span><span>{subtotal.toFixed(2)}</span></div>}
+          {settings.vatMode === 'EXCLUDED' && <div className="flex justify-between text-xs text-gray-400"><span>Pre-VAT</span><span className="tabular-nums">{subtotal.toFixed(2)}</span></div>}
           {redeemValue > 0 && (
-            <div className="flex justify-between text-orange-600"><span>ส่วนลดจากแต้ม ({ptUsed} pt)</span><span>-{redeemValue.toFixed(2)}</span></div>
+            <div className="flex justify-between text-emerald-600"><span>ส่วนลดจากแต้ม ({ptUsed} pt)</span><span className="tabular-nums">-{redeemValue.toFixed(2)}</span></div>
           )}
-          <div className="flex justify-between text-lg font-bold border-t dark:border-gray-800 pt-2"><span>TOTAL</span><span>฿{total.toFixed(2)}</span></div>
-          {earnPreview > 0 && <div className="text-xs text-green-600 text-right">+ จะได้รับ {earnPreview} แต้ม</div>}
+          <div className="flex justify-between text-lg font-bold border-t dark:border-gray-800 pt-2"><span>TOTAL</span><span className="tabular-nums">฿{total.toFixed(2)}</span></div>
+          {earnPreview > 0 && <div className="text-xs text-emerald-600 text-right">+ จะได้รับ {earnPreview} แต้ม</div>}
         </div>
       </div>
 
@@ -296,7 +299,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
             <button
               type="button"
               onClick={() => setPointsToRedeem(String(Math.min(cust.points ?? 0, ptMaxByCart)))}
-              className="text-xs text-primary-600 hover:underline"
+              className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
             >
               สูงสุด
             </button>
@@ -326,7 +329,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
           <>
             <div className="flex gap-2 flex-wrap">
               {(['CASH', 'QR', 'TRANSFER', 'CARD'] as const).map((m) => (
-                <button key={m} onClick={() => setPayMethod(m)} className={`px-3 py-1 rounded text-xs ${payMethod === m ? 'bg-primary-600 text-white' : 'border dark:border-gray-700'}`}>{m}</button>
+                <button key={m} onClick={() => setPayMethod(m)} aria-pressed={payMethod === m} className={`px-3 py-1 rounded text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${payMethod === m ? 'bg-indigo-500 text-white' : 'border dark:border-gray-700'}`}>{m}</button>
               ))}
             </div>
             {payMethod === 'CASH' ? (
@@ -335,9 +338,10 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
                   <span className="w-16">รับเงิน</span>
                   <input type="number" value={cashReceived} onChange={(e) => setCashReceived(e.target.value)} className="flex-1 px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-700" />
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-1 flex-wrap">
+                  <button onClick={() => setCashReceived(total.toFixed(2))} className="px-2 py-1 text-xs rounded border border-indigo-500 text-indigo-600 dark:text-indigo-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">พอดี</button>
                   {[100, 500, 1000, 2000].map((n) => (
-                    <button key={n} onClick={() => setCashReceived(String(n))} className="px-2 py-1 text-xs rounded border dark:border-gray-700">{n}</button>
+                    <button key={n} onClick={() => setCashReceived(String(n))} className="px-2 py-1 text-xs rounded border dark:border-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">{n}</button>
                   ))}
                 </div>
                 <div className="flex justify-between text-sm"><span>เงินทอน</span><span className="font-semibold">{change.toFixed(2)}</span></div>
@@ -355,11 +359,11 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
                 <select value={sp.method} onChange={(e) => setSplits(splits.map((x, i) => i === idx ? { ...x, method: e.target.value } : x))} className="px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-700">
                   {['CASH', 'QR', 'TRANSFER', 'CARD'].map((m) => <option key={m} value={m}>{m}</option>)}
                 </select>
-                <button onClick={() => setSplits(splits.filter((_, i) => i !== idx))} className="text-red-500 text-xs">✕</button>
+                <button onClick={() => setSplits(splits.filter((_, i) => i !== idx))} aria-label={`ลบ split ${sp.label || idx + 1}`} className="text-red-500 text-xs rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">✕</button>
               </div>
             ))}
-            <button onClick={() => setSplits([...splits, { label: '', amount: 0, method: 'CASH' }])} className="text-xs text-primary-600 hover:underline">+ เพิ่ม split</button>
-            <div className={`text-xs ${Math.abs(splitSum - total) < 0.01 ? 'text-green-600' : 'text-red-500'}`}>
+            <button onClick={() => setSplits([...splits, { label: '', amount: 0, method: 'CASH' }])} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">+ เพิ่ม split</button>
+            <div className={`text-xs tabular-nums ${Math.abs(splitSum - total) < 0.01 ? 'text-emerald-600' : 'text-red-500'}`}>
               ผลรวม split: {splitSum.toFixed(2)} / {total.toFixed(2)}
             </div>
           </div>
@@ -368,7 +372,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
         <button
           onClick={submit}
           disabled={busy || total <= 0 || (splitMode && Math.abs(splitSum - total) > 0.01) || (!splitMode && payMethod === 'CASH' && Number(cashReceived) < total)}
-          className="w-full py-3 bg-primary-600 text-white rounded-lg font-semibold disabled:opacity-50"
+          className="w-full py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-semibold disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
         >
           {busy ? 'กำลังบันทึก...' : 'ยืนยัน + พิมพ์บิล'}
         </button>
