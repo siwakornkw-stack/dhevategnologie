@@ -45,12 +45,13 @@ export default function ReceiptPrintPage({ params }: { params: Promise<{ id: str
   const width = settings.paperSize === '58mm' ? '58mm' : '80mm';
 
   return (
-    <div className="bg-gray-100 min-h-screen p-4 print:p-0 print:bg-white">
+    <div className="receipt-page bg-gray-100 min-h-screen p-4 print:p-0 print:bg-white">
       <style>{`
         @media print {
           @page { size: ${width} auto; margin: 0; }
           body { margin: 0; }
-          .no-print { display: none !important; }
+          .no-print, header, footer { display: none !important; }
+          .receipt-page { min-height: 0 !important; padding: 0 !important; background: #fff !important; }
         }
         .receipt { width: ${width}; margin: 0 auto; background: white; padding: 8px; font-family: 'Tahoma', monospace; font-size: 11px; color: #000; }
         .receipt .center { text-align: center; }
