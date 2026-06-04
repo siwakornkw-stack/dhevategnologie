@@ -111,7 +111,7 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
         // Audit inside tx: void + audit row commit atomically
         await audit(session.user.id, 'POS_INVOICE_VOID', inv.id, { reason, voidedWith: id }, tx);
       }
-    });
+    }, { timeout: 20000 });
     return NextResponse.json({ ok: true });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'void failed';

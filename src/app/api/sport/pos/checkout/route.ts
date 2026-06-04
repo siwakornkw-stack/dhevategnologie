@@ -275,7 +275,7 @@ export async function POST(req: NextRequest) {
 
       const primary = posInvoice ?? bookingInvoice!;
       return { id: primary.id, invoiceNo: primary.invoiceNo, total: grandTotal, shiftId: activeShift?.id || null, posInvoiceId: posId, bookingInvoiceId: bookId };
-    });
+    }, { timeout: 20000 });
     audit(session.user.id, 'POS_CHECKOUT', result.id, { invoiceNo: result.invoiceNo, total: result.total, shiftId: result.shiftId, posInvoiceId: result.posInvoiceId, bookingInvoiceId: result.bookingInvoiceId });
     return NextResponse.json(result, { status: 201 });
   } catch (e: unknown) {
