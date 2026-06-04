@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { kickDrawer } from '@/lib/pos-drawer';
 
 type Product = { id: string; name: string; sku: string | null; category: string | null; price: number; stockQty: number; stockUnit: string; imageUrl: string | null; isActive: boolean };
 type Item = { id: string; productName: string; qty: number; unitPrice: number; discount: number };
@@ -191,6 +192,14 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
             }}
             className="px-3 py-2 rounded-lg border dark:border-gray-700 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >พิมพ์บิลล่าสุด</button>
+          <button
+            onClick={async () => {
+              const ok = await kickDrawer();
+              if (ok) toast.success('เปิดลิ้นชักแล้ว');
+              else toast.error('เปิดลิ้นชักไม่ได้ — ตรวจ agent บนเครื่อง cashier');
+            }}
+            className="px-3 py-2 rounded-lg border dark:border-gray-700 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          >เปิดลิ้นชัก</button>
         </div>
       </div>
 
@@ -468,7 +477,8 @@ function QuickSaleModal({ cart, setCart, onClose, onPaid }: {
     if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.error || 'ชำระไม่สำเร็จ'); return; }
     const inv = await r.json();
     toast.success(method === 'CASH' && change > 0 ? `บันทึกบิลแล้ว · ทอน ฿${change.toFixed(2)}` : 'บันทึกบิลแล้ว');
-    const w = window.open(`/sport/pos/invoices/${inv.id}/print`, '_blank');
+    const kickParam = method === 'CASH' ? '?kick=1' : '';
+    const w = window.open(`/sport/pos/invoices/${inv.id}/print${kickParam}`, '_blank');
     if (!w) {
       toast.error('เปิดหน้าพิมพ์ไม่ได้ — ตรวจ popup blocker แล้วกด "พิมพ์บิลล่าสุด"', { duration: 8000 });
     }

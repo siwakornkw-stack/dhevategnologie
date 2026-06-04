@@ -164,7 +164,9 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
     if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.error || 'ชำระไม่สำเร็จ'); return; }
     const inv = await r.json();
     toast.success(!splitMode && payMethod === 'CASH' && change > 0 ? `บันทึกบิลแล้ว · ทอน ฿${change.toFixed(2)}` : 'บันทึกบิลแล้ว');
-    const w = window.open(`/sport/pos/invoices/${inv.id}/print`, '_blank');
+    const hasCash = splitMode ? splits.some((s) => s.method === 'CASH') : payMethod === 'CASH';
+    const kickParam = hasCash ? '?kick=1' : '';
+    const w = window.open(`/sport/pos/invoices/${inv.id}/print${kickParam}`, '_blank');
     if (!w) toast.error('เปิดหน้าพิมพ์ไม่ได้ — ตรวจ popup blocker แล้วเปิดบิลจากรายการ invoices', { duration: 8000 });
     router.push('/sport/pos/tabs');
   }

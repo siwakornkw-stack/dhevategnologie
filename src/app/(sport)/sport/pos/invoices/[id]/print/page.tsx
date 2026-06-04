@@ -1,6 +1,7 @@
 'use client';
 
 import { use, useEffect, useState } from 'react';
+import { kickDrawer } from '@/lib/pos-drawer';
 
 type SnapItem = { tabName?: string; productName: string; qty: number; unitPrice: number; discount: number };
 type Payment = { method: string; amount: number; cashReceived: number | null; changeAmount: number | null; refNo: string | null };
@@ -16,7 +17,7 @@ type Invoice = {
   itemsSnapshot: SnapItem[] | null;
   payments: Payment[]; splits: Split[];
 };
-type Settings = { shopName: string; taxId: string | null; address: string | null; paperSize: string; receiptHeader: string | null; receiptFooter: string | null };
+type Settings = { shopName: string; taxId: string | null; address: string | null; paperSize: string; receiptHeader: string | null; receiptFooter: string | null; cashDrawerEnabled: boolean };
 
 export default function ReceiptPrintPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -30,6 +31,10 @@ export default function ReceiptPrintPage({ params }: { params: Promise<{ id: str
         fetch(`/api/sport/pos/settings`).then((r) => r.json()),
       ]);
       setInv(i); setSettings(s);
+      const wantKick = new URLSearchParams(window.location.search).get('kick') === '1';
+      if (wantKick && s?.cashDrawerEnabled) {
+        kickDrawer();
+      }
       requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
     })();
   }, [id]);
