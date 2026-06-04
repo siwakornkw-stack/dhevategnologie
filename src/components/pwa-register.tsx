@@ -55,7 +55,7 @@ export function PWARegister() {
   if (!showBanner) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-50 max-w-sm mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center gap-3">
+    <div className="fixed bottom-4 left-4 right-4 z-50 max-w-sm mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center gap-3 print:hidden">
       <span className="text-3xl flex-shrink-0">🏟️</span>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-gray-900 dark:text-white">ติดตั้ง 88ARENA</p>
