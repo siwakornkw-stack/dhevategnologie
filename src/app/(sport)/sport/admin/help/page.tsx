@@ -12,6 +12,7 @@ interface Section {
   intro: string;
   steps: string[];
   tips?: string[];
+  download?: { label: string; href: string };
 }
 
 const SECTIONS: Section[] = [
@@ -232,6 +233,28 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    id: 'cash-drawer',
+    title: 'เครื่องพิมพ์ + ลิ้นชักเก็บเงิน',
+    emoji: '💵',
+    intro: 'ตั้งค่าเครื่องพิมพ์ใบเสร็จ (XP-Q80I) + ลิ้นชักเก็บเงิน (EK-350) บน PC cashier — ลิ้นชักเปิดอัตโนมัติเวลารับเงินสด/ทอน',
+    steps: [
+      'โหลดไฟล์ setup (ปุ่มด้านล่าง) แล้วแตก zip ลงเครื่อง cashier',
+      'PC ใหม่: ติดตั้ง driver เครื่องพิมพ์ — เปิด "XPrinter Driver Setup V8.2.exe" เลือกพอร์ต USB',
+      'ต่อสาย: ลิ้นชัก EK-350 → RJ11 เข้าเครื่องพิมพ์ XP-Q80I, เครื่องพิมพ์ → USB เข้า PC',
+      'double-click "poscashiersetup.cmd" → เลือกเครื่องพิมพ์ → รอจนขึ้น READY',
+      'เปิด POS Settings → เปิด "Cash drawer" (ตั้งครั้งเดียว ใช้ร่วมทุกเครื่อง)',
+      'ลิ้นชักเปิดเองเมื่อรับเงินสด + มีปุ่ม "เปิดลิ้นชัก" แบบ manual ในหน้าขาย',
+    ],
+    tips: [
+      'ลิ้นชักเปิดเฉพาะจ่ายเงินสด — บัตร/QR/โอน ไม่เปิด, reprint ไม่เปิด',
+      'agent autostart ตอนเปิดเครื่อง (Startup shortcut) — ไม่ต้องเปิดเอง',
+      'ลิ้นชักไม่เปิด: ดูหน้าต่าง run-agent มี error ไหม หรือแก้ DRAWER_PIN=1 ใน run-agent.cmd',
+      'ย้าย/เพิ่ม PC cashier: รัน poscashiersetup.cmd บนเครื่องใหม่อีกครั้ง',
+      'ใช้ได้ทั้ง Windows 10 และ 11 — ถ้าไม่มี Node จะโหลด portable ให้อัตโนมัติ',
+    ],
+    download: { label: 'โหลดตัวติดตั้ง (poscashiersetup.zip)', href: '/downloads/poscashiersetup.zip' },
+  },
+  {
     id: 'backup',
     title: 'Backup ฐานข้อมูล',
     emoji: '💾',
@@ -329,6 +352,15 @@ export default async function AdminHelpPage() {
                 ))}
               </ul>
             </div>
+          )}
+          {s.download && (
+            <a
+              href={s.download.href}
+              download
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            >
+              ⬇ {s.download.label}
+            </a>
           )}
         </section>
       ))}
