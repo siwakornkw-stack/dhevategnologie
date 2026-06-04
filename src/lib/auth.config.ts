@@ -28,7 +28,7 @@ export const authConfig: NextAuthConfig = {
       const isAdminPath = nextUrl.pathname.startsWith('/sport/admin');
       const isPosPath = nextUrl.pathname.startsWith('/sport/pos');
       const isBookingsPath = nextUrl.pathname.startsWith('/sport/bookings');
-      const posAdminPrefixes = ['/sport/pos/products', '/sport/pos/stock', '/sport/pos/settings', '/sport/pos/cashiers', '/sport/pos/report'];
+      const posAdminPrefixes = ['/sport/pos/products', '/sport/pos/stock', '/sport/pos/settings', '/sport/pos/cashiers', '/sport/pos/report', '/sport/pos/booking-invoices'];
       const isPosAdminPath = posAdminPrefixes.some((p) => nextUrl.pathname.startsWith(p));
 
       if (isPosAdminPath) {

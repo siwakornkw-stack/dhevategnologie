@@ -498,6 +498,7 @@ model PosInvoice {
   voidReason      String?
   voidedAt        DateTime?
   voidedBy        String?
+  relatedInvoiceId String?
   paidAt          DateTime      @default(now())
   createdAt       DateTime      @default(now())
 
@@ -505,11 +506,14 @@ model PosInvoice {
   splits   PosInvoiceSplit[]
   refunds  PosRefund[]
   shift    PosShift?         @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+  relatedInvoice  PosInvoice?  @relation("InvoiceSplit", fields: [relatedInvoiceId], references: [id], onDelete: SetNull)
+  linkedInvoices  PosInvoice[] @relation("InvoiceSplit")
 
   @@index([paidAt])
   @@index([status])
   @@index([type])
   @@index([shiftId])
+  @@index([relatedInvoiceId])
 }
 
 model PosPayment {

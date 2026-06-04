@@ -57,9 +57,10 @@ export async function GET(req: NextRequest) {
   // Top products
   const productCount: Record<string, { qty: number; revenue: number; name: string }> = {};
   for (const inv of paid) {
-    const snap = (inv.itemsSnapshot as Array<{ productId: string; productName: string; qty: number; unitPrice: number; discount: number }> | null) || [];
+    const snap = (inv.itemsSnapshot as Array<{ productId?: string; productName: string; qty: number; unitPrice: number; discount: number }> | null) || [];
     for (const it of snap) {
       const k = it.productId;
+      if (!k) continue;
       if (!productCount[k]) productCount[k] = { qty: 0, revenue: 0, name: it.productName };
       productCount[k].qty += it.qty;
       productCount[k].revenue += it.unitPrice * it.qty - it.discount;

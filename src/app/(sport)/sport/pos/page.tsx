@@ -32,6 +32,7 @@ export default async function PosHubPage() {
     { href: '/sport/pos/settings', title: 'ตั้งค่า POS', desc: 'VAT, ร้าน, ใบเสร็จ', admin: true },
     { href: '/sport/pos/cashiers', title: 'Cashiers', desc: 'จัดการพนักงานคิดเงิน', admin: true },
     { href: '/sport/pos/report', title: 'รายงานยอดขาย', desc: 'สรุปยอด + top สินค้า', admin: true },
+    { href: '/sport/pos/booking-invoices', title: 'บิลค่าสนาม', desc: 'บิลสนามแยก + รายงาน + ลิงก์ต้นทาง', admin: true },
     { href: '/sport/pos/audit', title: 'Audit Log', desc: 'ตรวจสอบทุก action ใน POS', admin: true },
   ];
 

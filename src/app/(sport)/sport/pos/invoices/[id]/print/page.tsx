@@ -16,6 +16,7 @@ type Invoice = {
   customerName: string | null; customerTaxId: string | null; customerAddress: string | null; customerPhone: string | null;
   itemsSnapshot: SnapItem[] | null;
   payments: Payment[]; splits: Split[];
+  linkedInvoices?: Invoice[];
 };
 type Settings = { shopName: string; taxId: string | null; address: string | null; paperSize: string; receiptHeader: string | null; receiptFooter: string | null; cashDrawerEnabled: boolean };
 
@@ -24,12 +25,16 @@ export default function ReceiptPrintPage({ params }: { params: Promise<{ id: str
   const [inv, setInv] = useState<Invoice | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
 
+  const [error, setError] = useState(false);
+
   useEffect(() => {
     (async () => {
-      const [i, s] = await Promise.all([
-        fetch(`/api/sport/pos/invoices/${id}`).then((r) => r.json()),
-        fetch(`/api/sport/pos/settings`).then((r) => r.json()),
+      const [iRes, sRes] = await Promise.all([
+        fetch(`/api/sport/pos/invoices/${id}`),
+        fetch(`/api/sport/pos/settings`),
       ]);
+      if (!iRes.ok || !sRes.ok) { setError(true); return; }
+      const [i, s] = await Promise.all([iRes.json(), sRes.json()]);
       setInv(i); setSettings(s);
       const wantKick = new URLSearchParams(window.location.search).get('kick') === '1';
       if (wantKick && s?.cashDrawerEnabled) {
@@ -39,10 +44,11 @@ export default function ReceiptPrintPage({ params }: { params: Promise<{ id: str
     })();
   }, [id]);
 
+  if (error) return <div className="p-8 text-center text-gray-400">ไม่พบบิล หรือไม่มีสิทธิ์เข้าถึง</div>;
   if (!inv || !settings) return <div className="p-8 text-center text-gray-400">กำลังโหลด...</div>;
 
-  const items = inv.itemsSnapshot || [];
   const width = settings.paperSize === '58mm' ? '58mm' : '80mm';
+  const slips = [inv, ...(inv.linkedInvoices || [])];
 
   return (
     <div className="receipt-page bg-gray-100 min-h-screen p-4 print:p-0 print:bg-white">
@@ -52,8 +58,10 @@ export default function ReceiptPrintPage({ params }: { params: Promise<{ id: str
           body { margin: 0; }
           .no-print, header, footer { display: none !important; }
           .receipt-page { min-height: 0 !important; padding: 0 !important; background: #fff !important; }
+          .receipt { page-break-after: always; }
+          .receipt:last-child { page-break-after: auto; }
         }
-        .receipt { width: ${width}; margin: 0 auto; background: white; padding: 8px; font-family: 'Tahoma', monospace; font-size: 11px; color: #000; }
+        .receipt { width: ${width}; margin: 0 auto 12px; background: white; padding: 8px; font-family: 'Tahoma', monospace; font-size: 11px; color: #000; }
         .receipt .center { text-align: center; }
         .receipt .right { text-align: right; }
         .receipt hr { border: none; border-top: 1px dashed #000; margin: 4px 0; }
@@ -66,29 +74,56 @@ export default function ReceiptPrintPage({ params }: { params: Promise<{ id: str
         <button onClick={() => window.close()} className="px-3 py-1 border rounded text-xs">ปิด</button>
       </div>
 
-      <div className="receipt">
-        <div className="center" style={{ fontWeight: 'bold', fontSize: '13px' }}>{settings.shopName}</div>
-        {settings.taxId && <div className="center">Tax ID {settings.taxId}</div>}
-        {settings.address && <div className="center">{settings.address}</div>}
-        {settings.receiptHeader && <div className="center">{settings.receiptHeader}</div>}
-        {inv.customerTaxId && (
-          <div className="center" style={{ fontWeight: 'bold', marginTop: 4 }}>*** ใบกำกับภาษีเต็มรูป ***</div>
-        )}
-        <hr />
-        <div>Invoice: {inv.invoiceNo}</div>
-        <div>{new Date(inv.paidAt).toLocaleString('th-TH')}</div>
-        {inv.status === 'VOID' && <div style={{ color: 'red', fontWeight: 'bold' }}>*** VOID ***</div>}
-        {(inv.customerName || inv.customerTaxId || inv.customerPhone || inv.customerAddress) && (
-          <>
-            <hr />
-            <div style={{ fontWeight: 'bold' }}>ลูกค้า:</div>
-            {inv.customerName && <div>{inv.customerName}</div>}
-            {inv.customerTaxId && <div>เลขผู้เสียภาษี: {inv.customerTaxId}</div>}
-            {inv.customerPhone && <div>โทร: {inv.customerPhone}</div>}
-            {inv.customerAddress && <div>{inv.customerAddress}</div>}
-          </>
-        )}
-        <hr />
+      {slips.map((s) => (
+        <ReceiptBody key={s.invoiceNo} inv={s} settings={settings} />
+      ))}
+    </div>
+  );
+}
+
+function ReceiptBody({ inv, settings }: { inv: Invoice; settings: Settings }) {
+  const items = inv.itemsSnapshot || [];
+  const isBooking = inv.type === 'BOOKING';
+  return (
+    <div className="receipt">
+      <div className="center" style={{ fontWeight: 'bold', fontSize: '13px' }}>{settings.shopName}</div>
+      {settings.taxId && <div className="center">Tax ID {settings.taxId}</div>}
+      {settings.address && <div className="center">{settings.address}</div>}
+      {settings.receiptHeader && <div className="center">{settings.receiptHeader}</div>}
+      {isBooking && <div className="center" style={{ fontWeight: 'bold', marginTop: 4 }}>*** บิลค่าสนาม ***</div>}
+      {inv.customerTaxId && (
+        <div className="center" style={{ fontWeight: 'bold', marginTop: 4 }}>*** ใบกำกับภาษีเต็มรูป ***</div>
+      )}
+      <hr />
+      <div>Invoice: {inv.invoiceNo}</div>
+      <div>{new Date(inv.paidAt).toLocaleString('th-TH')}</div>
+      {inv.status === 'VOID' && <div style={{ color: 'red', fontWeight: 'bold' }}>*** VOID ***</div>}
+      {(inv.customerName || inv.customerTaxId || inv.customerPhone || inv.customerAddress) && (
+        <>
+          <hr />
+          <div style={{ fontWeight: 'bold' }}>ลูกค้า:</div>
+          {inv.customerName && <div>{inv.customerName}</div>}
+          {inv.customerTaxId && <div>เลขผู้เสียภาษี: {inv.customerTaxId}</div>}
+          {inv.customerPhone && <div>โทร: {inv.customerPhone}</div>}
+          {inv.customerAddress && <div>{inv.customerAddress}</div>}
+        </>
+      )}
+      <hr />
+      {isBooking ? (
+        <table>
+          <tbody>
+            {items.map((it, idx) => {
+              const b = it as unknown as { fieldName?: string; date?: string; timeSlot?: string; amount?: number };
+              return (
+                <tr key={idx}>
+                  <td>{b.fieldName || 'ค่าสนาม'}{b.timeSlot && <span style={{ color: '#666', fontSize: '9px' }}> {b.timeSlot}</span>}{b.date && <span style={{ color: '#666', fontSize: '9px' }}> {new Date(b.date).toLocaleDateString('th-TH')}</span>}</td>
+                  <td className="right" style={{ width: '55px' }}>{(b.amount ?? inv.subtotalBooking).toFixed(2)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      ) : (
         <table>
           <tbody>
             {items.map((it, idx) => (
@@ -100,54 +135,48 @@ export default function ReceiptPrintPage({ params }: { params: Promise<{ id: str
             ))}
           </tbody>
         </table>
-        {inv.subtotalBooking > 0 && (
-          <>
-            <hr />
-            <div className="right">ค่าสนาม: {inv.subtotalBooking.toFixed(2)}</div>
-          </>
-        )}
-        <hr />
-        <table>
-          <tbody>
-            <tr><td>Subtotal สินค้า</td><td className="right">{inv.subtotalProduct.toFixed(2)}</td></tr>
-            {inv.subtotalBooking > 0 && <tr><td>Subtotal สนาม</td><td className="right">{inv.subtotalBooking.toFixed(2)}</td></tr>}
-            {inv.discount > 0 && <tr><td>ส่วนลด</td><td className="right">-{inv.discount.toFixed(2)}</td></tr>}
-            {inv.serviceCharge > 0 && <tr><td>Service Charge</td><td className="right">{inv.serviceCharge.toFixed(2)}</td></tr>}
-            {inv.vatMode !== 'NONE' && <tr><td>VAT {inv.vatRate}% ({inv.vatMode === 'INCLUDED' ? 'incl' : 'excl'})</td><td className="right">{inv.vatAmount.toFixed(2)}</td></tr>}
-            {inv.pointsRedeemValue > 0 && <tr><td>ใช้แต้ม ({inv.pointsRedeemed} pt)</td><td className="right">-{inv.pointsRedeemValue.toFixed(2)}</td></tr>}
-            <tr style={{ fontWeight: 'bold', fontSize: '13px' }}><td>TOTAL</td><td className="right">{inv.total.toFixed(2)}</td></tr>
-            {inv.pointsEarned > 0 && <tr><td colSpan={2} style={{ fontSize: '10px', color: '#666', paddingTop: '2px' }}>+ ได้รับ {inv.pointsEarned} แต้ม</td></tr>}
-          </tbody>
-        </table>
-        <hr />
-        {inv.splits.length > 0 ? (
-          <>
-            <div style={{ fontWeight: 'bold' }}>แยกจ่าย:</div>
-            <table>
-              <tbody>
-                {inv.splits.map((sp, i) => (
-                  <tr key={i}>
-                    <td>{sp.label} [{sp.method}]{sp.refNo ? ` ${sp.refNo}` : ''}</td>
-                    <td className="right">{sp.amount.toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </>
-        ) : (
-          inv.payments.map((p, i) => (
-            <div key={i}>
-              <div>ชำระ ({p.method}): {p.amount.toFixed(2)}</div>
-              {p.cashReceived !== null && <div>รับเงินสด: {p.cashReceived.toFixed(2)}</div>}
-              {p.changeAmount !== null && <div>ทอน: {p.changeAmount.toFixed(2)}</div>}
-              {p.refNo && <div>Ref: {p.refNo}</div>}
-            </div>
-          ))
-        )}
-        <hr />
-        {settings.receiptFooter && <div className="center">{settings.receiptFooter}</div>}
-        <div className="center" style={{ marginTop: '6px' }}>ขอบคุณที่ใช้บริการ</div>
-      </div>
+      )}
+      <hr />
+      <table>
+        <tbody>
+          {!isBooking && <tr><td>Subtotal สินค้า</td><td className="right">{inv.subtotalProduct.toFixed(2)}</td></tr>}
+          {inv.subtotalBooking > 0 && <tr><td>ค่าสนาม</td><td className="right">{inv.subtotalBooking.toFixed(2)}</td></tr>}
+          {inv.discount > 0 && <tr><td>ส่วนลด</td><td className="right">-{inv.discount.toFixed(2)}</td></tr>}
+          {inv.serviceCharge > 0 && <tr><td>Service Charge</td><td className="right">{inv.serviceCharge.toFixed(2)}</td></tr>}
+          {inv.vatMode !== 'NONE' && <tr><td>VAT {inv.vatRate}% ({inv.vatMode === 'INCLUDED' ? 'incl' : 'excl'})</td><td className="right">{inv.vatAmount.toFixed(2)}</td></tr>}
+          {inv.pointsRedeemValue > 0 && <tr><td>ใช้แต้ม ({inv.pointsRedeemed} pt)</td><td className="right">-{inv.pointsRedeemValue.toFixed(2)}</td></tr>}
+          <tr style={{ fontWeight: 'bold', fontSize: '13px' }}><td>TOTAL</td><td className="right">{inv.total.toFixed(2)}</td></tr>
+          {inv.pointsEarned > 0 && <tr><td colSpan={2} style={{ fontSize: '10px', color: '#666', paddingTop: '2px' }}>+ ได้รับ {inv.pointsEarned} แต้ม</td></tr>}
+        </tbody>
+      </table>
+      <hr />
+      {inv.splits.length > 0 ? (
+        <>
+          <div style={{ fontWeight: 'bold' }}>แยกจ่าย:</div>
+          <table>
+            <tbody>
+              {inv.splits.map((sp, i) => (
+                <tr key={i}>
+                  <td>{sp.label} [{sp.method}]{sp.refNo ? ` ${sp.refNo}` : ''}</td>
+                  <td className="right">{sp.amount.toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      ) : (
+        inv.payments.map((p, i) => (
+          <div key={i}>
+            <div>ชำระ ({p.method}): {p.amount.toFixed(2)}</div>
+            {p.cashReceived !== null && <div>รับเงินสด: {p.cashReceived.toFixed(2)}</div>}
+            {p.changeAmount !== null && <div>ทอน: {p.changeAmount.toFixed(2)}</div>}
+            {p.refNo && <div>Ref: {p.refNo}</div>}
+          </div>
+        ))
+      )}
+      <hr />
+      {settings.receiptFooter && <div className="center">{settings.receiptFooter}</div>}
+      <div className="center" style={{ marginTop: '6px' }}>ขอบคุณที่ใช้บริการ</div>
     </div>
   );
 }

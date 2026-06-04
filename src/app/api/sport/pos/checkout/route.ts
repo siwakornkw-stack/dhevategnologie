@@ -60,8 +60,8 @@ export async function POST(req: NextRequest) {
       );
 
       let subtotalBooking = 0;
-      let bookingIds: string[] = [];
       let bookingForUpdate: { id: string } | null = null;
+      let bookingSnap: { bookingId: string; fieldId: string; fieldName: string; date: string; timeSlot: string; amount: number } | null = null;
 
       if (includeBooking && master.bookingId) {
         const booking = await tx.booking.findUnique({
@@ -72,14 +72,16 @@ export async function POST(req: NextRequest) {
           const [start, end] = booking.timeSlot.split('-');
           subtotalBooking = calculatePriceWithRules(start, end, booking.field.pricePerHour, booking.field.priceRules);
           if (booking.discountAmount) subtotalBooking = Math.max(subtotalBooking - booking.discountAmount, 0);
+          subtotalBooking = +subtotalBooking.toFixed(2);
           bookingForUpdate = { id: booking.id };
-          bookingIds = [booking.id];
+          bookingSnap = { bookingId: booking.id, fieldId: booking.fieldId, fieldName: booking.field.name, date: booking.date.toISOString(), timeSlot: booking.timeSlot, amount: subtotalBooking };
         }
       }
 
+      // Field (booking) revenue is stored on its own invoice at the raw subtotal.
+      // Discount / coupon / service charge / VAT / points apply to products only.
       const discNum = Number(discount) || 0;
       if (!Number.isFinite(discNum) || discNum < 0) throw new Error('DISCOUNT_INVALID');
-      const subtotalAll = subtotalProduct + subtotalBooking;
 
       let couponDiscount = 0;
       let appliedCouponCode: string | null = null;
@@ -89,7 +91,7 @@ export async function POST(req: NextRequest) {
         if (!couponEnabled) throw new Error('COUPON_DISABLED');
         const c = await tx.coupon.findUnique({ where: { code: rawCode } });
         if (!c || !isCouponUsable(c)) throw new Error('COUPON_INVALID');
-        const baseForCoupon = Math.max(subtotalAll - discNum, 0);
+        const baseForCoupon = Math.max(subtotalProduct - discNum, 0);
         couponDiscount = calculateCouponDiscount({ discountType: c.discountType, discountValue: c.discountValue }, baseForCoupon);
         if (couponDiscount > 0) {
           const upd = await tx.$executeRaw`
@@ -104,7 +106,7 @@ export async function POST(req: NextRequest) {
       }
       const combinedDiscount = +(discNum + couponDiscount).toFixed(2);
 
-      const itemsTotal = Math.max(subtotalAll - combinedDiscount, 0);
+      const itemsTotal = Math.max(subtotalProduct - combinedDiscount, 0);
       const scRate = settings.serviceChargeRate || 0;
       const serviceCharge = scRate > 0 ? +(itemsTotal * scRate / 100).toFixed(2) : 0;
       const vat = calcVat(itemsTotal + serviceCharge, settings.vatMode, settings.vatRate);
@@ -117,7 +119,7 @@ export async function POST(req: NextRequest) {
       }
       const totalCost = +allItems.reduce((s, i) => s + (i.productId ? (costMap.get(i.productId) || 0) * i.qty : 0), 0).toFixed(2);
 
-      // Loyalty redeem (member only)
+      // Loyalty redeem (member only) — capped by the product VAT total
       let pointsRedeemed = 0;
       let pointsRedeemValue = 0;
       if (redeemReq > 0 && customerId) {
@@ -127,108 +129,137 @@ export async function POST(req: NextRequest) {
         pointsRedeemed = Math.min(redeemReq, maxByVat);
         pointsRedeemValue = +(pointsRedeemed * ptValue).toFixed(2);
       }
-      const finalTotal = +Math.max(vat.total - pointsRedeemValue, 0).toFixed(2);
+      const posFinalTotal = +Math.max(vat.total - pointsRedeemValue, 0).toFixed(2);
+      const bookingTotal = subtotalBooking;
+      const grandTotal = +(posFinalTotal + bookingTotal).toFixed(2);
 
-      // Payment validation
+      // Payment validation (against the combined amount collected from the customer)
       if (Array.isArray(splits) && splits.length > 0) {
         const sumSplit = (splits as SplitInput[]).reduce((s, x) => s + Number(x.amount), 0);
-        if (Math.abs(sumSplit - finalTotal) > 0.01) throw new Error('SPLIT_MISMATCH');
+        if (Math.abs(sumSplit - grandTotal) > 0.01) throw new Error('SPLIT_MISMATCH');
       } else {
         if (!payment) throw new Error('PAYMENT_REQUIRED');
         const p = payment as PaymentInput;
         if (!['CASH', 'TRANSFER', 'QR', 'CARD', 'OTHER'].includes(p.method)) throw new Error('PAYMENT_METHOD_INVALID');
-        if (p.method === 'CASH' && p.cashReceived !== undefined && Number(p.cashReceived) < finalTotal) {
+        if (p.method === 'CASH' && p.cashReceived !== undefined && Number(p.cashReceived) < grandTotal) {
           throw new Error('CASH_INSUFFICIENT');
         }
       }
-
-      const type = subtotalBooking > 0 && subtotalProduct > 0 ? 'MIXED' : subtotalBooking > 0 ? 'BOOKING' : 'POS_TAB';
 
       const activeShift = await getActiveShift(session.user.id, tx);
       if (settings.requireShift && !activeShift) throw new Error('SHIFT_REQUIRED');
 
       const earnRate = settings.pointsEarnPerBaht || 0;
-      const pointsEarned = customerId && earnRate > 0 ? Math.floor(finalTotal * earnRate) : 0;
+      const pointsEarned = customerId && earnRate > 0 ? Math.floor(posFinalTotal * earnRate) : 0;
 
-      let invoice;
-      let invAttempts = 0;
-      while (true) {
-        const invoiceNo = await nextInvoiceNo(tx);
-        try {
-          invoice = await tx.posInvoice.create({ data: {
-            invoiceNo, type, status: 'PAID',
-            subtotalProduct, subtotalBooking, discount: combinedDiscount,
-            vatMode: settings.vatMode, vatRate: settings.vatRate, vatAmount: vat.vatAmount, total: finalTotal,
-            refundedAmount: 0,
-            serviceCharge, totalCost,
-            pointsEarned, pointsRedeemed, pointsRedeemValue,
-            cashierId: session.user.id,
-            shiftId: activeShift?.id || null,
-            customerId, customerName, customerTaxId, customerAddress, customerPhone,
-            bookingIds: bookingIds.length ? bookingIds : undefined,
-            tabIds: allTabs.map((t) => t.id),
-            itemsSnapshot: allItems.map((i) => ({ tabName: i.tabName, productId: i.productId, productName: i.productName, qty: i.qty, unitPrice: i.unitPrice, discount: i.discount })),
-            note: (() => {
-              const base = note?.toString().slice(0, 400) || '';
-              if (!appliedCouponCode) return base || null;
-              const tag = `[COUPON:${appliedCouponCode} -${couponDiscount.toFixed(2)}]`;
-              return (base ? `${base} ${tag}` : tag).slice(0, 500);
-            })(),
-          }});
-          break;
-        } catch (e) {
-          invAttempts++;
-          if (invAttempts > 5) throw e;
+      const custFields = { cashierId: session.user.id, shiftId: activeShift?.id || null, customerId, customerName, customerTaxId, customerAddress, customerPhone };
+      const tabIdList = allTabs.map((t) => t.id);
+
+      async function createInvoice(data: Record<string, unknown>) {
+        let attempts = 0;
+        while (true) {
+          const invoiceNo = await nextInvoiceNo(tx);
+          try {
+            return await tx.posInvoice.create({ data: { invoiceNo, status: 'PAID', refundedAmount: 0, ...custFields, ...data } as never });
+          } catch (e) {
+            attempts++;
+            if (attempts > 5) throw e;
+          }
         }
       }
 
-      if (Array.isArray(splits) && splits.length > 0) {
-        for (const sp of splits as SplitInput[]) {
-          if (!['CASH', 'TRANSFER', 'QR', 'CARD', 'OTHER'].includes(sp.method)) throw new Error('PAYMENT_METHOD_INVALID');
-          await tx.posInvoiceSplit.create({
-            data: {
-              invoiceId: invoice.id,
-              label: String(sp.label).slice(0, 100),
-              amount: Number(sp.amount),
-              method: sp.method as 'CASH' | 'TRANSFER' | 'QR' | 'CARD' | 'OTHER',
-              refNo: sp.refNo || null,
-            },
-          });
-          await tx.posPayment.create({
-            data: {
-              invoiceId: invoice.id,
-              method: sp.method as 'CASH' | 'TRANSFER' | 'QR' | 'CARD' | 'OTHER',
-              amount: Number(sp.amount),
-              refNo: sp.refNo || null,
-            },
-          });
-        }
-      } else {
-        const p = payment as PaymentInput;
-        const cashReceived = p.method === 'CASH' && p.cashReceived !== undefined ? Number(p.cashReceived) : null;
-        const changeAmount = cashReceived !== null ? +(cashReceived - finalTotal).toFixed(2) : null;
-        await tx.posPayment.create({
-          data: {
-            invoiceId: invoice.id,
-            method: p.method as 'CASH' | 'TRANSFER' | 'QR' | 'CARD' | 'OTHER',
-            amount: finalTotal,
-            cashReceived,
-            changeAmount,
-            refNo: p.refNo || null,
-          },
+      const hasProducts = allItems.length > 0;
+      const hasBooking = !!bookingForUpdate && bookingTotal > 0;
+
+      // POS invoice carries products + all derived charges. Created unless this is a booking-only sale.
+      let posInvoice: { id: string; invoiceNo: string } | null = null;
+      if (hasProducts || !hasBooking) {
+        posInvoice = await createInvoice({
+          type: 'POS_TAB',
+          subtotalProduct, subtotalBooking: 0, discount: combinedDiscount,
+          vatMode: settings.vatMode, vatRate: settings.vatRate, vatAmount: vat.vatAmount, total: posFinalTotal,
+          serviceCharge, totalCost,
+          pointsEarned, pointsRedeemed, pointsRedeemValue,
+          tabIds: tabIdList,
+          itemsSnapshot: allItems.map((i) => ({ tabName: i.tabName, productId: i.productId, productName: i.productName, qty: i.qty, unitPrice: i.unitPrice, discount: i.discount })),
+          note: (() => {
+            const base = note?.toString().slice(0, 400) || '';
+            if (!appliedCouponCode) return base || null;
+            const tag = `[COUPON:${appliedCouponCode} -${couponDiscount.toFixed(2)}]`;
+            return (base ? `${base} ${tag}` : tag).slice(0, 500);
+          })(),
         });
       }
 
-      if (customerId && pointsRedeemed > 0) {
-        await redeemPoints(tx, customerId, pointsRedeemed, invoice.invoiceNo);
+      // Booking invoice carries the raw field charge, linked back to the POS invoice as its source.
+      let bookingInvoice: { id: string; invoiceNo: string } | null = null;
+      if (hasBooking) {
+        bookingInvoice = await createInvoice({
+          type: 'BOOKING',
+          subtotalProduct: 0, subtotalBooking: bookingTotal, discount: 0,
+          vatMode: 'NONE', vatRate: 0, vatAmount: 0, total: bookingTotal,
+          serviceCharge: 0, totalCost: 0,
+          pointsEarned: 0, pointsRedeemed: 0, pointsRedeemValue: 0,
+          tabIds: tabIdList,
+          bookingIds: [bookingSnap!.bookingId],
+          itemsSnapshot: [bookingSnap],
+          relatedInvoiceId: posInvoice?.id ?? null,
+        });
       }
-      if (customerId && pointsEarned > 0) {
-        await earnPoints(tx, customerId, pointsEarned, invoice.invoiceNo);
+
+      const posId = posInvoice?.id ?? null;
+      const bookId = bookingInvoice?.id ?? null;
+      type Method = 'CASH' | 'TRANSFER' | 'QR' | 'CARD' | 'OTHER';
+      const pay = (invoiceId: string, method: Method, amount: number, cashReceived: number | null, changeAmount: number | null, refNo: string | null) =>
+        tx.posPayment.create({ data: { invoiceId, method, amount: +amount.toFixed(2), cashReceived, changeAmount, refNo } });
+      const splitRow = (invoiceId: string, label: string, amount: number, method: Method, refNo: string | null) =>
+        tx.posInvoiceSplit.create({ data: { invoiceId, label: String(label).slice(0, 100), amount: +amount.toFixed(2), method, refNo } });
+
+      if (Array.isArray(splits) && splits.length > 0) {
+        // Allocate booking-first: fill the booking invoice, remainder goes to the POS invoice.
+        let remBooking = bookId ? bookingTotal : 0;
+        for (const sp of splits as SplitInput[]) {
+          if (!['CASH', 'TRANSFER', 'QR', 'CARD', 'OTHER'].includes(sp.method)) throw new Error('PAYMENT_METHOD_INVALID');
+          const method = sp.method as Method;
+          let amt = Number(sp.amount);
+          if (remBooking > 0.0001 && bookId) {
+            const toBook = Math.min(amt, remBooking);
+            await splitRow(bookId, sp.label, toBook, method, sp.refNo || null);
+            await pay(bookId, method, toBook, null, null, null);
+            remBooking = +(remBooking - toBook).toFixed(2);
+            amt = +(amt - toBook).toFixed(2);
+          }
+          if (amt > 0.0001) {
+            const target = posId ?? bookId!;
+            await splitRow(target, sp.label, amt, method, sp.refNo || null);
+            await pay(target, method, amt, null, null, null);
+          }
+        }
+      } else {
+        const p = payment as PaymentInput;
+        const method = p.method as Method;
+        const cashReceived = method === 'CASH' && p.cashReceived !== undefined ? Number(p.cashReceived) : null;
+        const changeAmount = cashReceived !== null ? +(cashReceived - grandTotal).toFixed(2) : null;
+        if (posId && bookId) {
+          await pay(bookId, method, bookingTotal, null, null, null);
+          await pay(posId, method, posFinalTotal, cashReceived, changeAmount, p.refNo || null);
+        } else if (posId) {
+          await pay(posId, method, posFinalTotal, cashReceived, changeAmount, p.refNo || null);
+        } else {
+          await pay(bookId!, method, bookingTotal, cashReceived, changeAmount, p.refNo || null);
+        }
+      }
+
+      if (posInvoice && customerId && pointsRedeemed > 0) {
+        await redeemPoints(tx, customerId, pointsRedeemed, posInvoice.invoiceNo);
+      }
+      if (posInvoice && customerId && pointsEarned > 0) {
+        await earnPoints(tx, customerId, pointsEarned, posInvoice.invoiceNo);
       }
 
       // Close tabs (atomic guard: only if still open/merged)
       const closed = await tx.posTab.updateMany({
-        where: { id: { in: allTabs.map((t) => t.id) }, status: { in: ['OPEN', 'MERGED'] } },
+        where: { id: { in: tabIdList }, status: { in: ['OPEN', 'MERGED'] } },
         data: { status: 'PAID', closedAt: new Date() },
       });
       if (closed.count !== allTabs.length) throw new Error('TAB_RACE');
@@ -242,9 +273,10 @@ export async function POST(req: NextRequest) {
         if (bUpd.count !== 1) throw new Error('BOOKING_RACE');
       }
 
-      return invoice;
+      const primary = posInvoice ?? bookingInvoice!;
+      return { id: primary.id, invoiceNo: primary.invoiceNo, total: grandTotal, shiftId: activeShift?.id || null, posInvoiceId: posId, bookingInvoiceId: bookId };
     });
-    audit(session.user.id, 'POS_CHECKOUT', result.id, { invoiceNo: result.invoiceNo, total: result.total, shiftId: result.shiftId });
+    audit(session.user.id, 'POS_CHECKOUT', result.id, { invoiceNo: result.invoiceNo, total: result.total, shiftId: result.shiftId, posInvoiceId: result.posInvoiceId, bookingInvoiceId: result.bookingInvoiceId });
     return NextResponse.json(result, { status: 201 });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'checkout failed';

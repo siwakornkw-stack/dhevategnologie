@@ -71,21 +71,39 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
       const sub = x.items.reduce((s: number, i: Item) => s + (i.unitPrice * i.qty - i.discount), 0);
       perTeam.push({ label: x.teamLabel || x.name, sub });
     }
+    const productSum = perTeam.reduce((s, x) => s + x.sub, 0);
     const book = includeBooking && tab.booking && !tab.booking.paidAt ? tab.bookingSubtotal : 0;
-    if (book > 0 && perTeam.length > 0) perTeam[0].sub += book;
-    const rawSum = perTeam.reduce((s, x) => s + x.sub, 0);
+    // Mirror the totals math: discount/coupon/VAT/points on products only, field charge raw.
     const discN = Number(discount) || 0;
-    const baseT = Math.max(rawSum - discN, 0);
-    const v = calcVat(baseT, settings.vatMode, settings.vatRate);
-    const init: Split[] = perTeam
-      .filter((x) => x.sub > 0)
-      .map((x) => ({ label: x.label, amount: +(rawSum > 0 ? (x.sub / rawSum) * v.total : 0).toFixed(2), method: 'CASH' }));
+    const baseCoupon = Math.max(productSum - discN, 0);
+    const couponDisc = !coupon ? 0
+      : coupon.discountType === 'PERCENT' ? Math.round((baseCoupon * coupon.discountValue) / 100)
+      : Math.min(coupon.discountValue, baseCoupon);
+    const baseT = Math.max(productSum - discN - couponDisc, 0);
+    const sc = (settings.serviceChargeRate || 0) > 0 ? +(baseT * (settings.serviceChargeRate || 0) / 100).toFixed(2) : 0;
+    const v = calcVat(baseT + sc, settings.vatMode, settings.vatRate);
+    const ptVal = settings.pointsValueBaht || 0;
+    const ptReq = Math.max(0, Math.floor(Number(pointsToRedeem) || 0));
+    const ptMaxCart = ptVal > 0 ? Math.floor(v.total / ptVal) : 0;
+    const ptUse = Math.min(ptReq, cust.id ? cust.points || 0 : 0, ptMaxCart);
+    const productFinal = +Math.max(v.total - ptUse * ptVal, 0).toFixed(2);
+    const grand = +(productFinal + book).toFixed(2);
+    const teams = perTeam.filter((x) => x.sub > 0);
+    let init: Split[];
+    if (teams.length > 0) {
+      init = teams.map((x) => ({ label: x.label, amount: +(productSum > 0 ? (x.sub / productSum) * productFinal : 0).toFixed(2), method: 'CASH' }));
+      if (book > 0) init[0].amount = +(init[0].amount + book).toFixed(2);
+    } else if (grand > 0) {
+      init = [{ label: perTeam[0]?.label || tab.name, amount: grand, method: 'CASH' }];
+    } else {
+      init = [];
+    }
     if (init.length > 0) {
       const sumNow = init.reduce((s, x) => s + x.amount, 0);
-      init[init.length - 1].amount = +(init[init.length - 1].amount + (v.total - sumNow)).toFixed(2);
+      init[init.length - 1].amount = +(init[init.length - 1].amount + (grand - sumNow)).toFixed(2);
     }
     setSplits(init);
-  }, [tab, settings, includeBooking, discount, splits.length]);
+  }, [tab, settings, includeBooking, discount, coupon, pointsToRedeem, cust, splits.length]);
 
   if (!tab || !settings) return <div className="wrapper py-8 text-gray-400">กำลังโหลด...</div>;
 
@@ -94,13 +112,13 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
 
   const subtotalBooking = includeBooking && tab.booking && !tab.booking.paidAt ? tab.bookingSubtotal : 0;
 
+  // Field charge is billed raw on its own invoice; discount/coupon/service charge/VAT/points apply to products only.
   const discNum = Number(discount) || 0;
-  const subtotalAll = subtotalProduct + subtotalBooking;
-  const baseForCoupon = Math.max(subtotalAll - discNum, 0);
+  const baseForCoupon = Math.max(subtotalProduct - discNum, 0);
   const couponDiscount = !coupon ? 0
     : coupon.discountType === 'PERCENT' ? Math.round((baseForCoupon * coupon.discountValue) / 100)
     : Math.min(coupon.discountValue, baseForCoupon);
-  const base = Math.max(subtotalAll - discNum - couponDiscount, 0);
+  const base = Math.max(subtotalProduct - discNum - couponDiscount, 0);
   const scRate = settings.serviceChargeRate || 0;
   const serviceCharge = scRate > 0 ? +(base * scRate / 100).toFixed(2) : 0;
   const { subtotal, vat, total: grossTotal } = calcVat(base + serviceCharge, settings.vatMode, settings.vatRate);
@@ -111,8 +129,9 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
   const ptMaxByCart = ptValue > 0 ? Math.floor(grossTotal / ptValue) : 0;
   const ptUsed = Math.min(ptReqRaw, ptMaxByBalance, ptMaxByCart);
   const redeemValue = +(ptUsed * ptValue).toFixed(2);
-  const total = +Math.max(grossTotal - redeemValue, 0).toFixed(2);
-  const earnPreview = cust.id && settings.pointsEarnPerBaht > 0 ? Math.floor(total * settings.pointsEarnPerBaht) : 0;
+  const posFinal = +Math.max(grossTotal - redeemValue, 0).toFixed(2);
+  const total = +(posFinal + subtotalBooking).toFixed(2);
+  const earnPreview = cust.id && settings.pointsEarnPerBaht > 0 ? Math.floor(posFinal * settings.pointsEarnPerBaht) : 0;
 
   const splitSum = splits.reduce((s, x) => s + Number(x.amount || 0), 0);
   const change = Math.max((Number(cashReceived) || 0) - total, 0);

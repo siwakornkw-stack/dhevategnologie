@@ -13,9 +13,11 @@ export async function GET(req: NextRequest) {
   const limit = Math.min(Number(searchParams.get('limit')) || 100, 500);
 
   const customerId = searchParams.get('customerId');
+  const type = searchParams.get('type');
   const where: Record<string, unknown> = {};
   if (status === 'PAID' || status === 'VOID') where.status = status;
   if (customerId) where.customerId = customerId;
+  if (type && ['POS_QUICK', 'POS_TAB', 'BOOKING', 'MIXED'].includes(type)) where.type = type;
   const isCashier = session.user.role === 'CASHIER';
   const todayMin = new Date();
   todayMin.setHours(0, 0, 0, 0);
@@ -31,7 +33,11 @@ export async function GET(req: NextRequest) {
 
   const invoices = await prisma.posInvoice.findMany({
     where,
-    include: { payments: true, splits: true },
+    include: {
+      payments: true,
+      splits: true,
+      relatedInvoice: { select: { id: true, invoiceNo: true } },
+    },
     orderBy: { paidAt: 'desc' },
     take: limit,
   });
