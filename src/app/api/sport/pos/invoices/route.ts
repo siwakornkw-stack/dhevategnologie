@@ -17,7 +17,8 @@ export async function GET(req: NextRequest) {
   const where: Record<string, unknown> = {};
   if (status === 'PAID' || status === 'VOID') where.status = status;
   if (customerId) where.customerId = customerId;
-  if (type && ['POS_QUICK', 'POS_TAB', 'BOOKING', 'MIXED'].includes(type)) where.type = type;
+  if (type === 'POS') where.type = { in: ['POS_QUICK', 'POS_TAB', 'MIXED'] };
+  else if (type && ['POS_QUICK', 'POS_TAB', 'BOOKING', 'MIXED'].includes(type)) where.type = type;
   const isCashier = session.user.role === 'CASHIER';
   const todayMin = new Date();
   todayMin.setHours(0, 0, 0, 0);

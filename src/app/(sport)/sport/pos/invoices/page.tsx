@@ -17,6 +17,7 @@ export default function InvoicesPage() {
   const isAdmin = session?.user?.role === 'ADMIN';
   const [list, setList] = useState<Invoice[]>([]);
   const [status, setStatus] = useState('');
+  const [type, setType] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [voidId, setVoidId] = useState<string | null>(null);
@@ -26,12 +27,13 @@ export default function InvoicesPage() {
   async function load() {
     const p = new URLSearchParams();
     if (status) p.set('status', status);
+    if (type) p.set('type', type);
     if (from) p.set('from', from);
     if (to) p.set('to', to);
     const r = await fetch(`/api/sport/pos/invoices?${p}`);
     setList(await r.json());
   }
-  useEffect(() => { load(); }, [status, from, to]);
+  useEffect(() => { load(); }, [status, type, from, to]);
 
   async function confirmVoid() {
     if (!voidId) return;
@@ -63,6 +65,11 @@ export default function InvoicesPage() {
           <option value="">ทุกสถานะ</option>
           <option value="PAID">PAID</option>
           <option value="VOID">VOID</option>
+        </select>
+        <select value={type} onChange={(e) => setType(e.target.value)} className="px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700">
+          <option value="">ทุกประเภท</option>
+          <option value="POS">สินค้า (POS)</option>
+          <option value="BOOKING">ค่าสนาม</option>
         </select>
       </div>
 
