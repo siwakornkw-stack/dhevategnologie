@@ -27,9 +27,13 @@ const TABLES = [
   'PointTransaction',
   'PosStockMovement',
   'PosOrderItem',
+  'PosShift',
   'PosInvoice',
   'PosPayment',
   'PosInvoiceSplit',
+  'PosRefund',
+  'PosCashMovement',
+  'ProcessedStripeEvent',
 ] as const;
 
 type TableName = (typeof TABLES)[number];
@@ -129,8 +133,12 @@ export async function fetchBackupByPathname(pathname: string): Promise<BackupFil
 }
 
 export async function restoreFromBackup(dump: BackupFile): Promise<{ inserted: Record<string, number> }> {
+  // A table absent from the dump is treated as empty (backups created before a table
+  // was added to TABLES). Present-but-malformed payloads are still rejected.
   for (const t of TABLES) {
-    if (!Array.isArray(dump.data[t])) throw new Error(`Backup missing table: ${t}`);
+    if (dump.data[t] !== undefined && !Array.isArray(dump.data[t])) {
+      throw new Error(`Backup table malformed: ${t}`);
+    }
   }
 
   const inserted: Record<string, number> = {};
@@ -148,7 +156,7 @@ export async function restoreFromBackup(dump: BackupFile): Promise<{ inserted: R
       await tx.$executeRawUnsafe(`TRUNCATE TABLE ${truncateList} RESTART IDENTITY CASCADE`);
 
       for (const t of TABLES) {
-        const rows = dump.data[t] as Record<string, unknown>[];
+        const rows = (dump.data[t] as Record<string, unknown>[] | undefined) ?? [];
         if (rows.length === 0) {
           inserted[t] = 0;
           continue;
@@ -177,7 +185,7 @@ export async function restoreFromBackup(dump: BackupFile): Promise<{ inserted: R
       for (const t of TABLES) {
         const selfFk = SELF_REF[t];
         if (!selfFk) continue;
-        const rows = dump.data[t] as Record<string, unknown>[];
+        const rows = (dump.data[t] as Record<string, unknown>[] | undefined) ?? [];
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const model = (tx as any)[t.charAt(0).toLowerCase() + t.slice(1)];
         for (const r of rows) {

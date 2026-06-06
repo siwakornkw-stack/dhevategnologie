@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { SportType } from '@prisma/client';
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -23,6 +24,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   if (body.openTime && body.closeTime && body.openTime === body.closeTime) {
     return NextResponse.json({ error: 'เวลาเปิดต้องไม่เท่ากับเวลาปิด' }, { status: 400 });
+  }
+
+  if (body.sportType !== undefined && !Object.values(SportType).includes(body.sportType)) {
+    return NextResponse.json({ error: 'ประเภทกีฬาไม่ถูกต้อง' }, { status: 400 });
   }
 
   if (body.isActive === false) {

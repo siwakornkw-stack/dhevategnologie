@@ -40,10 +40,13 @@ export async function POST(req: NextRequest) {
         select: { id: true },
       });
       if (childIsParent) throw new Error('NESTED_MERGE');
-      await tx.posTab.updateMany({
-        where: { id: { in: childIds } },
+      // Re-assert OPEN + not-yet-merged in the write predicate so a concurrent merge
+      // of the same child cannot double-assign it under two masters (TOCTOU guard).
+      const merged = await tx.posTab.updateMany({
+        where: { id: { in: childIds }, status: 'OPEN', parentTabId: null },
         data: { status: 'MERGED', parentTabId: masterId },
       });
+      if (merged.count !== childIds.length) throw new Error('CHILD_NOT_OPEN');
     });
     return NextResponse.json({ ok: true });
   } catch (e: unknown) {

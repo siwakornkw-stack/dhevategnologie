@@ -59,7 +59,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           // otplib throws on malformed tokens (non-digit / wrong length); treat as invalid.
           let valid = false;
           try {
-            valid = totpVerify({ token: parsed.data.totpCode, secret: user.twoFactorSecret }).valid;
+            valid = totpVerify({ token: parsed.data.totpCode, secret: user.twoFactorSecret, epochTolerance: [30, 0] }).valid;
           } catch {
             valid = false;
           }

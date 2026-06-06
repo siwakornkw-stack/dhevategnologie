@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
   // otplib throws on malformed tokens (non-digit / wrong length); treat as invalid.
   let valid = false;
   try {
-    valid = verifySync({ token: code, secret: user.twoFactorSecret }).valid;
+    valid = verifySync({ token: code, secret: user.twoFactorSecret, epochTolerance: [30, 0] }).valid;
   } catch {
     valid = false;
   }

@@ -19,6 +19,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'payment.method invalid' }, { status: 400 });
   }
 
+  const isAdmin = session.user.role === 'ADMIN';
+  // Only ADMIN may override unit price; cashiers always sell at the product's price.
+  if (!isAdmin && (items as Item[]).some((it) => it.unitPrice !== undefined)) {
+    return NextResponse.json({ error: 'unitPrice override ต้องเป็น ADMIN' }, { status: 403 });
+  }
+
   const settings = await getPosSettings();
   const allowNegative = settings.allowNegativeStock;
 
@@ -58,8 +64,8 @@ export async function POST(req: NextRequest) {
         if (!Number.isInteger(q) || q <= 0) throw new Error('QTY_INVALID');
         const unitPrice = it.unitPrice !== undefined ? Number(it.unitPrice) : p.price;
         const lineDiscount = Number(it.discount) || 0;
-        if (!Number.isFinite(unitPrice) || unitPrice < 0) throw new Error('PRICE_INVALID');
-        if (!Number.isFinite(lineDiscount) || lineDiscount < 0) throw new Error('DISCOUNT_INVALID');
+        if (!Number.isFinite(unitPrice) || unitPrice < 0 || unitPrice > 1_000_000) throw new Error('PRICE_INVALID');
+        if (!Number.isFinite(lineDiscount) || lineDiscount < 0 || lineDiscount > 1_000_000) throw new Error('DISCOUNT_INVALID');
         const line = Math.max(0, unitPrice * q - lineDiscount);
         itemsTotal += line;
         totalCost += (p.cost || 0) * q;

@@ -1,8 +1,74 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma';
 import { sendBookingPaidEmail } from '@/lib/email';
 import { sendPushToUser } from '@/lib/web-push';
+
+// Marks a booking paid + fires notifications. Idempotent via the paidAt:null guard,
+// so it is safe to invoke from both checkout.session.completed (sync card) and
+// checkout.session.async_payment_succeeded (PromptPay settles after the session completes).
+async function markBookingPaid(session: Stripe.Checkout.Session): Promise<void> {
+  const bookingId = session.metadata?.bookingId;
+  if (!bookingId) return;
+
+  const updateResult = await prisma.booking.updateMany({
+    where: { id: bookingId, paidAt: null },
+    data: {
+      stripePaymentIntentId: typeof session.payment_intent === 'string' ? session.payment_intent : null,
+      paidAt: new Date(),
+    },
+  });
+  if (updateResult.count === 0) return; // already processed or cancelled
+
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    include: {
+      user: { select: { name: true, email: true, notifEmail: true, notifInApp: true } },
+      field: { select: { name: true, pricePerHour: true } },
+    },
+  });
+  if (!booking) return;
+
+  const amountPaid = session.amount_total ? session.amount_total / 100 : null;
+  const discountAmount = booking.discountAmount ?? 0;
+
+  const promises: Promise<unknown>[] = [];
+
+  if (booking.user.notifEmail) {
+    promises.push(
+      sendBookingPaidEmail(booking.user.email, {
+        userName: booking.user.name ?? 'ลูกค้า',
+        fieldName: booking.field.name,
+        date: booking.date.toLocaleDateString('th-TH'),
+        timeSlot: booking.timeSlot,
+        amountPaid: amountPaid ?? undefined,
+        discountAmount: discountAmount > 0 ? discountAmount : undefined,
+      }).catch(() => {}),
+    );
+  }
+
+  if (booking.user.notifInApp) {
+    promises.push(
+      prisma.notification.create({
+        data: {
+          userId: booking.userId,
+          type: 'PAYMENT_SUCCESS',
+          title: '💳 ชำระเงินสำเร็จ',
+          message: `ชำระเงินจอง ${booking.field.name} สำเร็จ${amountPaid ? ` ฿${amountPaid.toLocaleString()}` : ''} รอแอดมินอนุมัติ`,
+          link: '/sport/bookings',
+        },
+      }).catch(() => {}),
+      sendPushToUser(booking.userId, {
+        title: '💳 ชำระเงินสำเร็จ',
+        message: `จอง ${booking.field.name} สำเร็จ รอการอนุมัติ`,
+        link: '/sport/bookings',
+      }).catch(() => {}),
+    );
+  }
+
+  await Promise.allSettled(promises);
+}
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -31,74 +97,17 @@ export async function POST(req: NextRequest) {
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    const bookingId = session.metadata?.bookingId;
-    if (!bookingId) return NextResponse.json({ ok: true });
-
     // For async methods (PromptPay) Stripe fires completed even when funds have not
-    // settled. Only mark paid once payment_status is actually 'paid'.
-    if (session.payment_status !== 'paid') {
-      return NextResponse.json({ ok: true, unpaid: true });
+    // settled. Only mark paid once payment_status is actually 'paid'; otherwise the
+    // settlement arrives later via checkout.session.async_payment_succeeded.
+    if (session.payment_status === 'paid') {
+      await markBookingPaid(session);
     }
+  }
 
-    // Idempotency guard: only process if paidAt is still null (first delivery)
-    const updateResult = await prisma.booking.updateMany({
-      where: { id: bookingId, paidAt: null },
-      data: {
-        stripePaymentIntentId: typeof session.payment_intent === 'string' ? session.payment_intent : null,
-        paidAt: new Date(),
-      },
-    });
-    if (updateResult.count === 0) {
-      // Already processed or cancelled — acknowledge to stop retries
-      return NextResponse.json({ ok: true, duplicate: true });
-    }
-    const booking = await prisma.booking.findUnique({
-      where: { id: bookingId },
-      include: {
-        user: { select: { name: true, email: true, notifEmail: true, notifInApp: true } },
-        field: { select: { name: true, pricePerHour: true } },
-      },
-    });
-    if (!booking) return NextResponse.json({ ok: true });
-
-    const amountPaid = session.amount_total ? session.amount_total / 100 : null;
-    const discountAmount = booking.discountAmount ?? 0;
-
-    const promises: Promise<unknown>[] = [];
-
-    if (booking.user.notifEmail) {
-      promises.push(
-        sendBookingPaidEmail(booking.user.email, {
-          userName: booking.user.name ?? 'ลูกค้า',
-          fieldName: booking.field.name,
-          date: booking.date.toLocaleDateString('th-TH'),
-          timeSlot: booking.timeSlot,
-          amountPaid: amountPaid ?? undefined,
-          discountAmount: discountAmount > 0 ? discountAmount : undefined,
-        }).catch(() => {}),
-      );
-    }
-
-    if (booking.user.notifInApp) {
-      promises.push(
-        prisma.notification.create({
-          data: {
-            userId: booking.userId,
-            type: 'PAYMENT_SUCCESS',
-            title: '💳 ชำระเงินสำเร็จ',
-            message: `ชำระเงินจอง ${booking.field.name} สำเร็จ${amountPaid ? ` ฿${amountPaid.toLocaleString()}` : ''} รอแอดมินอนุมัติ`,
-            link: '/sport/bookings',
-          },
-        }).catch(() => {}),
-        sendPushToUser(booking.userId, {
-          title: '💳 ชำระเงินสำเร็จ',
-          message: `จอง ${booking.field.name} สำเร็จ รอการอนุมัติ`,
-          link: '/sport/bookings',
-        }).catch(() => {}),
-      );
-    }
-
-    await Promise.allSettled(promises);
+  if (event.type === 'checkout.session.async_payment_succeeded') {
+    // PromptPay/delayed methods settle here after the session already completed.
+    await markBookingPaid(event.data.object);
   }
 
   if (event.type === 'checkout.session.expired') {

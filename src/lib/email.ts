@@ -3,6 +3,14 @@ import { Resend } from 'resend';
 const resend = new Resend(process.env.RESEND_API_KEY ?? 're_placeholder');
 const FROM = process.env.EMAIL_FROM ?? 'noreply@88arena.com';
 
+// Base URL for links embedded in emails. Throw rather than emit `undefined/...`
+// links that would leak a valid token in a broken URL.
+function appBaseUrl(): string {
+  const base = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXTAUTH_URL;
+  if (!base) throw new Error('NEXT_PUBLIC_APP_URL or NEXTAUTH_URL must be set to send email links');
+  return base.replace(/\/$/, '');
+}
+
 function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
@@ -30,7 +38,7 @@ interface BookingEmailData {
 
 export async function sendVerificationEmail(to: string, token: string) {
   if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith('re_your')) return;
-  const url = `${process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXTAUTH_URL}/sport/auth/verify-email?token=${token}`;
+  const url = `${appBaseUrl()}/sport/auth/verify-email?token=${token}`;
   await sendEmail({
     from: FROM,
     to,
@@ -58,7 +66,7 @@ export async function sendVerificationEmail(to: string, token: string) {
 
 export async function sendPasswordResetEmail(to: string, token: string) {
   if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY.startsWith('re_your')) return;
-  const url = `${process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXTAUTH_URL}/sport/auth/reset-password?token=${token}`;
+  const url = `${appBaseUrl()}/sport/auth/reset-password?token=${token}`;
   await sendEmail({
     from: FROM,
     to,

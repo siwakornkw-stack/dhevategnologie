@@ -87,19 +87,24 @@ export default function ReportsPage() {
   function exportPDF() {
     if (!data) return;
 
+    // Escape user-controlled strings before interpolating into the report HTML;
+    // customer name/phone/note are free-text and would otherwise allow stored XSS.
+    const esc = (v: string) =>
+      v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
     const rows = data.bookings.map(b => `
       <tr>
-        <td>${b.field.name}</td>
-        <td>${new Date(b.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })} ${b.timeSlot} น.</td>
-        <td>${b.user.name ?? b.user.email}${b.user.phone ? `<br/><small>${b.user.phone}</small>` : ''}</td>
+        <td>${esc(b.field.name)}</td>
+        <td>${new Date(b.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })} ${esc(b.timeSlot)} น.</td>
+        <td>${esc(b.user.name ?? b.user.email)}${b.user.phone ? `<br/><small>${esc(b.user.phone)}</small>` : ''}</td>
         <td>฿${b.field.pricePerHour.toLocaleString()}</td>
         <td>${STATUS_LABELS[b.status]}</td>
-        <td>${b.note ?? '-'}</td>
+        <td>${b.note ? esc(b.note) : '-'}</td>
       </tr>`).join('');
 
     const sportRows = data.bySportType.map(s => `
       <tr>
-        <td>${SPORT_TYPE_LABELS[s.sportType] ?? s.sportType}</td>
+        <td>${SPORT_TYPE_LABELS[s.sportType] ?? esc(s.sportType)}</td>
         <td>${s.count}</td>
         <td>฿${s.revenue.toLocaleString()}</td>
       </tr>`).join('');
