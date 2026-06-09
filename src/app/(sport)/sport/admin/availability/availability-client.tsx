@@ -233,7 +233,7 @@ export function AvailabilityClient({
     if (!dialog || !dialogFullSlot || !isValidRange) return;
     setSubmitting(true);
     try {
-      const weeks = repeatWeekly ? Math.max(1, Math.min(26, repeatWeeks)) : 1;
+      const weeks = repeatWeekly ? Math.max(1, Math.min(52, repeatWeeks)) : 1;
       const dates: string[] = [];
       const base = new Date(selectedDate);
       for (let i = 0; i < weeks; i++) {
@@ -496,13 +496,13 @@ export function AvailabilityClient({
                   <input
                     type="number"
                     min={1}
-                    max={26}
+                    max={52}
                     value={repeatWeeks}
-                    onChange={(e) => setRepeatWeeks(Math.max(1, Math.min(26, Number(e.target.value) || 1)))}
+                    onChange={(e) => setRepeatWeeks(Math.max(1, Math.min(52, Number(e.target.value) || 1)))}
                     className="w-20 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-2 py-1 text-sm text-center tabular-nums focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                   <span className="text-xs text-gray-400">
-                    (รวมวันแรก, สูงสุด 26 สัปดาห์)
+                    (รวมวันแรก, สูงสุด 52 สัปดาห์)
                   </span>
                 </div>
               )}
