@@ -1,45 +1,42 @@
-# AI SaaS Starter Template Kit for Next.js and Tailwind CSS
+# 88ARENA
 
-This is free and open source version of **AI Starter Kit** by [Next.js Templates](https://nextjstemplates.com) - A full-stack starter template kit for building AI-driven SaaS applications, crafted using **Next.js** and **Tailwind CSS**.
+88ARENA is a Thai-language sports-facility **booking** and **point-of-sale (POS)** system, built with Next.js 15 (App Router) and PostgreSQL. UI copy is Thai by default (with English and Burmese message catalogs).
 
-![AI Starter Kit](./ai-starter-kit.png)
+> This repo was bootstrapped from an AI SaaS starter template. The original marketing site survives only under `src/app/(site)/`; the real product lives under `src/app/(sport)/`. The `package.json` name (`ai-starter-kit-oss`) is a leftover from that template.
 
-**AIStarterKit** includes ready-to-use core functionalities and integrations such as authentication, Stripe payment integration, database management, dashboards, and seamless AI API integration system. Allows you effortlessly build and launch AI-powered SaaS solutions for customers. Comes with examples - like generators for text, images, code, videos, and emails.
+## Features
 
+### Booking
+- Field browsing by sport type, price, and location; time-slot availability and pricing rules
+- Customer bookings with Stripe checkout (card + PromptPay), coupons, loyalty points, referrals
+- Recurring bookings, waiting list, reviews
+- Admin: fields, bookings, coupons, users, reports, availability, calendar, audit logs, backup, customer chat
 
-### Quick Links
+### POS (cashier terminal)
+- Sales, open tabs (mergeable), invoices, split payments, refunds, customers
+- Cash shifts (at most one open shift at a time), cash movements
+- Admin-only: products, stock movements, settings, cashiers, reports
 
-- [✨ AI Starter Kit](https://nextjstemplates.com/templates/ai-starter-kit)
-- [🚀 View Demo](https://demo.aistarterkit.nextjstemplates.com/)
+### Platform
+- Auth: NextAuth v5 (Credentials + optional Google), JWT sessions, TOTP 2FA, per-email login rate limiting
+- Roles: USER / CASHIER / ADMIN, enforced at the route layer and re-checked server-side
+- Notifications: email (Resend), web push (VAPID), LINE Notify
+- i18n via next-intl (`th` primary, `en`, `my`)
+- Sentry, Vercel Analytics / Speed Insights
 
-If you are looking for AI SaaS Starter Kit, that can save you hundreds of hours and allow you to launch 100x faster, **AIStarterKit** is perfect choice for you
+## Tech stack
 
-## Key Features
+- **Next.js 15.2.6** App Router, **React 19**
+- **Prisma 7** on **PostgreSQL** via the `@prisma/adapter-pg` driver adapter
+- **NextAuth v5** (beta)
+- **Tailwind CSS v4**, next-intl, next-themes
+- **Stripe** payments, **Resend** email, **Upstash Redis** rate limiting (in-memory fallback), **Cloudinary** / **Vercel Blob** media
+- **Vitest** (unit) + **Playwright** (e2e)
+- Hosted on **Vercel**
 
-- **Next.js & Tailwind CSS:** Modern tech stack for fast, responsive, and scalable development with clean UI powered by Tailwind v4 and Next.js performance.
-- **AI Integration:** Plug-and-play access to GPT, Midjourney, and other APIs to build AI features like text, code, and image generation instantly.
-- **All Essential Integrations:** Come with all essential integrations like Stripe, NextAuth, and Prisma ORM —skip setup and start shipping core AI SaaS features.
-- **Pre-built SaaS Pages:** Includes dashboard, auth, pricing, error, and blog pages—launch-ready and designed to save weeks of development time.
-- **Highly Customizable:** Modular code structure makes it easy to tweak layouts, replace logic, or add new features based on your product needs.
-- **One-click Deployment on Vercel and Others:** Deploy on Vercel, netlify and other PaaS with one-click. Simply add environment variables and hit deploy button.
-- **Lifetime Free Updates:** One-time purchase gives you ongoing updates—new features, improvements, and fixes without extra fees or monthly costs.
+## Getting started
 
-| ✨ Features                         | 🎁 AIStarterKit Free                 | 🔥 AIStarterKit Pro                        |
-|----------------------------------|--------------------------------|--------------------------------------|
-| Next.js Pages                    | Static                         | Dynamic Boilerplate Template         |
-| Components                       | Limited                        | All According to Demo                |
-| AI Functionality                 | Demo Only                      | Included                             |
-| AI App Examples                  | 1 Example                      | All Examples (Same as Demo)          |
-| Integrations (DB, Auth, etc.)    | Not Included                   | Included                             |
-| Community Support                | Included                       | Included                             |
-| Premium Email Support            | Not Included                   | Included                             |
-| Lifetime Free Updates            | Included                       | Included
-  
-## Getting Started
-
-We are using npm as our package manager.
-
-> To use Yarn or any other package manager, delete the `package-lock.json` file and run the below commands using the package manager of your choice.
+Requires Node.js and a reachable PostgreSQL database.
 
 1. Install dependencies
 
@@ -47,28 +44,61 @@ We are using npm as our package manager.
    npm install
    ```
 
-2. Rename `.env.example` to `.env` and set the environment variables
+2. Copy `.env.example` to `.env` and set the environment variables. Required for core flows: `DATABASE_URL`, `AUTH_SECRET`, Stripe keys + `STRIPE_WEBHOOK_SECRET`, `RESEND_API_KEY`. Optional: Google OAuth, Upstash Redis, VAPID, LINE Notify, Cloudinary, OpenAI, Sentry, `CRON_SECRET`.
 
-3. Development server
-
-   ```bash
-   npm run dev
-   ```
-
-   Your app template should now be running on [http://localhost:3000](http://localhost:3000).
-
-   Additional commands:
+3. Set up the database and start the dev server
 
    ```bash
-   npm run build # Build the project
-   npm run start # Start the production server
+   npm run db:migrate   # create + apply migrations
+   npm run db:seed      # seed sample data
+   npm run dev          # http://localhost:3000
    ```
 
-## Features
+## Commands
 
-- [Next.js](https://nextjs.org) App Router
-  - Advanced routing, SEO, and performance
-  - React Server Components (RSCs) and Server Actions for server-side rendering
-- [AI SDK](https://sdk.vercel.ai/docs)
-  - Unified API for generating text and tool calls with LLMs
-  - Supports OpenAI (default) and other model providers.
+```bash
+npm run dev              # next dev
+npm run build            # prisma generate && prisma migrate deploy && next build
+npm run lint             # next lint
+
+npm test                 # vitest run (unit, src/**/*.test.ts)
+npm run test:watch       # vitest watch
+npm run test:e2e         # playwright (specs in e2e/)
+npm run test:e2e:ui      # playwright UI mode
+
+npm run db:migrate       # prisma migrate dev
+npm run db:push          # prisma db push (no migration file)
+npm run db:seed          # ts-node prisma/seed.ts
+npm run db:studio        # prisma studio
+npm run stripe:listen    # forward Stripe webhooks to localhost:3000/api/webhooks/stripe
+```
+
+> `build` runs `prisma migrate deploy` against `DATABASE_URL`, so building needs a reachable database.
+
+## Project structure
+
+```
+src/
+  app/
+    (site)/            # leftover marketing/landing pages from the template
+    (sport)/sport/     # the actual app: customer, admin/, pos/
+    api/sport/         # app route handlers
+    api/webhooks/stripe
+    api/cron/*         # cron endpoints (protected by CRON_SECRET)
+  lib/                 # business logic: booking.ts, pos.ts, auth*, prisma.ts, rate-limit.ts, ...
+  messages/            # th / en / my translation catalogs
+  middleware.ts        # edge route gatekeeper (re-exports auth.config.ts)
+prisma/schema.prisma   # Booking + POS + platform models
+```
+
+## Cron jobs (`vercel.json`)
+
+- `/api/cron/cleanup-bookings` — 02:00
+- `/api/cron/booking-reminders` — 01:00
+- `/api/cron/backup` — 19:00
+
+All cron endpoints are protected by `CRON_SECRET`.
+
+## License
+
+MIT
