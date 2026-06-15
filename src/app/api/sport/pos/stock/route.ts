@@ -9,12 +9,14 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const productId = searchParams.get('productId') || undefined;
   const limit = Math.min(Number(searchParams.get('limit')) || 50, 200);
+  const skip = Math.max(0, Number(searchParams.get('skip')) || 0);
 
   const movements = await prisma.posStockMovement.findMany({
     where: { ...(productId ? { productId } : {}) },
     include: { product: { select: { name: true, stockUnit: true } } },
-    orderBy: { createdAt: 'desc' },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     take: limit,
+    skip,
   });
   return NextResponse.json(movements);
 }

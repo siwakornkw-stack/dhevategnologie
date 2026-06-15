@@ -18,7 +18,7 @@ export default async function PosStockPage() {
     }),
     prisma.posStockMovement.findMany({
       include: { product: { select: { name: true, stockUnit: true } } },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: 50,
     }),
   ]);

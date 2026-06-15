@@ -20,21 +20,58 @@ type StockClientProps = {
   initialMovements?: Movement[];
 };
 
+const PAGE = 50;
+
 export function StockClient({ initialProducts = [], initialMovements = [] }: StockClientProps = {}) {
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [movements, setMovements] = useState<Movement[]>(initialMovements);
+  const [hasMore, setHasMore] = useState(initialMovements.length >= PAGE);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [filterProductId, setFilterProductId] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [stockTakeOpen, setStockTakeOpen] = useState(false);
   const [counts, setCounts] = useState<Record<string, string>>({});
   const [stProgress, setStProgress] = useState<{ done: number; total: number; ok: number; fail: number } | null>(null);
 
+  async function fetchMovements(pid: string, skip = 0): Promise<Movement[]> {
+    const params = new URLSearchParams({ limit: String(PAGE) });
+    if (pid) params.set('productId', pid);
+    if (skip) params.set('skip', String(skip));
+    const m = await fetch(`/api/sport/pos/stock?${params.toString()}`).then((r) => r.json());
+    return Array.isArray(m) ? (m as Movement[]) : [];
+  }
+
   async function load() {
     const [p, m] = await Promise.all([
       fetch('/api/sport/pos/products?active=0').then((r) => r.json()),
-      fetch('/api/sport/pos/stock?limit=50').then((r) => r.json()),
+      fetchMovements(filterProductId),
     ]);
     setProducts(Array.isArray(p) ? p : []);
-    setMovements(Array.isArray(m) ? m : []);
+    setMovements(m);
+    setHasMore(m.length >= PAGE);
+  }
+
+  async function changeFilter(pid: string) {
+    setFilterProductId(pid);
+    const m = await fetchMovements(pid);
+    setMovements(m);
+    setHasMore(m.length >= PAGE);
+  }
+
+  async function loadMore() {
+    setLoadingMore(true);
+    try {
+      const batch = await fetchMovements(filterProductId, movements.length);
+      setMovements((prev) => {
+        const seen = new Set(prev.map((x) => x.id));
+        return [...prev, ...batch.filter((b) => !seen.has(b.id))];
+      });
+      setHasMore(batch.length >= PAGE);
+    } catch {
+      toast.error('โหลดเพิ่มไม่สำเร็จ');
+    } finally {
+      setLoadingMore(false);
+    }
   }
 
   useEffect(() => {
@@ -219,10 +256,23 @@ export function StockClient({ initialProducts = [], initialMovements = [] }: Sto
       )}
 
       <div className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-700/50 overflow-hidden">
-        <div className="px-4 py-3 border-b dark:border-gray-800 text-sm font-semibold">Movement Log (50 ล่าสุด)</div>
+        <div className="px-4 py-3 border-b dark:border-gray-800 flex flex-wrap items-center justify-between gap-2">
+          <span className="text-sm font-semibold">Movement Log ({movements.length}{hasMore ? '+' : ''})</span>
+          <select
+            value={filterProductId}
+            onChange={(e) => changeFilter(e.target.value)}
+            className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2 py-1 text-xs max-w-[200px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          >
+            <option value="">ทุกสินค้า</option>
+            {products.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+        </div>
         {movements.length === 0 ? (
           <div className="p-8 text-center text-gray-400">ยังไม่มี movement</div>
         ) : (
+          <>
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-800 text-left text-xs text-gray-500">
               <tr>
@@ -255,6 +305,18 @@ export function StockClient({ initialProducts = [], initialMovements = [] }: Sto
               ))}
             </tbody>
           </table>
+          {hasMore && (
+            <div className="p-3 border-t dark:border-gray-800 text-center">
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                className="px-4 py-2 rounded-lg bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white text-sm disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              >
+                {loadingMore ? 'กำลังโหลด...' : 'โหลดเพิ่ม'}
+              </button>
+            </div>
+          )}
+          </>
         )}
       </div>
     </div>
