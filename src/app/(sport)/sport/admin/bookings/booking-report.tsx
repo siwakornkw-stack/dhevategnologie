@@ -88,12 +88,14 @@ export function BookingReport() {
 
   const byDay = useMemo(() => {
     const map: Record<string, ReportBooking[]> = {};
-    for (const b of bookings) {
+    // Hide cancelled bookings from the calendar/day view unless explicitly filtering for them.
+    const source = statusFilter === 'CANCELLED' ? bookings : bookings.filter((b) => b.status !== 'CANCELLED');
+    for (const b of source) {
       const key = formatDateISO(new Date(b.date));
       (map[key] ??= []).push(b);
     }
     return map;
-  }, [bookings]);
+  }, [bookings, statusFilter]);
 
   const calendarCells = useMemo(() => {
     const first = firstDayOfMonth(year, month);
@@ -300,6 +302,9 @@ export function BookingReport() {
                       >
                         ✎ แก้
                       </EditBookingButton>
+                    )}
+                    {b.note && (
+                      <span className="w-full text-gray-500 dark:text-gray-400 italic">💬 {b.note}</span>
                     )}
                   </div>
                 ))}

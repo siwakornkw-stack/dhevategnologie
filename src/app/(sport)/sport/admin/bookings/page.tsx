@@ -49,21 +49,36 @@ export default async function AdminBookingsPage({ searchParams }: PageProps) {
 
   const where = { ...statusWhere, ...searchWhere };
 
-  const [bookings, total] = await Promise.all([
-    prisma.booking.findMany({
-      where,
-      orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
-      skip,
-      take: PAGE_SIZE,
-      include: {
-        user: { select: { id: true, name: true, email: true, phone: true } },
-        field: { select: { id: true, name: true, sportType: true } },
-      },
-    }),
-    prisma.booking.count({ where }),
-  ]);
+  const allMatching = await prisma.booking.findMany({
+    where,
+    include: {
+      user: { select: { id: true, name: true, email: true, phone: true } },
+      field: { select: { id: true, name: true, sportType: true } },
+    },
+  });
 
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayMs = todayStart.getTime();
+
+  // Order: PENDING first (quick-approve section), then today + upcoming ascending,
+  // then past dates (most recent first).
+  allMatching.sort((a, b) => {
+    const ap = a.status === 'PENDING' ? 0 : 1;
+    const bp = b.status === 'PENDING' ? 0 : 1;
+    if (ap !== bp) return ap - bp;
+    const aPast = a.date.getTime() < todayMs ? 1 : 0;
+    const bPast = b.date.getTime() < todayMs ? 1 : 0;
+    if (aPast !== bPast) return aPast - bPast;
+    const da = a.date.getTime();
+    const db = b.date.getTime();
+    if (da !== db) return aPast ? db - da : da - db;
+    return a.timeSlot.localeCompare(b.timeSlot);
+  });
+
+  const total = allMatching.length;
   const totalPages = Math.ceil(total / PAGE_SIZE);
+  const bookings = allMatching.slice(skip, skip + PAGE_SIZE);
   const pending = bookings.filter((b) => b.status === 'PENDING');
   const others = bookings.filter((b) => b.status !== 'PENDING');
 
