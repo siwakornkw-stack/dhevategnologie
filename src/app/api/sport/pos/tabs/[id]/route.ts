@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requirePosRole } from '@/lib/pos';
+import { requirePosRole, applyStock } from '@/lib/pos';
 
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const session = await requirePosRole(['ADMIN', 'CASHIER']);
@@ -95,18 +95,7 @@ export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: str
   await prisma.$transaction(async (tx) => {
     for (const t of allTabs) {
       for (const it of t.items) {
-        await tx.posProduct.update({ where: { id: it.productId }, data: { stockQty: { increment: it.qty } } });
-        await tx.posStockMovement.create({
-          data: {
-            productId: it.productId,
-            type: 'VOID',
-            qty: it.qty,
-            refType: 'TAB_VOID',
-            refId: t.id,
-            note: 'tab voided',
-            userId: session.user.id,
-          },
-        });
+        await applyStock(tx, it.productId, it.qty, { type: 'VOID', refType: 'TAB_VOID', refId: t.id, note: 'tab voided', userId: session.user.id, allowNegative: true });
         await tx.posOrderItem.update({ where: { id: it.id }, data: { status: 'VOID' } });
       }
     }

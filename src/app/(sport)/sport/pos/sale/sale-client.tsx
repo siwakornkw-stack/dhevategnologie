@@ -107,6 +107,9 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
       }
       const created: Item = await r.json();
       setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: t.items.map((i) => i.id === tempId ? created : i) } : t));
+      // Re-sync product cards: a pack draws from a shared base pool, so sibling/base
+      // cards must reflect the real deduction, not just the optimistic -1 on this card.
+      loadProducts();
     } catch {
       setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: t.items.filter((i) => i.id !== tempId) } : t));
       setProducts((ps) => ps.map((p) => p.id === productId ? { ...p, stockQty: p.stockQty + 1 } : p));

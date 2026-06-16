@@ -19,6 +19,7 @@ export async function GET() {
     FROM "PosProduct"
     WHERE "deletedAt" IS NULL
       AND "isActive" = true
+      AND "stockParentId" IS NULL
       AND "lowStockAlert" > 0
       AND "stockQty" <= "lowStockAlert"
     ORDER BY ("stockQty"::float / NULLIF("lowStockAlert", 0)) ASC

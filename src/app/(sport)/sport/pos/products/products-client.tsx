@@ -16,6 +16,8 @@ type Product = {
   lowStockAlert: number;
   imageUrl: string | null;
   isActive: boolean;
+  stockParentId?: string | null;
+  unitsPerStock?: number;
 };
 
 type ProductsClientProps = { initialList?: Product[] };
@@ -72,6 +74,8 @@ export function ProductsClient({ initialList = [] }: ProductsClientProps = {}) {
       stockQty: form.get('stockQty'),
       stockUnit: form.get('stockUnit'),
       lowStockAlert: form.get('lowStockAlert'),
+      stockParentId: form.get('stockParentId') || null,
+      unitsPerStock: form.get('unitsPerStock'),
       imageUrl,
       isActive: form.get('isActive') === 'on',
     };
@@ -170,6 +174,13 @@ export function ProductsClient({ initialList = [] }: ProductsClientProps = {}) {
           )}
           <input name="stockUnit" defaultValue={editing?.stockUnit || 'ชิ้น'} placeholder="หน่วย" className="input" />
           <input name="lowStockAlert" type="number" defaultValue={editing?.lowStockAlert ?? 5} placeholder="แจ้งเตือนต่ำกว่า" className="input" />
+          <select name="stockParentId" defaultValue={editing?.stockParentId || ''} className="input">
+            <option value="">— stock เดี่ยว (ไม่ใช่แพ็ค) —</option>
+            {list.filter((x) => !x.stockParentId && x.id !== editing?.id).map((x) => (
+              <option key={x.id} value={x.id}>แพ็คที่ดึง stock จาก: {x.name}</option>
+            ))}
+          </select>
+          <input name="unitsPerStock" type="number" min={1} defaultValue={editing?.unitsPerStock ?? 1} placeholder="จำนวน/แพ็ค (เช่น 12)" className="input" />
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="isActive" defaultChecked={editing?.isActive ?? true} /> Active
           </label>

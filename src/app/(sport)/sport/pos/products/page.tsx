@@ -16,9 +16,18 @@ export default async function PosProductsPage() {
       id: true, name: true, sku: true, category: true,
       price: true, cost: true, stockQty: true, stockUnit: true,
       lowStockAlert: true, imageUrl: true, isActive: true,
+      stockParentId: true, unitsPerStock: true,
+      stockParent: { select: { stockQty: true } },
     },
     orderBy: [{ category: 'asc' }, { name: 'asc' }],
   });
 
-  return <ProductsClient initialList={products} />;
+  // Stock-variant (pack): show available stock derived from the base product.
+  const initialList = products.map((p) =>
+    p.stockParentId && p.unitsPerStock > 0
+      ? { ...p, stockQty: Math.floor((p.stockParent?.stockQty ?? 0) / p.unitsPerStock) }
+      : p,
+  );
+
+  return <ProductsClient initialList={initialList} />;
 }

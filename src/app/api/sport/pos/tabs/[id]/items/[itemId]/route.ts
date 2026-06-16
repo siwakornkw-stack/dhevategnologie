@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requirePosRole, getPosSettings } from '@/lib/pos';
+import { requirePosRole, getPosSettings, applyStock } from '@/lib/pos';
 
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string; itemId: string }> }) {
   const session = await requirePosRole(['ADMIN', 'CASHIER']);
@@ -26,29 +26,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 
       const delta = qtyNum - item.qty;
       if (delta !== 0) {
-        if (delta > 0) {
-          if (allowNegative) {
-            await tx.posProduct.update({ where: { id: item.productId }, data: { stockQty: { decrement: delta } } });
-          } else {
-            const r = await tx.posProduct.updateMany({
-              where: { id: item.productId, stockQty: { gte: delta } },
-              data: { stockQty: { decrement: delta } },
-            });
-            if (r.count === 0) throw new Error('STOCK_INSUFFICIENT');
-          }
-        } else {
-          await tx.posProduct.update({ where: { id: item.productId }, data: { stockQty: { increment: -delta } } });
-        }
-        await tx.posStockMovement.create({
-          data: {
-            productId: item.productId,
-            type: 'ADJUST',
-            qty: -delta,
-            refType: 'ITEM_QTY',
-            refId: itemId,
-            userId: session.user.id,
-          },
-        });
+        await applyStock(tx, item.productId, -delta, { type: 'ADJUST', refType: 'ITEM_QTY', refId: itemId, userId: session.user.id, allowNegative });
       }
       const maxDiscount = item.unitPrice * qtyNum;
       const nextDiscount = Math.min(item.discount, maxDiscount);
@@ -78,17 +56,7 @@ export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: str
       if (!tab || (tab.status !== 'OPEN' && tab.status !== 'MERGED')) throw new Error('TAB_NOT_OPEN');
       if (session.user.role !== 'ADMIN' && tab.openedBy && tab.openedBy !== session.user.id) throw new Error('FORBIDDEN');
 
-      await tx.posProduct.update({ where: { id: item.productId }, data: { stockQty: { increment: item.qty } } });
-      await tx.posStockMovement.create({
-        data: {
-          productId: item.productId,
-          type: 'VOID',
-          qty: item.qty,
-          refType: 'ITEM_VOID',
-          refId: itemId,
-          userId: session.user.id,
-        },
-      });
+      await applyStock(tx, item.productId, item.qty, { type: 'VOID', refType: 'ITEM_VOID', refId: itemId, userId: session.user.id, allowNegative: true });
       await tx.posOrderItem.update({ where: { id: itemId }, data: { status: 'VOID' } });
     }, { timeout: 15000, maxWait: 8000 });
     return NextResponse.json({ ok: true });

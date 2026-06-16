@@ -16,6 +16,8 @@ export default async function SalePage() {
       select: {
         id: true, name: true, sku: true, category: true,
         price: true, stockQty: true, stockUnit: true, imageUrl: true, isActive: true,
+        stockParentId: true, unitsPerStock: true,
+        stockParent: { select: { stockQty: true } },
       },
       orderBy: [{ category: 'asc' }, { name: 'asc' }],
     }),
@@ -40,5 +42,12 @@ export default async function SalePage() {
 
   const initialTabs = tabs.filter((t) => t.status === 'OPEN' || t.status === 'HELD');
 
-  return <SaleClient initialProducts={products} initialTabs={initialTabs} />;
+  // Stock-variant (pack): show available stock derived from the base product.
+  const initialProducts = products.map((p) =>
+    p.stockParentId && p.unitsPerStock > 0
+      ? { ...p, stockQty: Math.floor((p.stockParent?.stockQty ?? 0) / p.unitsPerStock) }
+      : p,
+  );
+
+  return <SaleClient initialProducts={initialProducts} initialTabs={initialTabs} />;
 }

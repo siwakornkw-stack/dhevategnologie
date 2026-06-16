@@ -22,6 +22,57 @@ export async function getPosSettings() {
   return settings;
 }
 
+type StockMoveType = 'IN' | 'OUT' | 'ADJUST' | 'SALE' | 'VOID';
+
+/**
+ * Apply a signed stock change for a product, resolving stock-variants (packs) to their
+ * base product and multiplying by unitsPerStock. `signedQty` is in PRODUCT units
+ * (negative = sell/deduct, positive = return/add). The stock change AND the movement
+ * are recorded against the effective base product, so sum(movements)==stockQty holds
+ * per base product. For a normal product (no parent, unitsPerStock=1) this is identical
+ * to a plain decrement/increment + movement on that product.
+ * Throws STOCK_INSUFFICIENT when a deduction would go negative and allowNegative is false.
+ */
+export async function applyStock(
+  tx: Tx,
+  productId: string,
+  signedQty: number,
+  opts: { type: StockMoveType; refType?: string | null; refId?: string | null; userId?: string | null; note?: string | null; allowNegative?: boolean },
+): Promise<void> {
+  if (!Number.isInteger(signedQty) || signedQty === 0) return;
+  const product = await tx.posProduct.findUnique({
+    where: { id: productId },
+    select: { id: true, stockParentId: true, unitsPerStock: true },
+  });
+  if (!product) throw new Error('PRODUCT_NOT_FOUND');
+  const targetId = product.stockParentId ?? product.id;
+  // Multiplier only applies to a true variant (has a parent). A base product always 1:1,
+  // even if a stray unitsPerStock>1 was somehow stored on it.
+  const mult = product.stockParentId && product.unitsPerStock && product.unitsPerStock > 0 ? product.unitsPerStock : 1;
+  const effective = signedQty * mult;
+  if (effective < 0 && !opts.allowNegative) {
+    const need = -effective;
+    const r = await tx.posProduct.updateMany({
+      where: { id: targetId, stockQty: { gte: need } },
+      data: { stockQty: { decrement: need } },
+    });
+    if (r.count === 0) throw new Error('STOCK_INSUFFICIENT');
+  } else {
+    await tx.posProduct.update({ where: { id: targetId }, data: { stockQty: { increment: effective } } });
+  }
+  await tx.posStockMovement.create({
+    data: {
+      productId: targetId,
+      type: opts.type,
+      qty: effective,
+      refType: opts.refType ?? null,
+      refId: opts.refId ?? null,
+      note: opts.note ?? null,
+      userId: opts.userId ?? null,
+    },
+  });
+}
+
 export type VatBreakdown = {
   subtotal: number;
   vatAmount: number;

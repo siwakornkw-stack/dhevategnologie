@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requirePosRole, getPosSettings } from '@/lib/pos';
+import { requirePosRole, getPosSettings, applyStock } from '@/lib/pos';
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const session = await requirePosRole(['ADMIN', 'CASHIER']);
@@ -44,25 +44,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       if (!product || product.deletedAt) throw new Error('PRODUCT_NOT_FOUND');
       if (!product.isActive) throw new Error('PRODUCT_INACTIVE');
 
-      if (allowNegative) {
-        await tx.posProduct.update({ where: { id: productId }, data: { stockQty: { decrement: qtyNum } } });
-      } else {
-        const r = await tx.posProduct.updateMany({
-          where: { id: productId, stockQty: { gte: qtyNum } },
-          data: { stockQty: { decrement: qtyNum } },
-        });
-        if (r.count === 0) throw new Error('STOCK_INSUFFICIENT');
-      }
-      await tx.posStockMovement.create({
-        data: {
-          productId,
-          type: 'SALE',
-          qty: -qtyNum,
-          refType: 'TAB',
-          refId: tabId,
-          userId: session.user.id,
-        },
-      });
+      await applyStock(tx, productId, -qtyNum, { type: 'SALE', refType: 'TAB', refId: tabId, userId: session.user.id, allowNegative });
       const finalUnitPrice = unitPriceOverride !== null ? unitPriceOverride : product.price;
       const maxDiscount = finalUnitPrice * qtyNum;
       if (discountNum > maxDiscount) throw new Error('DISCOUNT_TOO_LARGE');

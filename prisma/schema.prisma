@@ -402,10 +402,18 @@ model PosProduct {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // Stock-variant: a pack/bundle draws from a base product's stock.
+  // stockParentId points to the base product; unitsPerStock = base units consumed per one of this.
+  stockParentId String?
+  unitsPerStock Int       @default(1)
+  stockParent   PosProduct?  @relation("PosStockVariant", fields: [stockParentId], references: [id], onDelete: SetNull)
+  stockVariants PosProduct[] @relation("PosStockVariant")
+
   movements PosStockMovement[]
 
   @@index([category])
   @@index([isActive])
+  @@index([stockParentId])
 }
 
 model PosStockMovement {

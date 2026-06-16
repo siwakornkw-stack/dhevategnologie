@@ -64,15 +64,21 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
         const snap = (inv.itemsSnapshot as Array<{ productId?: string; qty: number; productName?: string }> | null) || [];
         for (const it of snap) {
           if (!it.productId) continue;
+          // Resolve stock-variant (pack) to its base product and multiply.
+          const prod = await tx.posProduct.findUnique({ where: { id: it.productId }, select: { stockParentId: true, unitsPerStock: true } });
+          if (!prod) continue;
+          const targetId = prod.stockParentId ?? it.productId;
+          const mult = prod.unitsPerStock && prod.unitsPerStock > 0 ? prod.unitsPerStock : 1;
+          const eff = it.qty * mult;
           await tx.posProduct.updateMany({
-            where: { id: it.productId },
-            data: { stockQty: { increment: it.qty } },
+            where: { id: targetId },
+            data: { stockQty: { increment: eff } },
           });
           await tx.posStockMovement.create({
             data: {
-              productId: it.productId,
+              productId: targetId,
               type: 'VOID',
-              qty: it.qty,
+              qty: eff,
               refType: 'INVOICE_VOID',
               refId: inv.id,
               userId: session.user.id,

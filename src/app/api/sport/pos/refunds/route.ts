@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requirePosRole, getActiveShift, nextRefundNo, audit, reversePoints } from '@/lib/pos';
+import { requirePosRole, getActiveShift, nextRefundNo, audit, reversePoints, applyStock } from '@/lib/pos';
 
 type RefundLine = { productId: string; productName?: string; qty: number; unitPrice: number };
 
@@ -160,21 +160,7 @@ export async function POST(req: NextRequest) {
       }
 
       for (const it of cleanItems) {
-        await tx.posProduct.update({
-          where: { id: it.productId },
-          data: { stockQty: { increment: it.qty } },
-        });
-        await tx.posStockMovement.create({
-          data: {
-            productId: it.productId,
-            type: 'IN',
-            qty: it.qty,
-            refType: 'REFUND',
-            refId: inv.id,
-            userId: session.user.id,
-            note: reason,
-          },
-        });
+        await applyStock(tx, it.productId, it.qty, { type: 'IN', refType: 'REFUND', refId: inv.id, userId: session.user.id, note: reason, allowNegative: true });
       }
 
       const activeShift = await getActiveShift(session.user.id, tx);

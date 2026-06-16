@@ -71,16 +71,20 @@ export async function POST(req: NextRequest) {
         totalCost += (p.cost || 0) * q;
         snapshot.push({ productId: p.id, productName: p.name, qty: q, unitPrice, discount: lineDiscount });
 
+        // Resolve stock-variant (pack) to its base product and multiply.
+        const stockTargetId = p.stockParentId ?? p.id;
+        const stockMult = p.stockParentId && p.unitsPerStock && p.unitsPerStock > 0 ? p.unitsPerStock : 1;
+        const need = q * stockMult;
         if (allowNegative) {
-          await tx.posProduct.update({ where: { id: p.id }, data: { stockQty: { decrement: q } } });
+          await tx.posProduct.update({ where: { id: stockTargetId }, data: { stockQty: { decrement: need } } });
         } else {
           const r = await tx.posProduct.updateMany({
-            where: { id: p.id, stockQty: { gte: q } },
-            data: { stockQty: { decrement: q } },
+            where: { id: stockTargetId, stockQty: { gte: need } },
+            data: { stockQty: { decrement: need } },
           });
           if (r.count === 0) throw new Error(`STOCK_INSUFFICIENT:${p.name}`);
         }
-        pendingMovements.push({ productId: p.id, qty: q });
+        pendingMovements.push({ productId: stockTargetId, qty: need });
       }
 
       const discNum = Math.max(0, Number(discount) || 0);
