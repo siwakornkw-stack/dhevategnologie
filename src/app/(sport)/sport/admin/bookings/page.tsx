@@ -140,7 +140,7 @@ export default async function AdminBookingsPage({ searchParams }: PageProps) {
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-800">
             {others.map((booking) => (
-              <BookingRow key={booking.id} booking={booking} showActions={booking.status === 'APPROVED'} canCancel={isAdmin} paidLabel={paidLabel} noPhoneLabel={noPhoneLabel} bookedOnLabel={bookedOnLabel} />
+              <BookingRow key={booking.id} booking={booking} showActions={booking.status === 'APPROVED'} canCancel paidLabel={paidLabel} noPhoneLabel={noPhoneLabel} bookedOnLabel={bookedOnLabel} />
             ))}
           </div>
         )}

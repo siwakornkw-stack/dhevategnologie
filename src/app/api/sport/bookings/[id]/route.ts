@@ -198,10 +198,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   if (!status) return NextResponse.json({ error: 'Missing status' }, { status: 400 });
 
-  // Status changes are owner-self-cancel or ADMIN only. CASHIER (non-owner) cannot change status here.
-  if (!isAdmin && !isOwner) return NextResponse.json({ error: 'ไม่มีสิทธิ์เปลี่ยนสถานะการจอง' }, { status: 403 });
+  // Status changes: owner-self-cancel, or staff (ADMIN/CASHIER). CASHIER is limited to CANCELLED below.
+  if (!isAdmin && !isCashier && !isOwner) return NextResponse.json({ error: 'ไม่มีสิทธิ์เปลี่ยนสถานะการจอง' }, { status: 403 });
 
-  if (!isAdmin && status !== 'CANCELLED') return NextResponse.json({ error: 'ผู้ใช้ทำได้แค่ยกเลิกเท่านั้น' }, { status: 403 });
+  // Only ADMIN may approve/reject; owner and CASHIER may only cancel.
+  if (!isAdmin && status !== 'CANCELLED') return NextResponse.json({ error: 'ทำได้แค่ยกเลิกเท่านั้น' }, { status: 403 });
 
   // State machine: validate the transition is allowed
   const validNext = VALID_TRANSITIONS[booking.status];
@@ -218,7 +219,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   // booking.date stores UTC midnight of the Bangkok day; timeSlot is Bangkok local time.
   // Compute booking start in UTC as that day's UTC midnight + (hours - 7) to match Asia/Bangkok (UTC+7).
   const deadlineApplies = booking.status === 'APPROVED' || (booking.status === 'PENDING' && booking.paidAt != null);
-  if (!isAdmin && status === 'CANCELLED' && deadlineApplies) {
+  // Staff (ADMIN/CASHIER) cancel operationally and bypass the customer cancellation deadline.
+  if (!isAdmin && !isCashier && status === 'CANCELLED' && deadlineApplies) {
     const [startStr] = booking.timeSlot.split('-');
     const [h, m] = startStr.split(':').map(Number);
     const BANGKOK_UTC_OFFSET_HOURS = 7;
