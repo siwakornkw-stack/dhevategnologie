@@ -28,6 +28,7 @@ export default async function PosStockPage() {
     productId: m.productId,
     type: m.type as 'IN' | 'OUT' | 'ADJUST' | 'SALE' | 'VOID',
     qty: m.qty,
+    refType: m.refType,
     note: m.note,
     createdAt: m.createdAt.toISOString(),
     product: m.product,

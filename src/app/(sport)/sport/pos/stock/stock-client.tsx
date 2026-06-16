@@ -10,6 +10,7 @@ type Movement = {
   productId: string;
   type: 'IN' | 'OUT' | 'ADJUST' | 'SALE' | 'VOID';
   qty: number;
+  refType: string | null;
   note: string | null;
   createdAt: string;
   product: { name: string; stockUnit: string };
@@ -22,6 +23,21 @@ type StockClientProps = {
 
 const PAGE = 50;
 
+function csvCell(v: unknown): string {
+  const s = v == null ? '' : String(v);
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function fmtBkk(iso: string): string {
+  const parts = new Intl.DateTimeFormat('th-TH-u-ca-buddhist', {
+    timeZone: 'Asia/Bangkok',
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+  }).formatToParts(new Date(iso));
+  const g = (t: string) => parts.find((p) => p.type === t)?.value || '';
+  return `${g('day')}/${g('month')}/${g('year')} ${g('hour')}:${g('minute')}:${g('second')}`;
+}
+
 export function StockClient({ initialProducts = [], initialMovements = [] }: StockClientProps = {}) {
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [movements, setMovements] = useState<Movement[]>(initialMovements);
@@ -29,6 +45,7 @@ export function StockClient({ initialProducts = [], initialMovements = [] }: Sto
   const [loadingMore, setLoadingMore] = useState(false);
   const [filterProductId, setFilterProductId] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [stockTakeOpen, setStockTakeOpen] = useState(false);
   const [counts, setCounts] = useState<Record<string, string>>({});
   const [stProgress, setStProgress] = useState<{ done: number; total: number; ok: number; fail: number } | null>(null);
@@ -71,6 +88,64 @@ export function StockClient({ initialProducts = [], initialMovements = [] }: Sto
       toast.error('โหลดเพิ่มไม่สำเร็จ');
     } finally {
       setLoadingMore(false);
+    }
+  }
+
+  async function exportCsv() {
+    setExporting(true);
+    try {
+      // Pull the full movement history for the current filter (API caps at 200/page).
+      const LIMIT = 200;
+      const all: Movement[] = [];
+      const seen = new Set<string>();
+      let skip = 0;
+      while (true) {
+        const params = new URLSearchParams({ limit: String(LIMIT) });
+        if (filterProductId) params.set('productId', filterProductId);
+        if (skip) params.set('skip', String(skip));
+        const batch = await fetch(`/api/sport/pos/stock?${params.toString()}`).then((r) => r.json());
+        const list: Movement[] = Array.isArray(batch) ? batch : [];
+        for (const m of list) if (!seen.has(m.id)) { seen.add(m.id); all.push(m); }
+        if (list.length < LIMIT || all.length >= 50000) break;
+        skip += LIMIT;
+      }
+      if (all.length === 0) { toast.error('ไม่มี movement ให้ export'); return; }
+
+      // API returns newest-first; reverse to chronological so balance accumulates correctly.
+      all.reverse();
+      const bal = new Map<string, number>();
+      const header = ['#', 'datetime_BKK', 'product', 'direction', 'type', 'qty', 'balance', 'refType', 'note'];
+      const lines = [header.join(',')];
+      all.forEach((m, i) => {
+        const running = (bal.get(m.productId) || 0) + m.qty;
+        bal.set(m.productId, running);
+        lines.push([
+          i + 1,
+          fmtBkk(m.createdAt),
+          csvCell(m.product?.name),
+          m.qty < 0 ? 'OUT' : 'IN',
+          m.type,
+          m.qty,
+          running,
+          csvCell(m.refType ?? ''),
+          csvCell(m.note ?? ''),
+        ].join(','));
+      });
+
+      const csv = '﻿' + lines.join('\r\n'); // BOM so Excel reads Thai as UTF-8
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const prod = filterProductId ? (products.find((p) => p.id === filterProductId)?.name || 'product') : 'all';
+      const ymd = new Date().toISOString().slice(0, 10);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `stock-${prod}-${ymd}.csv`.replace(/\s+/g, '-');
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error('export ไม่สำเร็จ');
+    } finally {
+      setExporting(false);
     }
   }
 
@@ -258,16 +333,25 @@ export function StockClient({ initialProducts = [], initialMovements = [] }: Sto
       <div className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-700/50 overflow-hidden">
         <div className="px-4 py-3 border-b dark:border-gray-800 flex flex-wrap items-center justify-between gap-2">
           <span className="text-sm font-semibold">Movement Log ({movements.length}{hasMore ? '+' : ''})</span>
-          <select
-            value={filterProductId}
-            onChange={(e) => changeFilter(e.target.value)}
-            className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2 py-1 text-xs max-w-[200px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-          >
-            <option value="">ทุกสินค้า</option>
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2">
+            <select
+              value={filterProductId}
+              onChange={(e) => changeFilter(e.target.value)}
+              className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2 py-1 text-xs max-w-[200px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            >
+              <option value="">ทุกสินค้า</option>
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+            <button
+              onClick={exportCsv}
+              disabled={exporting}
+              className="px-3 py-1 rounded-lg bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white text-xs disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            >
+              {exporting ? 'กำลังโหลด...' : 'โหลด CSV'}
+            </button>
+          </div>
         </div>
         {movements.length === 0 ? (
           <div className="p-8 text-center text-gray-400">ยังไม่มี movement</div>
