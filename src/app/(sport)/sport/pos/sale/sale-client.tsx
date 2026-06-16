@@ -506,7 +506,9 @@ function QuickSaleModal({ cart, setCart, onClose, onPaid }: {
     const r = await fetch('/api/sport/pos/quick-sale', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        items: cart.map((c) => ({ productId: c.productId, qty: c.qty, unitPrice: c.price })),
+        // Quick Sale has no price-edit UI, so always sell at the current catalog price.
+        // Sending unitPrice would trip the ADMIN-only override guard for CASHIER.
+        items: cart.map((c) => ({ productId: c.productId, qty: c.qty })),
         discount: Number(discount) || 0,
         payment: {
           method,
