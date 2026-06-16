@@ -4,7 +4,7 @@ import { requirePosRole, getPosSettings, calcVat, nextInvoiceNo, getActiveShift,
 import { calculatePriceWithRules, isCouponUsable, calculateCouponDiscount } from '@/lib/booking';
 import { isCouponSystemEnabled } from '@/lib/settings';
 
-type SplitInput = { label: string; amount: number; method: string; refNo?: string };
+type SplitInput = { label: string; amount: number; method: string; refNo?: string; target?: 'PRODUCT' | 'BOOKING' };
 type PaymentInput = { method: string; amount?: number; cashReceived?: number; refNo?: string };
 
 export async function POST(req: NextRequest) {
@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
       // Payment validation (against the combined amount collected from the customer)
       if (Array.isArray(splits) && splits.length > 0) {
         const sumSplit = (splits as SplitInput[]).reduce((s, x) => s + Number(x.amount), 0);
-        if (Math.abs(sumSplit - grandTotal) > 0.01) throw new Error('SPLIT_MISMATCH');
+        if (!Number.isFinite(sumSplit) || Math.abs(sumSplit - grandTotal) > 0.01) throw new Error('SPLIT_MISMATCH');
       } else {
         if (!payment) throw new Error('PAYMENT_REQUIRED');
         const p = payment as PaymentInput;
@@ -210,29 +210,52 @@ export async function POST(req: NextRequest) {
       const posId = posInvoice?.id ?? null;
       const bookId = bookingInvoice?.id ?? null;
       type Method = 'CASH' | 'TRANSFER' | 'QR' | 'CARD' | 'OTHER';
+      const clean = (s: string | null) => (s == null ? null : String(s).slice(0, 100));
       const pay = (invoiceId: string, method: Method, amount: number, cashReceived: number | null, changeAmount: number | null, refNo: string | null) =>
-        tx.posPayment.create({ data: { invoiceId, method, amount: +amount.toFixed(2), cashReceived, changeAmount, refNo } });
+        tx.posPayment.create({ data: { invoiceId, method, amount: +amount.toFixed(2), cashReceived, changeAmount, refNo: clean(refNo) } });
       const splitRow = (invoiceId: string, label: string, amount: number, method: Method, refNo: string | null) =>
-        tx.posInvoiceSplit.create({ data: { invoiceId, label: String(label).slice(0, 100), amount: +amount.toFixed(2), method, refNo } });
+        tx.posInvoiceSplit.create({ data: { invoiceId, label: String(label).slice(0, 100), amount: +amount.toFixed(2), method, refNo: clean(refNo) } });
 
       if (Array.isArray(splits) && splits.length > 0) {
-        // Allocate booking-first: fill the booking invoice, remainder goes to the POS invoice.
-        let remBooking = bookId ? bookingTotal : 0;
-        for (const sp of splits as SplitInput[]) {
-          if (!['CASH', 'TRANSFER', 'QR', 'CARD', 'OTHER'].includes(sp.method)) throw new Error('PAYMENT_METHOD_INVALID');
-          const method = sp.method as Method;
-          let amt = Number(sp.amount);
-          if (remBooking > 0.0001 && bookId) {
-            const toBook = Math.min(amt, remBooking);
-            await splitRow(bookId, sp.label, toBook, method, sp.refNo || null);
-            await pay(bookId, method, toBook, null, null, null);
-            remBooking = +(remBooking - toBook).toFixed(2);
-            amt = +(amt - toBook).toFixed(2);
-          }
-          if (amt > 0.0001) {
-            const target = posId ?? bookId!;
+        const splitList = splits as SplitInput[];
+        const useTargets = !!bookId && !!posId && splitList.some((s) => s.target === 'BOOKING' || s.target === 'PRODUCT');
+        if (useTargets) {
+          // Per-line target: each split is paid directly to the field (BOOKING) or product (POS) invoice.
+          let bookSum = 0, prodSum = 0;
+          for (const sp of splitList) {
+            if (!['CASH', 'TRANSFER', 'QR', 'CARD', 'OTHER'].includes(sp.method)) throw new Error('PAYMENT_METHOD_INVALID');
+            const method = sp.method as Method;
+            const amt = +Number(sp.amount).toFixed(2);
+            if (!Number.isFinite(amt) || amt < 0) throw new Error('SPLIT_AMOUNT_INVALID');
+            if (amt <= 0.0001) continue;
+            const toBooking = sp.target === 'BOOKING';
+            const target = toBooking ? bookId! : posId!;
             await splitRow(target, sp.label, amt, method, sp.refNo || null);
             await pay(target, method, amt, null, null, null);
+            if (toBooking) bookSum = +(bookSum + amt).toFixed(2); else prodSum = +(prodSum + amt).toFixed(2);
+          }
+          if (Math.abs(bookSum - bookingTotal) > 0.01) throw new Error('SPLIT_BOOKING_MISMATCH');
+          if (Math.abs(prodSum - posFinalTotal) > 0.01) throw new Error('SPLIT_PRODUCT_MISMATCH');
+        } else {
+          // Allocate booking-first: fill the booking invoice, remainder goes to the POS invoice.
+          let remBooking = bookId ? bookingTotal : 0;
+          for (const sp of splitList) {
+            if (!['CASH', 'TRANSFER', 'QR', 'CARD', 'OTHER'].includes(sp.method)) throw new Error('PAYMENT_METHOD_INVALID');
+            const method = sp.method as Method;
+            let amt = Number(sp.amount);
+            if (!Number.isFinite(amt) || amt < 0) throw new Error('SPLIT_AMOUNT_INVALID');
+            if (remBooking > 0.0001 && bookId) {
+              const toBook = Math.min(amt, remBooking);
+              await splitRow(bookId, sp.label, toBook, method, sp.refNo || null);
+              await pay(bookId, method, toBook, null, null, null);
+              remBooking = +(remBooking - toBook).toFixed(2);
+              amt = +(amt - toBook).toFixed(2);
+            }
+            if (amt > 0.0001) {
+              const target = posId ?? bookId!;
+              await splitRow(target, sp.label, amt, method, sp.refNo || null);
+              await pay(target, method, amt, null, null, null);
+            }
           }
         }
       } else {
@@ -285,6 +308,9 @@ export async function POST(req: NextRequest) {
     if (msg === 'POINTS_INSUFFICIENT') return NextResponse.json({ error: 'แต้มไม่พอ' }, { status: 400 });
     if (msg === 'POINTS_REDEEM_DISABLED') return NextResponse.json({ error: 'ระบบ redeem ปิดอยู่' }, { status: 400 });
     if (msg === 'SPLIT_MISMATCH') return NextResponse.json({ error: 'ผลรวม split ไม่เท่ากับยอดบิล' }, { status: 400 });
+    if (msg === 'SPLIT_AMOUNT_INVALID') return NextResponse.json({ error: 'จำนวนเงิน split ไม่ถูกต้อง' }, { status: 400 });
+    if (msg === 'SPLIT_BOOKING_MISMATCH') return NextResponse.json({ error: 'ยอด split ค่าสนามไม่เท่ากับค่าสนาม' }, { status: 400 });
+    if (msg === 'SPLIT_PRODUCT_MISMATCH') return NextResponse.json({ error: 'ยอด split สินค้าไม่เท่ากับยอดสินค้า' }, { status: 400 });
     if (msg === 'CASH_INSUFFICIENT') return NextResponse.json({ error: 'เงินสดไม่พอ' }, { status: 400 });
     if (msg === 'COUPON_DISABLED') return NextResponse.json({ error: 'ระบบคูปองปิดอยู่' }, { status: 403 });
     if (msg === 'COUPON_INVALID') return NextResponse.json({ error: 'คูปองไม่ถูกต้องหรือหมดอายุ' }, { status: 400 });

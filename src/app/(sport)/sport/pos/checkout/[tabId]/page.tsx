@@ -14,7 +14,7 @@ type Tab = {
   bookingSubtotal: number;
 };
 type Settings = { vatMode: 'NONE' | 'INCLUDED' | 'EXCLUDED'; vatRate: number; pointsEarnPerBaht: number; pointsValueBaht: number; serviceChargeRate: number };
-type Split = { label: string; amount: number; method: string; refNo?: string };
+type Split = { label: string; amount: number; method: string; refNo?: string; target?: 'PRODUCT' | 'BOOKING' };
 type CustomerHit = { id: string; name: string | null; email: string | null; phone: string | null; points: number };
 type CustomerInfo = { id?: string | null; name?: string; taxId?: string; address?: string; phone?: string; points?: number };
 
@@ -87,21 +87,21 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
     const ptMaxCart = ptVal > 0 ? Math.floor(v.total / ptVal) : 0;
     const ptUse = Math.min(ptReq, cust.id ? cust.points || 0 : 0, ptMaxCart);
     const productFinal = +Math.max(v.total - ptUse * ptVal, 0).toFixed(2);
-    const grand = +(productFinal + book).toFixed(2);
     const teams = perTeam.filter((x) => x.sub > 0);
+    // Product splits target the product invoice; the field charge gets its own BOOKING-target line.
     let init: Split[];
     if (teams.length > 0) {
-      init = teams.map((x) => ({ label: x.label, amount: +(productSum > 0 ? (x.sub / productSum) * productFinal : 0).toFixed(2), method: 'CASH' }));
-      if (book > 0) init[0].amount = +(init[0].amount + book).toFixed(2);
-    } else if (grand > 0) {
-      init = [{ label: perTeam[0]?.label || tab.name, amount: grand, method: 'CASH' }];
+      init = teams.map((x) => ({ label: x.label, amount: +(productSum > 0 ? (x.sub / productSum) * productFinal : 0).toFixed(2), method: 'CASH', target: 'PRODUCT' }));
+    } else if (productFinal > 0) {
+      init = [{ label: perTeam[0]?.label || tab.name, amount: productFinal, method: 'CASH', target: 'PRODUCT' }];
     } else {
       init = [];
     }
     if (init.length > 0) {
       const sumNow = init.reduce((s, x) => s + x.amount, 0);
-      init[init.length - 1].amount = +(init[init.length - 1].amount + (grand - sumNow)).toFixed(2);
+      init[init.length - 1].amount = +(init[init.length - 1].amount + (productFinal - sumNow)).toFixed(2);
     }
+    if (book > 0) init.push({ label: 'ค่าสนาม', amount: book, method: 'CASH', target: 'BOOKING' });
     setSplits(init);
   }, [tab, settings, includeBooking, discount, coupon, pointsToRedeem, cust, splits.length]);
 
@@ -134,6 +134,13 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
   const earnPreview = cust.id && settings.pointsEarnPerBaht > 0 ? Math.floor(posFinal * settings.pointsEarnPerBaht) : 0;
 
   const splitSum = splits.reduce((s, x) => s + Number(x.amount || 0), 0);
+  const hasBookingBill = subtotalBooking > 0;
+  const splitBookingSum = splits.filter((x) => x.target === 'BOOKING').reduce((s, x) => s + Number(x.amount || 0), 0);
+  const splitProductSum = splits.filter((x) => (x.target ?? 'PRODUCT') !== 'BOOKING').reduce((s, x) => s + Number(x.amount || 0), 0);
+  // With a field bill, each side must balance to its own invoice; otherwise the grand total must match.
+  const splitOk = hasBookingBill
+    ? Math.abs(splitBookingSum - subtotalBooking) < 0.01 && Math.abs(splitProductSum - posFinal) < 0.01
+    : Math.abs(splitSum - total) < 0.01;
   const change = Math.max((Number(cashReceived) || 0) - total, 0);
 
   async function searchCust(q: string) {
@@ -376,23 +383,40 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
             {splits.map((sp, idx) => (
               <div key={idx} className="flex gap-2 items-center text-sm">
                 <input value={sp.label} onChange={(e) => setSplits(splits.map((x, i) => i === idx ? { ...x, label: e.target.value } : x))} placeholder="ทีม" className="flex-1 px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-700" />
-                <input type="number" value={sp.amount} onChange={(e) => setSplits(splits.map((x, i) => i === idx ? { ...x, amount: Number(e.target.value) } : x))} className="w-28 px-2 py-1 border rounded text-right dark:bg-gray-800 dark:border-gray-700" />
+                <input type="number" value={sp.amount} onChange={(e) => setSplits(splits.map((x, i) => i === idx ? { ...x, amount: Number(e.target.value) } : x))} className="w-24 px-2 py-1 border rounded text-right dark:bg-gray-800 dark:border-gray-700" />
+                {hasBookingBill && (
+                  <select value={sp.target ?? 'PRODUCT'} onChange={(e) => setSplits(splits.map((x, i) => i === idx ? { ...x, target: e.target.value as 'PRODUCT' | 'BOOKING' } : x))} className="px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-700">
+                    <option value="PRODUCT">สินค้า</option>
+                    <option value="BOOKING">ค่าสนาม</option>
+                  </select>
+                )}
                 <select value={sp.method} onChange={(e) => setSplits(splits.map((x, i) => i === idx ? { ...x, method: e.target.value } : x))} className="px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-700">
                   {['CASH', 'QR', 'TRANSFER', 'CARD'].map((m) => <option key={m} value={m}>{m}</option>)}
                 </select>
                 <button onClick={() => setSplits(splits.filter((_, i) => i !== idx))} aria-label={`ลบ split ${sp.label || idx + 1}`} className="text-red-500 text-xs rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">✕</button>
               </div>
             ))}
-            <button onClick={() => setSplits([...splits, { label: '', amount: 0, method: 'CASH' }])} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">+ เพิ่ม split</button>
-            <div className={`text-xs tabular-nums ${Math.abs(splitSum - total) < 0.01 ? 'text-emerald-600' : 'text-red-500'}`}>
-              ผลรวม split: {splitSum.toFixed(2)} / {total.toFixed(2)}
-            </div>
+            <button onClick={() => setSplits([...splits, { label: '', amount: 0, method: 'CASH', target: 'PRODUCT' }])} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">+ เพิ่ม split</button>
+            {hasBookingBill ? (
+              <div className="text-xs tabular-nums space-y-0.5">
+                <div className={Math.abs(splitProductSum - posFinal) < 0.01 ? 'text-emerald-600' : 'text-red-500'}>
+                  split สินค้า: {splitProductSum.toFixed(2)} / {posFinal.toFixed(2)}
+                </div>
+                <div className={Math.abs(splitBookingSum - subtotalBooking) < 0.01 ? 'text-emerald-600' : 'text-red-500'}>
+                  split ค่าสนาม: {splitBookingSum.toFixed(2)} / {subtotalBooking.toFixed(2)}
+                </div>
+              </div>
+            ) : (
+              <div className={`text-xs tabular-nums ${Math.abs(splitSum - total) < 0.01 ? 'text-emerald-600' : 'text-red-500'}`}>
+                ผลรวม split: {splitSum.toFixed(2)} / {total.toFixed(2)}
+              </div>
+            )}
           </div>
         )}
 
         <button
           onClick={submit}
-          disabled={busy || total <= 0 || (splitMode && Math.abs(splitSum - total) > 0.01) || (!splitMode && payMethod === 'CASH' && Number(cashReceived) < total)}
+          disabled={busy || total <= 0 || (splitMode && !splitOk) || (!splitMode && payMethod === 'CASH' && Number(cashReceived) < total)}
           className="w-full py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-semibold disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
         >
           {busy ? 'กำลังบันทึก...' : 'ยืนยัน + พิมพ์บิล'}
