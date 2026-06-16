@@ -26,6 +26,7 @@ export default async function PosHubPage() {
     { href: '/sport/pos/tabs', title: 'Tabs / โต๊ะ', desc: 'จัดการบิลที่เปิดอยู่' },
     { href: '/sport/admin/availability', title: 'จองสนาม', desc: 'จองให้ลูกค้า + ดูสนามว่าง' },
     { href: '/sport/admin/calendar', title: 'ปฏิทินจอง / แก้เวลา', desc: 'ดูตารางจอง + แก้เวลา' },
+    { href: '/sport/admin/bookings', title: 'รายการจอง', desc: 'ดูบิลจอง + แก้เวลา' },
     { href: '/sport/pos/shift', title: 'กะ (Shift)', desc: 'เปิด-ปิดกะ + X/Z report' },
     { href: '/sport/pos/invoices', title: 'บิลย้อนหลัง', desc: 'ดู / พิมพ์ซ้ำ / refund / void' },
     { href: '/sport/pos/customers', title: 'ลูกค้า', desc: 'ค้นลูกค้า + แต้ม + ประวัติซื้อ' },

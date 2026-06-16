@@ -46,7 +46,7 @@ export const authConfig: NextAuthConfig = {
       if (isAdminPath) {
         if (!isLoggedIn) return Response.redirect(new URL(`/sport/auth/signin?callbackUrl=${nextUrl.pathname}`, nextUrl));
         // CASHIER may reach only the field-booking + reschedule admin pages; the rest stay ADMIN-only.
-        const cashierAdminPrefixes = ['/sport/admin/availability', '/sport/admin/calendar'];
+        const cashierAdminPrefixes = ['/sport/admin/availability', '/sport/admin/calendar', '/sport/admin/bookings'];
         if (cashierAdminPrefixes.some((p) => nextUrl.pathname.startsWith(p))) {
           if (role !== 'ADMIN' && role !== 'CASHIER') return Response.redirect(new URL('/sport', nextUrl));
           return true;

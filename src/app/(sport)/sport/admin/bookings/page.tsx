@@ -25,7 +25,8 @@ interface PageProps {
 
 export default async function AdminBookingsPage({ searchParams }: PageProps) {
   const session = await auth();
-  if (!session || session.user.role !== 'ADMIN') redirect('/sport');
+  if (!session || (session.user.role !== 'ADMIN' && session.user.role !== 'CASHIER')) redirect('/sport');
+  const isAdmin = session.user.role === 'ADMIN';
 
   const t = await getTranslations('admin');
 
@@ -126,9 +127,9 @@ export default async function AdminBookingsPage({ searchParams }: PageProps) {
         ))}
       </div>
 
-      <BookingReport />
+      <BookingReport canExport={isAdmin} />
 
-      <PendingBookingsSection bookings={pending} />
+      {isAdmin && <PendingBookingsSection bookings={pending} />}
 
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700/50 overflow-hidden">
         <div className="px-4 sm:px-5 py-3 border-b border-gray-100 dark:border-gray-800">
@@ -139,7 +140,7 @@ export default async function AdminBookingsPage({ searchParams }: PageProps) {
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-800">
             {others.map((booking) => (
-              <BookingRow key={booking.id} booking={booking} showActions={booking.status === 'APPROVED'} paidLabel={paidLabel} noPhoneLabel={noPhoneLabel} bookedOnLabel={bookedOnLabel} />
+              <BookingRow key={booking.id} booking={booking} showActions={booking.status === 'APPROVED'} canCancel={isAdmin} paidLabel={paidLabel} noPhoneLabel={noPhoneLabel} bookedOnLabel={bookedOnLabel} />
             ))}
           </div>
         )}
@@ -167,7 +168,7 @@ export default async function AdminBookingsPage({ searchParams }: PageProps) {
   );
 }
 
-function BookingRow({ booking, showActions, paidLabel, noPhoneLabel, bookedOnLabel }: {
+function BookingRow({ booking, showActions, canCancel, paidLabel, noPhoneLabel, bookedOnLabel }: {
   booking: {
     id: string;
     date: Date;
@@ -180,6 +181,7 @@ function BookingRow({ booking, showActions, paidLabel, noPhoneLabel, bookedOnLab
     field: { name: string; sportType: string };
   };
   showActions: boolean;
+  canCancel: boolean;
   paidLabel: string;
   noPhoneLabel: string;
   bookedOnLabel: string;
@@ -237,7 +239,7 @@ function BookingRow({ booking, showActions, paidLabel, noPhoneLabel, bookedOnLab
               customerPhone={booking.user.phone}
               note={booking.note}
             />
-            <AdminCancelAction bookingId={booking.id} />
+            {canCancel && <AdminCancelAction bookingId={booking.id} />}
           </>
         )}
       </div>

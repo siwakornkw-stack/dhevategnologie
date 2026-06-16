@@ -46,7 +46,7 @@ function csvEscape(v: unknown): string {
   return s;
 }
 
-export function BookingReport() {
+export function BookingReport({ canExport = true }: { canExport?: boolean }) {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
@@ -157,13 +157,15 @@ export function BookingReport() {
     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700/50 overflow-hidden">
       <div className="px-4 sm:px-5 py-3 border-b border-gray-100 dark:border-gray-800 flex flex-wrap items-center justify-between gap-2">
         <span className="font-semibold text-sm text-gray-700 dark:text-gray-300">รายงานการจอง</span>
-        <button
-          onClick={downloadCSV}
-          disabled={loading || bookings.length === 0}
-          className="px-3 py-1.5 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-        >
-          ดาวน์โหลด CSV ({bookings.length})
-        </button>
+        {canExport && (
+          <button
+            onClick={downloadCSV}
+            disabled={loading || bookings.length === 0}
+            className="px-3 py-1.5 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          >
+            ดาวน์โหลด CSV ({bookings.length})
+          </button>
+        )}
       </div>
 
       <div className="p-4 sm:p-5 space-y-4">
