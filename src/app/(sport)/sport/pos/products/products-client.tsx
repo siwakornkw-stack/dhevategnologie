@@ -164,25 +164,55 @@ export function ProductsClient({ initialList = [] }: ProductsClientProps = {}) {
               )}
             </div>
           </div>
-          <input name="name" required defaultValue={editing?.name || ''} placeholder="ชื่อ *" className="input col-span-2" />
-          <input name="sku" defaultValue={editing?.sku || ''} placeholder="SKU" className="input" />
-          <input name="category" defaultValue={editing?.category || ''} placeholder="หมวด" className="input" />
-          <input name="price" type="number" step="0.01" required defaultValue={editing?.price ?? ''} placeholder="ราคาขาย *" className="input" />
-          <input name="cost" type="number" step="0.01" defaultValue={editing?.cost ?? 0} placeholder="ทุน" className="input" />
+          <div className="flex flex-col gap-1 col-span-2">
+            <label className="text-xs text-gray-500 dark:text-gray-400">ชื่อสินค้า *</label>
+            <input name="name" required defaultValue={editing?.name || ''} placeholder="เช่น น้ำสิง" className="input" />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500 dark:text-gray-400">SKU / บาร์โค้ด</label>
+            <input name="sku" defaultValue={editing?.sku || ''} placeholder="ไม่บังคับ" className="input" />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500 dark:text-gray-400">หมวดหมู่</label>
+            <input name="category" defaultValue={editing?.category || ''} placeholder="เช่น เครื่องดื่ม" className="input" />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500 dark:text-gray-400">ราคาขาย (บาท) *</label>
+            <input name="price" type="number" step="0.01" required defaultValue={editing?.price ?? ''} placeholder="0.00" className="input" />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500 dark:text-gray-400">ทุน (บาท)</label>
+            <input name="cost" type="number" step="0.01" defaultValue={editing?.cost ?? 0} placeholder="0.00" className="input" />
+          </div>
           {!editing && (
-            <input name="stockQty" type="number" defaultValue={0} placeholder="Stock เริ่มต้น" className="input" />
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-gray-500 dark:text-gray-400">สต็อกเริ่มต้น</label>
+              <input name="stockQty" type="number" defaultValue={0} placeholder="0" className="input" />
+            </div>
           )}
-          <input name="stockUnit" defaultValue={editing?.stockUnit || 'ชิ้น'} placeholder="หน่วย" className="input" />
-          <input name="lowStockAlert" type="number" defaultValue={editing?.lowStockAlert ?? 5} placeholder="แจ้งเตือนต่ำกว่า" className="input" />
-          <select name="stockParentId" defaultValue={editing?.stockParentId || ''} className="input">
-            <option value="">— stock เดี่ยว (ไม่ใช่แพ็ค) —</option>
-            {list.filter((x) => !x.stockParentId && x.id !== editing?.id).map((x) => (
-              <option key={x.id} value={x.id}>แพ็คที่ดึง stock จาก: {x.name}</option>
-            ))}
-          </select>
-          <input name="unitsPerStock" type="number" min={1} defaultValue={editing?.unitsPerStock ?? 1} placeholder="จำนวน/แพ็ค (เช่น 12)" className="input" />
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="isActive" defaultChecked={editing?.isActive ?? true} /> Active
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500 dark:text-gray-400">หน่วย</label>
+            <input name="stockUnit" defaultValue={editing?.stockUnit || 'ชิ้น'} placeholder="ชิ้น" className="input" />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500 dark:text-gray-400">เตือนเมื่อสต็อกต่ำกว่า</label>
+            <input name="lowStockAlert" type="number" defaultValue={editing?.lowStockAlert ?? 5} placeholder="5" className="input" />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500 dark:text-gray-400">ดึงสต็อกจาก (ถ้าเป็นแพ็ค)</label>
+            <select name="stockParentId" defaultValue={editing?.stockParentId || ''} className="input">
+              <option value="">— สินค้าเดี่ยว (มีสต็อกของตัวเอง) —</option>
+              {list.filter((x) => !x.stockParentId && x.id !== editing?.id).map((x) => (
+                <option key={x.id} value={x.id}>{x.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500 dark:text-gray-400">จำนวนต่อแพ็ค (เช่น 12)</label>
+            <input name="unitsPerStock" type="number" min={1} defaultValue={editing?.unitsPerStock ?? 1} placeholder="1" className="input" />
+          </div>
+          <label className="flex items-end gap-2 text-sm pb-2">
+            <input type="checkbox" name="isActive" defaultChecked={editing?.isActive ?? true} /> เปิดขาย (Active)
           </label>
           <div className="col-span-full flex gap-2 justify-end">
             <button
