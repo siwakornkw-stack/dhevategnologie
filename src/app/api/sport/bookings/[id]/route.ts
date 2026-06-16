@@ -78,13 +78,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!booking) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const isAdmin = session.user.role === 'ADMIN';
+  const isCashier = session.user.role === 'CASHIER';
   const isOwner = booking.userId === session.user.id;
 
-  if (!isAdmin && !isOwner) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // CASHIER is allowed in for reschedule only (status changes are blocked below).
+  if (!isAdmin && !isCashier && !isOwner) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // Admin-only: reschedule (change date/timeSlot) without touching status
+  // ADMIN/CASHIER: reschedule (change date/timeSlot) without touching status
   if (!status && (newDate || newTimeSlot)) {
-    if (!isAdmin) return NextResponse.json({ error: 'Admin เท่านั้น' }, { status: 403 });
+    if (!isAdmin && !isCashier) return NextResponse.json({ error: 'Admin/Cashier เท่านั้น' }, { status: 403 });
     if (booking.status === 'CANCELLED' || booking.status === 'REJECTED') {
       return NextResponse.json({ error: 'การจองนี้ถูกยกเลิก/ปฏิเสธแล้ว แก้ไม่ได้' }, { status: 422 });
     }
@@ -195,6 +197,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   if (!status) return NextResponse.json({ error: 'Missing status' }, { status: 400 });
+
+  // Status changes are owner-self-cancel or ADMIN only. CASHIER (non-owner) cannot change status here.
+  if (!isAdmin && !isOwner) return NextResponse.json({ error: 'ไม่มีสิทธิ์เปลี่ยนสถานะการจอง' }, { status: 403 });
 
   if (!isAdmin && status !== 'CANCELLED') return NextResponse.json({ error: 'ผู้ใช้ทำได้แค่ยกเลิกเท่านั้น' }, { status: 403 });
 

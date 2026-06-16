@@ -13,7 +13,7 @@ export async function generateMetadata() {
 
 export default async function AdminAvailabilityPage() {
   const session = await auth();
-  if (!session || session.user.role !== 'ADMIN') redirect('/sport');
+  if (!session || (session.user.role !== 'ADMIN' && session.user.role !== 'CASHIER')) redirect('/sport');
 
   const today = formatDateISO(new Date());
   const todayObj = new Date(today);

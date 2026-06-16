@@ -13,7 +13,7 @@ interface PageProps {
 
 export default async function AdminCalendarPage({ searchParams }: PageProps) {
   const session = await auth();
-  if (!session || session.user.role !== 'ADMIN') redirect('/sport');
+  if (!session || (session.user.role !== 'ADMIN' && session.user.role !== 'CASHIER')) redirect('/sport');
 
   const { date: dateStr } = await searchParams;
 
