@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -27,6 +27,11 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
   const [tabNameOpen, setTabNameOpen] = useState(false);
   const [tabNameInput, setTabNameInput] = useState('');
   const [tabBusy, setTabBusy] = useState(false);
+  // Debounce qty +/- so rapid clicks send ONE PATCH (final qty) instead of one per click.
+  // Prevents transaction pile-up / pool exhaustion and excess ITEM_QTY stock movements.
+  const qtyTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const qtyPending = useRef<Record<string, { tabId: string; qty: number; prevQty: number }>>({});
+  const qtyInFlight = useRef<Record<string, Promise<void>>>({});
 
   async function loadProducts() {
     const p = await fetch('/api/sport/pos/products').then((r) => r.json());
@@ -42,6 +47,17 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
   useEffect(() => {
     if (initialProducts.length === 0 && initialTabs.length === 0) load();
   }, [initialProducts.length, initialTabs.length]);
+
+  // On unmount: best-effort persist queued qty edits, then clear any pending debounce timers
+  // so they don't fire (and toast) after navigation.
+  useEffect(() => {
+    const timers = qtyTimers.current;
+    return () => {
+      Object.keys(qtyPending.current).forEach((id) => { commitQty(id); });
+      Object.values(timers).forEach((t) => clearTimeout(t));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const categories = useMemo(() => Array.from(new Set(products.map((p) => p.category).filter(Boolean))) as string[], [products]);
   const filtered = products.filter((p) =>
@@ -99,6 +115,7 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
 
   async function holdTab() {
     if (!currentTabId) return;
+    await flushAllQty();
     const r = await fetch(`/api/sport/pos/tabs/${currentTabId}/hold`, { method: 'POST' });
     if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.error || 'พักไม่สำเร็จ'); return; }
     await loadTabs();
@@ -114,6 +131,9 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
     if (!currentTabId) return;
     if (!confirm('ลบรายการนี้?')) return;
     const tabId = currentTabId;
+    // Cancel any pending debounced qty write for this item — it's about to be voided.
+    if (qtyTimers.current[itemId]) { clearTimeout(qtyTimers.current[itemId]); delete qtyTimers.current[itemId]; }
+    delete qtyPending.current[itemId];
     const tab = tabs.find((t) => t.id === tabId);
     const removed = tab?.items.find((i) => i.id === itemId);
     setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: t.items.filter((i) => i.id !== itemId) } : t));
@@ -124,28 +144,61 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
     }
   }
 
-  async function changeQty(itemId: string, nextQty: number) {
+  function changeQty(itemId: string, nextQty: number) {
     if (!currentTabId || nextQty < 1) return;
     const tabId = currentTabId;
     const tab = tabs.find((t) => t.id === tabId);
     const item = tab?.items.find((i) => i.id === itemId);
     if (!item || item.qty === nextQty) return;
-    const prevQty = item.qty;
+    // Keep the original (pre-edit) qty for revert; carry it across rapid clicks.
+    if (qtyPending.current[itemId]) qtyPending.current[itemId].qty = nextQty;
+    else qtyPending.current[itemId] = { tabId, qty: nextQty, prevQty: item.qty };
+    // Optimistic UI right away (snappy), but debounce the network write.
     setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: t.items.map((i) => i.id === itemId ? { ...i, qty: nextQty } : i) } : t));
-    try {
-      const r = await fetch(`/api/sport/pos/tabs/${tabId}/items/${itemId}`, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ qty: nextQty }),
-      });
-      if (!r.ok) {
-        const e = await r.json().catch(() => ({}));
-        toast.error(e.error || 'ปรับจำนวนไม่สำเร็จ');
+    if (qtyTimers.current[itemId]) clearTimeout(qtyTimers.current[itemId]);
+    qtyTimers.current[itemId] = setTimeout(() => { commitQty(itemId); }, 400);
+  }
+
+  function commitQty(itemId: string): Promise<void> {
+    if (qtyTimers.current[itemId]) { clearTimeout(qtyTimers.current[itemId]); delete qtyTimers.current[itemId]; }
+    const pending = qtyPending.current[itemId];
+    // Already committing (timer fired, PATCH in flight) — return that promise so callers can await it.
+    if (!pending) return qtyInFlight.current[itemId] ?? Promise.resolve();
+    delete qtyPending.current[itemId];
+    const { tabId, qty, prevQty } = pending;
+    const p = (async () => {
+      try {
+        const r = await fetch(`/api/sport/pos/tabs/${tabId}/items/${itemId}`, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ qty }),
+        });
+        // A newer edit was queued while this PATCH was in flight — it wins; don't stomp/revert it.
+        if (qtyPending.current[itemId]) return;
+        if (!r.ok) {
+          const e = await r.json().catch(() => ({}));
+          toast.error(e.error || 'ปรับจำนวนไม่สำเร็จ');
+          setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: t.items.map((i) => i.id === itemId ? { ...i, qty: prevQty } : i) } : t));
+          return;
+        }
+        const updated: Item = await r.json();
+        setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: t.items.map((i) => i.id === itemId ? updated : i) } : t));
+      } catch {
+        if (qtyPending.current[itemId]) return;
         setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: t.items.map((i) => i.id === itemId ? { ...i, qty: prevQty } : i) } : t));
-        return;
       }
-      const updated: Item = await r.json();
-      setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: t.items.map((i) => i.id === itemId ? updated : i) } : t));
-    } catch {
-      setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: t.items.map((i) => i.id === itemId ? { ...i, qty: prevQty } : i) } : t));
+    })();
+    qtyInFlight.current[itemId] = p;
+    p.finally(() => { if (qtyInFlight.current[itemId] === p) delete qtyInFlight.current[itemId]; });
+    return p;
+  }
+
+  // Send queued debounced qty changes AND wait for any already-in-flight commit, until both drain.
+  // Called before checkout/hold so the server has the final qty before it is re-read.
+  async function flushAllQty() {
+    while (Object.keys(qtyPending.current).length > 0 || Object.keys(qtyInFlight.current).length > 0) {
+      await Promise.all([
+        ...Object.keys(qtyPending.current).map((id) => commitQty(id)),
+        ...Object.values(qtyInFlight.current),
+      ]);
     }
   }
 
@@ -342,7 +395,7 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
                 <span className="tabular-nums">{tabSubtotal.toFixed(2)}</span>
               </div>
               <button
-                onClick={() => router.push(`/sport/pos/checkout/${currentTab.id}`)}
+                onClick={async () => { await flushAllQty(); router.push(`/sport/pos/checkout/${currentTab.id}`); }}
                 disabled={(allCurrentItems.length === 0 && !currentTab.bookingId) || currentTab.status === 'HELD'}
                 className="w-full mt-3 py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-semibold disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
               >

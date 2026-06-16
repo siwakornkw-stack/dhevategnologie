@@ -53,7 +53,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       const maxDiscount = item.unitPrice * qtyNum;
       const nextDiscount = Math.min(item.discount, maxDiscount);
       return tx.posOrderItem.update({ where: { id: itemId }, data: { qty: qtyNum, discount: nextDiscount } });
-    });
+    }, { timeout: 15000, maxWait: 8000 });
     return NextResponse.json(result);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'update failed';
@@ -90,7 +90,7 @@ export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: str
         },
       });
       await tx.posOrderItem.update({ where: { id: itemId }, data: { status: 'VOID' } });
-    });
+    }, { timeout: 15000, maxWait: 8000 });
     return NextResponse.json({ ok: true });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'void failed';
