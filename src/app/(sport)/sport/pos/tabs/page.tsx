@@ -35,9 +35,19 @@ export default async function PosTabsPage() {
         field: { select: { name: true } },
       },
       orderBy: [{ date: 'asc' }, { timeSlot: 'asc' }],
-      take: 100,
+      take: 200,
     }),
   ]);
+
+  // Order the booking picker: today + upcoming first (ascending), past after.
+  const todayMs = today.getTime();
+  bookings.sort((a, b) => {
+    const aPast = a.date.getTime() < todayMs ? 1 : 0;
+    const bPast = b.date.getTime() < todayMs ? 1 : 0;
+    if (aPast !== bPast) return aPast - bPast;
+    const d = a.date.getTime() - b.date.getTime();
+    return d !== 0 ? d : a.timeSlot.localeCompare(b.timeSlot);
+  });
 
   const initialTabs = tabs.map((t) => ({
     ...t,
@@ -47,6 +57,7 @@ export default async function PosTabsPage() {
     id: b.id,
     date: b.date.toISOString(),
     timeSlot: b.timeSlot,
+    note: b.note,
     user: b.user,
     field: b.field,
   }));

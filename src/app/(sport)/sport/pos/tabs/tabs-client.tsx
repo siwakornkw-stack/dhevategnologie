@@ -11,7 +11,7 @@ type Tab = {
   items: { id: string; qty: number; unitPrice: number; discount: number }[];
   openedAt: string;
 };
-type Booking = { id: string; date: string; timeSlot: string; user: { name: string | null; phone: string | null }; field: { name: string } };
+type Booking = { id: string; date: string; timeSlot: string; note: string | null; user: { name: string | null; phone: string | null }; field: { name: string } };
 
 type TabsClientProps = {
   initialTabs?: Tab[];
@@ -166,7 +166,8 @@ export function TabsClient({ initialTabs = [], initialBookings = [] }: TabsClien
                           onClick={() => linkBooking(t.id, b.id, linkTeamLabel.trim() || undefined)}
                           className="w-full text-left p-2 rounded hover:bg-white dark:hover:bg-gray-900 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                         >
-                          {new Date(b.date).toLocaleDateString('th-TH')} {b.timeSlot} · {b.field.name} · {b.user.name}
+                          <div>{new Date(b.date).toLocaleDateString('th-TH')} {b.timeSlot} · {b.field.name} · {b.user.name}</div>
+                          {b.note && <div className="text-gray-500 dark:text-gray-400 italic mt-0.5">💬 {b.note}</div>}
                         </button>
                       ))
                     }
