@@ -30,36 +30,51 @@ async function buildSummary(shiftId: string) {
   for (const r of refunds) methodTotals[r.method] = (methodTotals[r.method] || 0) - r.amount;
 
   // By category — products sold on this shift's PAID invoices, grouped by current category.
-  const prodCount: Record<string, { qty: number; revenue: number; name: string }> = {};
+  // Attribute each product line to its invoice's payment method (single method, or the
+  // largest split when paid by multiple methods), then aggregate per product + per category.
+  type MethodAgg = Record<string, { qty: number; revenue: number }>;
+  const addM = (m: MethodAgg, method: string, qty: number, revenue: number) => {
+    if (!m[method]) m[method] = { qty: 0, revenue: 0 };
+    m[method].qty += qty;
+    m[method].revenue += revenue;
+  };
+  const prodAgg: Record<string, { name: string; qty: number; revenue: number; methods: MethodAgg }> = {};
   for (const inv of invoices) {
     if (inv.status !== 'PAID') continue;
+    const method = inv.splits.length
+      ? ([...inv.splits].sort((a, b) => b.amount - a.amount)[0]?.method ?? 'OTHER')
+      : (inv.payments[0]?.method ?? 'OTHER');
     const snap = (inv.itemsSnapshot as Array<{ productId?: string; productName?: string; qty: number; unitPrice: number; discount: number }> | null) || [];
     for (const it of snap) {
       if (!it.productId) continue;
-      if (!prodCount[it.productId]) prodCount[it.productId] = { qty: 0, revenue: 0, name: it.productName || it.productId };
-      prodCount[it.productId].qty += it.qty;
-      prodCount[it.productId].revenue += it.unitPrice * it.qty - it.discount;
+      const rev = it.unitPrice * it.qty - it.discount;
+      if (!prodAgg[it.productId]) prodAgg[it.productId] = { name: it.productName || it.productId, qty: 0, revenue: 0, methods: {} };
+      const p = prodAgg[it.productId];
+      p.qty += it.qty;
+      p.revenue += rev;
+      addM(p.methods, method, it.qty, rev);
     }
   }
-  const topProducts = Object.entries(prodCount)
-    .map(([productId, v]) => ({ productId, name: v.name, qty: v.qty, revenue: v.revenue }))
-    .sort((a, b) => b.revenue - a.revenue)
-    .slice(0, 50);
-  const prodIds = Object.keys(prodCount);
+  const prodIds = Object.keys(prodAgg);
   const prods = prodIds.length
     ? await prisma.posProduct.findMany({ where: { id: { in: prodIds } }, select: { id: true, category: true } })
     : [];
   const catOf = new Map(prods.map((p) => [p.id, p.category || 'ไม่ระบุหมวด']));
-  const catAgg: Record<string, { count: number; revenue: number }> = {};
-  for (const [id, v] of Object.entries(prodCount)) {
+  const catMap: Record<string, { count: number; revenue: number; methods: MethodAgg }> = {};
+  for (const [id, v] of Object.entries(prodAgg)) {
     const cat = catOf.get(id) || 'ไม่ระบุหมวด';
-    if (!catAgg[cat]) catAgg[cat] = { count: 0, revenue: 0 };
-    catAgg[cat].count += v.qty;
-    catAgg[cat].revenue += v.revenue;
+    if (!catMap[cat]) catMap[cat] = { count: 0, revenue: 0, methods: {} };
+    catMap[cat].count += v.qty;
+    catMap[cat].revenue += v.revenue;
+    for (const [m, mv] of Object.entries(v.methods)) addM(catMap[cat].methods, m, mv.qty, mv.revenue);
   }
-  const byCategory = Object.entries(catAgg)
-    .map(([category, v]) => ({ category, ...v }))
+  const byCategory = Object.entries(catMap)
+    .map(([category, v]) => ({ category, count: v.count, revenue: v.revenue, methods: v.methods }))
     .sort((a, b) => b.revenue - a.revenue);
+  const topProducts = Object.entries(prodAgg)
+    .map(([productId, v]) => ({ productId, name: v.name, qty: v.qty, revenue: v.revenue, methods: v.methods }))
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 50);
 
   const payIn = movements.filter((m) => m.type === 'PAY_IN').reduce((s, m) => s + m.amount, 0);
   const payOut = movements.filter((m) => m.type === 'PAY_OUT').reduce((s, m) => s + m.amount, 0);

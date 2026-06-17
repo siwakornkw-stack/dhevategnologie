@@ -7,8 +7,8 @@ type Summary = {
   invoiceCount: number; paidCount: number; voidCount: number; refundCount: number;
   grossPaid: number; voidTotal: number; refundTotal: number; netSales: number;
   methodTotals: Record<string, number>;
-  byCategory: { category: string; count: number; revenue: number }[];
-  topProducts: { productId: string; name: string; qty: number; revenue: number }[];
+  byCategory: { category: string; count: number; revenue: number; methods: Record<string, { qty: number; revenue: number }> }[];
+  topProducts: { productId: string; name: string; qty: number; revenue: number; methods: Record<string, { qty: number; revenue: number }> }[];
   payIn: number; payOut: number; movements: Movement[];
 };
 type Shift = {
@@ -167,12 +167,18 @@ export default function ShiftPrintPage({ params }: { params: Promise<{ id: strin
           <hr />
           <table>
             <tbody>
-              {sm.byCategory.map((c) => (
-                <tr key={c.category}>
-                  <td>{c.category} <span style={{ color: '#666' }}>x{c.count}</span></td>
+              {sm.byCategory.flatMap((c) => [
+                <tr key={c.category} style={{ fontWeight: 'bold' }}>
+                  <td>{c.category} <span style={{ color: '#666', fontWeight: 'normal' }}>x{c.count}</span></td>
                   <td className="right">{c.revenue.toFixed(2)}</td>
-                </tr>
-              ))}
+                </tr>,
+                ...Object.entries(c.methods).map(([m, mv]) => (
+                  <tr key={c.category + m} style={{ fontSize: '9px', color: '#444' }}>
+                    <td>&nbsp;&nbsp;{m} <span style={{ color: '#888' }}>x{mv.qty}</span></td>
+                    <td className="right">{mv.revenue.toFixed(2)}</td>
+                  </tr>
+                )),
+              ])}
             </tbody>
           </table>
           {sm.topProducts.length > 0 && (
@@ -181,12 +187,18 @@ export default function ShiftPrintPage({ params }: { params: Promise<{ id: strin
               <div style={{ fontWeight: 'bold' }}>เมนูย่อย:</div>
               <table>
                 <tbody>
-                  {sm.topProducts.map((p) => (
-                    <tr key={p.productId}>
-                      <td>{p.name} <span style={{ color: '#666' }}>x{p.qty}</span></td>
+                  {sm.topProducts.flatMap((p) => [
+                    <tr key={p.productId} style={{ fontWeight: 'bold' }}>
+                      <td>{p.name} <span style={{ color: '#666', fontWeight: 'normal' }}>x{p.qty}</span></td>
                       <td className="right">{p.revenue.toFixed(2)}</td>
-                    </tr>
-                  ))}
+                    </tr>,
+                    ...Object.entries(p.methods).map(([m, mv]) => (
+                      <tr key={p.productId + m} style={{ fontSize: '9px', color: '#444' }}>
+                        <td>&nbsp;&nbsp;{m} <span style={{ color: '#888' }}>x{mv.qty}</span></td>
+                        <td className="right">{mv.revenue.toFixed(2)}</td>
+                      </tr>
+                    )),
+                  ])}
                 </tbody>
               </table>
             </>
