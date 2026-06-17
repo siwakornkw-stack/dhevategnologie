@@ -11,6 +11,7 @@ type Report = {
     totalServiceCharge: number; totalCost: number; grossProfit: number; marginPct: number;
   };
   byMethod: Record<string, number>;
+  byCategory: { category: string; count: number; revenue: number }[];
   topProducts: { productId: string; name: string; qty: number; revenue: number }[];
 };
 
@@ -55,6 +56,10 @@ export default function PosReportPage() {
           })()}
           className="px-3 py-2 rounded bg-indigo-500 hover:bg-indigo-600 text-white text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >ดาวน์โหลด CSV (ภพ.30)</a>
+        <button
+          onClick={() => window.open(`/sport/pos/report/print?from=${from}&to=${to}`, '_blank')}
+          className="px-3 py-2 rounded border border-indigo-500 text-indigo-600 dark:text-indigo-400 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+        >พิมพ์สรุปการขาย (80mm)</button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -80,6 +85,26 @@ export default function PosReportPage() {
               <div key={m} className="flex justify-between"><span>{m}</span><span className="tabular-nums">฿{v.toFixed(2)}</span></div>
             ))}
           </div>
+        }
+      </div>
+
+      <div className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-700/50 overflow-hidden">
+        <div className="px-4 py-2 font-semibold border-b dark:border-gray-800">ตามหมวด (ประเภทรายการ)</div>
+        {data.byCategory.length === 0 ? <div className="p-6 text-center text-xs text-gray-400">ไม่มี</div> :
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 dark:bg-gray-800 text-xs text-gray-500">
+              <tr><th className="px-4 py-2 text-left">หมวด</th><th className="px-4 py-2 text-right">จำนวน</th><th className="px-4 py-2 text-right">ยอด</th></tr>
+            </thead>
+            <tbody className="divide-y dark:divide-gray-800">
+              {data.byCategory.map((c) => (
+                <tr key={c.category}>
+                  <td className="px-4 py-2">{c.category}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{c.count}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{c.revenue.toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         }
       </div>
 

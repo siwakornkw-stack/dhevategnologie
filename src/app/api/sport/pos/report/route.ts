@@ -71,6 +71,23 @@ export async function GET(req: NextRequest) {
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, 20);
 
+  // By category — resolve each sold product's current category, then aggregate qty + revenue.
+  const prodIds = Object.keys(productCount);
+  const prods = prodIds.length
+    ? await prisma.posProduct.findMany({ where: { id: { in: prodIds } }, select: { id: true, category: true } })
+    : [];
+  const catOf = new Map(prods.map((p) => [p.id, p.category || 'ไม่ระบุหมวด']));
+  const catAgg: Record<string, { count: number; revenue: number }> = {};
+  for (const [id, v] of Object.entries(productCount)) {
+    const cat = catOf.get(id) || 'ไม่ระบุหมวด';
+    if (!catAgg[cat]) catAgg[cat] = { count: 0, revenue: 0 };
+    catAgg[cat].count += v.qty;
+    catAgg[cat].revenue += v.revenue;
+  }
+  const byCategory = Object.entries(catAgg)
+    .map(([category, v]) => ({ category, ...v }))
+    .sort((a, b) => b.revenue - a.revenue);
+
   return NextResponse.json({
     from,
     to,
@@ -90,6 +107,7 @@ export async function GET(req: NextRequest) {
       marginPct,
     },
     byMethod,
+    byCategory,
     topProducts,
   });
 }
