@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { businessDayRange } from '@/lib/business-day';
 
 type Report = {
   totals: {
@@ -29,8 +30,7 @@ export default function PosReportPage() {
   const [data, setData] = useState<Report | null>(null);
 
   async function load() {
-    const fromDt = new Date(from); fromDt.setHours(0, 0, 0, 0);
-    const toDt = new Date(to); toDt.setHours(23, 59, 59, 999);
+    const { from: fromDt, to: toDt } = businessDayRange(from, to);
     const r = await fetch(`/api/sport/pos/report?from=${fromDt.toISOString()}&to=${toDt.toISOString()}`);
     setData(await r.json());
   }
@@ -50,8 +50,7 @@ export default function PosReportPage() {
         <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" />
         <a
           href={(() => {
-            const f = new Date(from); f.setHours(0, 0, 0, 0);
-            const t = new Date(to); t.setHours(23, 59, 59, 999);
+            const { from: f, to: t } = businessDayRange(from, to);
             return `/api/sport/pos/report/csv?from=${f.toISOString()}&to=${t.toISOString()}`;
           })()}
           className="px-3 py-2 rounded bg-indigo-500 hover:bg-indigo-600 text-white text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"

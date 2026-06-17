@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { businessDayRange } from '@/lib/business-day';
 
 type Report = {
   totals: {
@@ -24,8 +25,7 @@ export default function SalesReportPrintPage() {
     const sp = new URLSearchParams(window.location.search);
     const fromStr = sp.get('from') || '';
     const toStr = sp.get('to') || '';
-    const f = new Date(fromStr); f.setHours(0, 0, 0, 0);
-    const t = new Date(toStr); t.setHours(23, 59, 59, 999);
+    const { from: f, to: t } = businessDayRange(fromStr, toStr);
     setRange({ from: fromStr, to: toStr });
     (async () => {
       const [rRes, sRes] = await Promise.all([
