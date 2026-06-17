@@ -29,6 +29,34 @@ async function buildSummary(shiftId: string) {
   }
   for (const r of refunds) methodTotals[r.method] = (methodTotals[r.method] || 0) - r.amount;
 
+  // By category — products sold on this shift's PAID invoices, grouped by current category.
+  const prodCount: Record<string, { qty: number; revenue: number }> = {};
+  for (const inv of invoices) {
+    if (inv.status !== 'PAID') continue;
+    const snap = (inv.itemsSnapshot as Array<{ productId?: string; qty: number; unitPrice: number; discount: number }> | null) || [];
+    for (const it of snap) {
+      if (!it.productId) continue;
+      if (!prodCount[it.productId]) prodCount[it.productId] = { qty: 0, revenue: 0 };
+      prodCount[it.productId].qty += it.qty;
+      prodCount[it.productId].revenue += it.unitPrice * it.qty - it.discount;
+    }
+  }
+  const prodIds = Object.keys(prodCount);
+  const prods = prodIds.length
+    ? await prisma.posProduct.findMany({ where: { id: { in: prodIds } }, select: { id: true, category: true } })
+    : [];
+  const catOf = new Map(prods.map((p) => [p.id, p.category || 'ไม่ระบุหมวด']));
+  const catAgg: Record<string, { count: number; revenue: number }> = {};
+  for (const [id, v] of Object.entries(prodCount)) {
+    const cat = catOf.get(id) || 'ไม่ระบุหมวด';
+    if (!catAgg[cat]) catAgg[cat] = { count: 0, revenue: 0 };
+    catAgg[cat].count += v.qty;
+    catAgg[cat].revenue += v.revenue;
+  }
+  const byCategory = Object.entries(catAgg)
+    .map(([category, v]) => ({ category, ...v }))
+    .sort((a, b) => b.revenue - a.revenue);
+
   const payIn = movements.filter((m) => m.type === 'PAY_IN').reduce((s, m) => s + m.amount, 0);
   const payOut = movements.filter((m) => m.type === 'PAY_OUT').reduce((s, m) => s + m.amount, 0);
 
@@ -48,6 +76,7 @@ async function buildSummary(shiftId: string) {
     refundTotal,
     netSales: +(grossPaid - refundTotal).toFixed(2),
     methodTotals,
+    byCategory,
     payIn: +payIn.toFixed(2),
     payOut: +payOut.toFixed(2),
     openingFloat,

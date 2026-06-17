@@ -7,6 +7,7 @@ type Summary = {
   invoiceCount: number; paidCount: number; voidCount: number; refundCount: number;
   grossPaid: number; voidTotal: number; refundTotal: number; netSales: number;
   methodTotals: Record<string, number>;
+  byCategory: { category: string; count: number; revenue: number }[];
   payIn: number; payOut: number; movements: Movement[];
 };
 type Shift = {
@@ -51,6 +52,8 @@ export default function ShiftPrintPage({ params }: { params: Promise<{ id: strin
           body { margin: 0; }
           .no-print, header, footer { display: none !important; }
           .receipt-page { min-height: 0 !important; padding: 0 !important; background: #fff !important; }
+          .receipt { page-break-after: always; }
+          .receipt:last-child { page-break-after: auto; }
         }
         .receipt { width: ${width}; margin: 0 auto; background: white; padding: 8px; font-family: 'Tahoma', monospace; font-size: 11px; color: #000; }
         .receipt .center { text-align: center; }
@@ -151,6 +154,30 @@ export default function ShiftPrintPage({ params }: { params: Promise<{ id: strin
         <hr />
         <div className="center" style={{ marginTop: '6px' }}>{new Date().toLocaleString('th-TH')}</div>
       </div>
+
+      {sm && sm.byCategory.length > 0 && (
+        <div className="receipt">
+          <div className="center" style={{ fontWeight: 'bold', fontSize: '13px' }}>{settings.shopName}</div>
+          <div className="center" style={{ fontWeight: 'bold', marginTop: 4 }}>*** สรุปการขายตามหมวด ***</div>
+          <hr />
+          <div>Shift: {shift.shiftNo}</div>
+          <div>เปิด: {new Date(shift.openedAt).toLocaleString('th-TH')}</div>
+          {shift.closedAt && <div>ปิด: {new Date(shift.closedAt).toLocaleString('th-TH')}</div>}
+          <hr />
+          <table>
+            <tbody>
+              {sm.byCategory.map((c) => (
+                <tr key={c.category}>
+                  <td>{c.category} <span style={{ color: '#666' }}>x{c.count}</span></td>
+                  <td className="right">{c.revenue.toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <hr />
+          <div className="center" style={{ marginTop: '6px' }}>{new Date().toLocaleString('th-TH')}</div>
+        </div>
+      )}
     </div>
   );
 }
