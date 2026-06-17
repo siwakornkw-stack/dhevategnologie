@@ -8,6 +8,7 @@ type Summary = {
   grossPaid: number; voidTotal: number; refundTotal: number; netSales: number;
   methodTotals: Record<string, number>;
   byCategory: { category: string; count: number; revenue: number }[];
+  topProducts: { productId: string; name: string; qty: number; revenue: number }[];
   payIn: number; payOut: number; movements: Movement[];
 };
 type Shift = {
@@ -174,6 +175,22 @@ export default function ShiftPrintPage({ params }: { params: Promise<{ id: strin
               ))}
             </tbody>
           </table>
+          {sm.topProducts.length > 0 && (
+            <>
+              <hr />
+              <div style={{ fontWeight: 'bold' }}>เมนูย่อย:</div>
+              <table>
+                <tbody>
+                  {sm.topProducts.map((p) => (
+                    <tr key={p.productId}>
+                      <td>{p.name} <span style={{ color: '#666' }}>x{p.qty}</span></td>
+                      <td className="right">{p.revenue.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
           <hr />
           <div className="center" style={{ marginTop: '6px' }}>{new Date().toLocaleString('th-TH')}</div>
         </div>

@@ -30,17 +30,21 @@ async function buildSummary(shiftId: string) {
   for (const r of refunds) methodTotals[r.method] = (methodTotals[r.method] || 0) - r.amount;
 
   // By category — products sold on this shift's PAID invoices, grouped by current category.
-  const prodCount: Record<string, { qty: number; revenue: number }> = {};
+  const prodCount: Record<string, { qty: number; revenue: number; name: string }> = {};
   for (const inv of invoices) {
     if (inv.status !== 'PAID') continue;
-    const snap = (inv.itemsSnapshot as Array<{ productId?: string; qty: number; unitPrice: number; discount: number }> | null) || [];
+    const snap = (inv.itemsSnapshot as Array<{ productId?: string; productName?: string; qty: number; unitPrice: number; discount: number }> | null) || [];
     for (const it of snap) {
       if (!it.productId) continue;
-      if (!prodCount[it.productId]) prodCount[it.productId] = { qty: 0, revenue: 0 };
+      if (!prodCount[it.productId]) prodCount[it.productId] = { qty: 0, revenue: 0, name: it.productName || it.productId };
       prodCount[it.productId].qty += it.qty;
       prodCount[it.productId].revenue += it.unitPrice * it.qty - it.discount;
     }
   }
+  const topProducts = Object.entries(prodCount)
+    .map(([productId, v]) => ({ productId, name: v.name, qty: v.qty, revenue: v.revenue }))
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 50);
   const prodIds = Object.keys(prodCount);
   const prods = prodIds.length
     ? await prisma.posProduct.findMany({ where: { id: { in: prodIds } }, select: { id: true, category: true } })
@@ -77,6 +81,7 @@ async function buildSummary(shiftId: string) {
     netSales: +(grossPaid - refundTotal).toFixed(2),
     methodTotals,
     byCategory,
+    topProducts,
     payIn: +payIn.toFixed(2),
     payOut: +payOut.toFixed(2),
     openingFloat,
