@@ -8,6 +8,7 @@ type Summary = {
   invoiceCount: number; paidCount: number; voidCount: number; refundCount: number;
   grossPaid: number; voidTotal: number; refundTotal: number; netSales: number;
   methodTotals: Record<string, number>;
+  bookingByMethod: Record<string, number>;
   byCategory: { category: string; count: number; revenue: number; methods: Record<string, { qty: number; revenue: number }> }[];
   topProducts: { productId: string; name: string; qty: number; revenue: number; methods: Record<string, { qty: number; revenue: number }> }[];
   payIn: number; payOut: number; movements: Movement[];
@@ -157,15 +158,17 @@ export default function ShiftPrintPage({ params }: { params: Promise<{ id: strin
         <div className="center" style={{ marginTop: '6px' }}>{new Date().toLocaleString('th-TH')}</div>
       </div>
 
-      {sm && sm.byCategory.length > 0 && (
+      {sm && (sm.byCategory.length > 0 || sm.topProducts.length > 0 || Object.keys(sm.bookingByMethod).length > 0) && (
         <div className="receipt">
           <div className="center" style={{ fontWeight: 'bold', fontSize: '13px' }}>{settings.shopName}</div>
-          <div className="center" style={{ fontWeight: 'bold', marginTop: 4 }}>*** สรุปการขายตามหมวด ***</div>
+          <div className="center" style={{ fontWeight: 'bold', marginTop: 4 }}>*** สรุปการขายของกะ ***</div>
           <hr />
           <div>Shift: {shift.shiftNo}</div>
           <div>เปิด: {new Date(shift.openedAt).toLocaleString('th-TH')}</div>
           {shift.closedAt && <div>ปิด: {new Date(shift.closedAt).toLocaleString('th-TH')}</div>}
+          {sm.byCategory.length > 0 && (<>
           <hr />
+          <div style={{ fontWeight: 'bold' }}>ตามหมวด:</div>
           <table>
             <tbody>
               {sm.byCategory.flatMap((c) => [
@@ -182,6 +185,7 @@ export default function ShiftPrintPage({ params }: { params: Promise<{ id: strin
               ])}
             </tbody>
           </table>
+          </>)}
           {sm.topProducts.length > 0 && (
             <>
               <hr />
@@ -200,6 +204,19 @@ export default function ShiftPrintPage({ params }: { params: Promise<{ id: strin
                       </tr>
                     )),
                   ])}
+                </tbody>
+              </table>
+            </>
+          )}
+          {Object.keys(sm.bookingByMethod).length > 0 && (
+            <>
+              <hr />
+              <div style={{ fontWeight: 'bold' }}>ค่าสนาม (ตามวิธีจ่าย):</div>
+              <table>
+                <tbody>
+                  {Object.entries(sm.bookingByMethod).filter(([, v]) => v !== 0).map(([m, v]) => (
+                    <tr key={m}><td>{methodLabel(m)}</td><td className="right">{v.toFixed(2)}</td></tr>
+                  ))}
                 </tbody>
               </table>
             </>

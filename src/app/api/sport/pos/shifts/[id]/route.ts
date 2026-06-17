@@ -29,6 +29,17 @@ async function buildSummary(shiftId: string) {
   }
   for (const r of refunds) methodTotals[r.method] = (methodTotals[r.method] || 0) - r.amount;
 
+  // Field (ค่าสนาม) charges by payment method — BOOKING-type invoices only.
+  const bookingByMethod: Record<string, number> = {};
+  for (const inv of invoices) {
+    if (inv.status !== 'PAID' || inv.type !== 'BOOKING') continue;
+    if (inv.splits.length) {
+      for (const sp of inv.splits) bookingByMethod[sp.method] = (bookingByMethod[sp.method] || 0) + sp.amount;
+    } else {
+      for (const p of inv.payments) bookingByMethod[p.method] = (bookingByMethod[p.method] || 0) + p.amount;
+    }
+  }
+
   // By category — products sold on this shift's PAID invoices, grouped by current category.
   // Attribute each product line to its invoice's payment method (single method, or the
   // largest split when paid by multiple methods), then aggregate per product + per category.
@@ -95,6 +106,7 @@ async function buildSummary(shiftId: string) {
     refundTotal,
     netSales: +(grossPaid - refundTotal).toFixed(2),
     methodTotals,
+    bookingByMethod,
     byCategory,
     topProducts,
     payIn: +payIn.toFixed(2),
