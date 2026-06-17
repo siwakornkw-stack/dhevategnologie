@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
     orderBy: [{ date: 'asc' }, { timeSlot: 'asc' }],
     include: {
       user: { select: { name: true, email: true, phone: true } },
-      field: { select: { name: true, sportType: true } },
+      field: { select: { id: true, name: true, sportType: true } },
     },
     take: 5000,
   });

@@ -17,7 +17,7 @@ interface Booking {
   paidAt?: Date | null;
   createdAt: Date;
   user: { name: string | null; email: string; phone: string | null };
-  field: { name: string; sportType: string };
+  field: { id: string; name: string; sportType: string };
 }
 
 export function PendingBookingsSection({ bookings }: { bookings: Booking[] }) {
@@ -138,6 +138,8 @@ export function PendingBookingsSection({ bookings }: { bookings: Booking[] }) {
                   bookingId={booking.id}
                   initialDate={new Date(booking.date).toISOString()}
                   initialTimeSlot={booking.timeSlot}
+                  fieldId={booking.field.id}
+                  fieldName={booking.field.name}
                 />
               </div>
             </div>

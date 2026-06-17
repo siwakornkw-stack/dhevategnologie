@@ -178,7 +178,7 @@ function BookingRow({ booking, showActions, canCancel, paidLabel, noPhoneLabel, 
     paidAt?: Date | null;
     createdAt: Date;
     user: { name: string | null; email: string; phone: string | null };
-    field: { name: string; sportType: string };
+    field: { id: string; name: string; sportType: string };
   };
   showActions: boolean;
   canCancel: boolean;
@@ -234,6 +234,7 @@ function BookingRow({ booking, showActions, canCancel, paidLabel, noPhoneLabel, 
               bookingId={booking.id}
               initialDate={new Date(booking.date).toISOString()}
               initialTimeSlot={booking.timeSlot}
+              fieldId={booking.field.id}
               fieldName={booking.field.name}
               customerName={booking.user.name}
               customerPhone={booking.user.phone}

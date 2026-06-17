@@ -35,7 +35,7 @@ export default async function AdminCalendarPage({ searchParams }: PageProps) {
     where: { date: { gte: weekStart, lte: weekEnd } },
     include: {
       user: { select: { name: true, phone: true } },
-      field: { select: { name: true, sportType: true } },
+      field: { select: { id: true, name: true, sportType: true } },
     },
     orderBy: { date: 'asc' },
   });
@@ -141,6 +141,7 @@ export default async function AdminCalendarPage({ searchParams }: PageProps) {
                                 bookingId={b.id}
                                 initialDate={new Date(b.date).toISOString()}
                                 initialTimeSlot={b.timeSlot}
+                                fieldId={b.field.id}
                                 fieldName={b.field.name}
                                 customerName={b.user.name}
                                 customerPhone={b.user.phone}

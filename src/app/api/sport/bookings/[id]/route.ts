@@ -68,10 +68,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const { id } = await params;
   const body = await req.json();
-  const { status, date: newDate, timeSlot: newTimeSlot } = body as {
+  const { status, date: newDate, timeSlot: newTimeSlot, fieldId: newFieldId } = body as {
     status?: BookingStatus;
     date?: string;
     timeSlot?: string;
+    fieldId?: string;
   };
 
   const booking = await prisma.booking.findUnique({ where: { id } });
@@ -84,8 +85,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   // CASHIER is allowed in for reschedule only (status changes are blocked below).
   if (!isAdmin && !isCashier && !isOwner) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // ADMIN/CASHIER: reschedule (change date/timeSlot) without touching status
-  if (!status && (newDate || newTimeSlot)) {
+  // ADMIN/CASHIER: reschedule (change date/timeSlot/field) without touching status
+  if (!status && (newDate || newTimeSlot || newFieldId)) {
     if (!isAdmin && !isCashier) return NextResponse.json({ error: 'Admin/Cashier เท่านั้น' }, { status: 403 });
     if (booking.status === 'CANCELLED' || booking.status === 'REJECTED') {
       return NextResponse.json({ error: 'การจองนี้ถูกยกเลิก/ปฏิเสธแล้ว แก้ไม่ได้' }, { status: 422 });
@@ -102,14 +103,20 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const [s, e] = parsed;
     if (e - s < 5) return NextResponse.json({ error: 'ระยะเวลาขั้นต่ำ 5 นาที' }, { status: 400 });
 
+    // Allow swapping the field too; validate availability on the target field.
+    const targetFieldId = (typeof newFieldId === 'string' && newFieldId) ? newFieldId : booking.fieldId;
+
     const [field, blocked] = await Promise.all([
       prisma.field.findUnique({
-        where: { id: booking.fieldId },
-        select: { openTime: true, closeTime: true },
+        where: { id: targetFieldId },
+        select: { openTime: true, closeTime: true, isActive: true, deletedAt: true },
       }),
-      prisma.fieldBlockedDate.findFirst({ where: { fieldId: booking.fieldId, date: targetDate } }),
+      prisma.fieldBlockedDate.findFirst({ where: { fieldId: targetFieldId, date: targetDate } }),
     ]);
-    if (!field) return NextResponse.json({ error: 'ไม่พบสนาม' }, { status: 404 });
+    if (!field || field.deletedAt) return NextResponse.json({ error: 'ไม่พบสนาม' }, { status: 404 });
+    if (targetFieldId !== booking.fieldId && !field.isActive) {
+      return NextResponse.json({ error: 'สนามปลายทางปิดใช้งานอยู่' }, { status: 409 });
+    }
     if (blocked) {
       return NextResponse.json(
         { error: `สนามปิดให้บริการในวันนี้${blocked.reason ? `: ${blocked.reason}` : ''}` },
@@ -137,7 +144,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       const updated = await prisma.$transaction(async (tx) => {
         const existing = await tx.booking.findMany({
           where: {
-            fieldId: booking.fieldId,
+            fieldId: targetFieldId,
             date: targetDate,
             status: { in: ['PENDING', 'APPROVED'] },
             id: { not: id },
@@ -152,7 +159,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
         return tx.booking.update({
           where: { id },
-          data: { date: targetDate, timeSlot: targetSlot },
+          data: { date: targetDate, timeSlot: targetSlot, fieldId: targetFieldId },
           include: {
             field: { select: { name: true } },
             user: { select: { email: true, name: true, notifEmail: true, notifInApp: true } },

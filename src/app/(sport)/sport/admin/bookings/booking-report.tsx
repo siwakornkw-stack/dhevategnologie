@@ -14,7 +14,7 @@ interface ReportBooking {
   note: string | null;
   createdAt: string;
   user: { name: string | null; email: string; phone: string | null };
-  field: { name: string; sportType: string };
+  field: { id: string; name: string; sportType: string };
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -295,6 +295,7 @@ export function BookingReport({ canExport = true }: { canExport?: boolean }) {
                         bookingId={b.id}
                         initialDate={b.date}
                         initialTimeSlot={b.timeSlot}
+                        fieldId={b.field.id}
                         fieldName={b.field.name}
                         customerName={b.user.name}
                         customerPhone={b.user.phone}
