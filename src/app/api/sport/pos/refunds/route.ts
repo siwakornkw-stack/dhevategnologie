@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   const items = Array.isArray(body.items) ? (body.items as RefundLine[]) : [];
 
   if (!invoiceId) return NextResponse.json({ error: 'invoiceId required' }, { status: 400 });
-  if (!['CASH', 'TRANSFER', 'QR', 'CARD', 'OTHER'].includes(method)) {
+  if (!['CASH', 'TRANSFER', 'QR', 'QR_FIELD', 'CARD', 'OTHER'].includes(method)) {
     return NextResponse.json({ error: 'method invalid' }, { status: 400 });
   }
   if (!Number.isFinite(amount) || amount <= 0) {
@@ -176,7 +176,7 @@ export async function POST(req: NextRequest) {
               invoiceId: inv.id,
               shiftId: activeShift?.id || null,
               cashierId: session.user.id,
-              method: method as 'CASH' | 'TRANSFER' | 'QR' | 'CARD' | 'OTHER',
+              method: method as 'CASH' | 'TRANSFER' | 'QR' | 'QR_FIELD' | 'CARD' | 'OTHER',
               amount,
               reason,
               itemsSnapshot: cleanItems.length ? cleanItems : undefined,

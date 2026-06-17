@@ -1,6 +1,7 @@
 'use client';
 
 import { use, useEffect, useState } from 'react';
+import { methodLabel } from '@/lib/payment-methods';
 
 type Movement = { id: string; type: 'PAY_IN' | 'PAY_OUT'; amount: number; reason: string | null; createdAt: string };
 type Summary = {
@@ -103,7 +104,7 @@ export default function ShiftPrintPage({ params }: { params: Promise<{ id: strin
             <table>
               <tbody>
                 {Object.entries(sm.methodTotals).filter(([, v]) => v !== 0).map(([m, v]) => (
-                  <tr key={m}><td>{m}</td><td className="right">{v.toFixed(2)}</td></tr>
+                  <tr key={m}><td>{methodLabel(m)}</td><td className="right">{v.toFixed(2)}</td></tr>
                 ))}
               </tbody>
             </table>
@@ -174,7 +175,7 @@ export default function ShiftPrintPage({ params }: { params: Promise<{ id: strin
                 </tr>,
                 ...Object.entries(c.methods).map(([m, mv]) => (
                   <tr key={c.category + m} style={{ fontSize: '9px', color: '#444' }}>
-                    <td>&nbsp;&nbsp;{m} <span style={{ color: '#888' }}>x{mv.qty}</span></td>
+                    <td>&nbsp;&nbsp;{methodLabel(m)} <span style={{ color: '#888' }}>x{mv.qty}</span></td>
                     <td className="right">{mv.revenue.toFixed(2)}</td>
                   </tr>
                 )),
@@ -194,7 +195,7 @@ export default function ShiftPrintPage({ params }: { params: Promise<{ id: strin
                     </tr>,
                     ...Object.entries(p.methods).map(([m, mv]) => (
                       <tr key={p.productId + m} style={{ fontSize: '9px', color: '#444' }}>
-                        <td>&nbsp;&nbsp;{m} <span style={{ color: '#888' }}>x{mv.qty}</span></td>
+                        <td>&nbsp;&nbsp;{methodLabel(m)} <span style={{ color: '#888' }}>x{mv.qty}</span></td>
                         <td className="right">{mv.revenue.toFixed(2)}</td>
                       </tr>
                     )),

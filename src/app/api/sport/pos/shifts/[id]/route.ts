@@ -18,7 +18,7 @@ async function buildSummary(shiftId: string) {
   const voidTotal = invoices.filter((i) => i.status === 'VOID').reduce((s, i) => s + i.total, 0);
   const refundTotal = refunds.reduce((s, r) => s + r.amount, 0);
 
-  const methodTotals: Record<string, number> = { CASH: 0, TRANSFER: 0, QR: 0, CARD: 0, OTHER: 0 };
+  const methodTotals: Record<string, number> = { CASH: 0, TRANSFER: 0, QR: 0, QR_FIELD: 0, CARD: 0, OTHER: 0 };
   for (const inv of invoices) {
     if (inv.status !== 'PAID') continue;
     if (inv.splits.length) {

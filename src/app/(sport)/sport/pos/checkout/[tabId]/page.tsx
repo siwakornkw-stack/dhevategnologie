@@ -4,6 +4,7 @@ import { use, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { POS_PAY_METHODS, methodLabel, type PosPayMethod } from '@/lib/payment-methods';
 
 type Item = { id: string; productName: string; qty: number; unitPrice: number; discount: number };
 type Tab = {
@@ -35,7 +36,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
   const [discount, setDiscount] = useState('0');
   const [splitMode, setSplitMode] = useState(false);
   const [splits, setSplits] = useState<Split[]>([]);
-  const [payMethod, setPayMethod] = useState<'CASH' | 'QR' | 'TRANSFER' | 'CARD'>('CASH');
+  const [payMethod, setPayMethod] = useState<PosPayMethod>('CASH');
   const [cashReceived, setCashReceived] = useState('');
   const [refNo, setRefNo] = useState('');
   const [busy, setBusy] = useState(false);
@@ -356,8 +357,8 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
         {!splitMode ? (
           <>
             <div className="flex gap-2 flex-wrap">
-              {(['CASH', 'QR', 'TRANSFER', 'CARD'] as const).map((m) => (
-                <button key={m} onClick={() => setPayMethod(m)} aria-pressed={payMethod === m} className={`px-3 py-1 rounded text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${payMethod === m ? 'bg-indigo-500 text-white' : 'border dark:border-gray-700'}`}>{m}</button>
+              {POS_PAY_METHODS.map((m) => (
+                <button key={m} onClick={() => setPayMethod(m)} aria-pressed={payMethod === m} className={`px-3 py-1 rounded text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${payMethod === m ? 'bg-indigo-500 text-white' : 'border dark:border-gray-700'}`}>{methodLabel(m)}</button>
               ))}
             </div>
             {payMethod === 'CASH' ? (
@@ -391,7 +392,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
                   </select>
                 )}
                 <select value={sp.method} onChange={(e) => setSplits(splits.map((x, i) => i === idx ? { ...x, method: e.target.value } : x))} className="px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-700">
-                  {['CASH', 'QR', 'TRANSFER', 'CARD'].map((m) => <option key={m} value={m}>{m}</option>)}
+                  {POS_PAY_METHODS.map((m) => <option key={m} value={m}>{methodLabel(m)}</option>)}
                 </select>
                 <button onClick={() => setSplits(splits.filter((_, i) => i !== idx))} aria-label={`ลบ split ${sp.label || idx + 1}`} className="text-red-500 text-xs rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">✕</button>
               </div>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { businessDayRange } from '@/lib/business-day';
+import { methodLabel } from '@/lib/payment-methods';
 
 type Report = {
   totals: {
@@ -81,7 +82,7 @@ export default function PosReportPage() {
         {Object.keys(data.byMethod).length === 0 ? <div className="text-xs text-gray-400">ไม่มี</div> :
           <div className="space-y-1 text-sm">
             {Object.entries(data.byMethod).map(([m, v]) => (
-              <div key={m} className="flex justify-between"><span>{m}</span><span className="tabular-nums">฿{v.toFixed(2)}</span></div>
+              <div key={m} className="flex justify-between"><span>{methodLabel(m)}</span><span className="tabular-nums">฿{v.toFixed(2)}</span></div>
             ))}
           </div>
         }

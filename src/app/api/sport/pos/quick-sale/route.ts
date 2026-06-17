@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   if (!Array.isArray(items) || items.length === 0) {
     return NextResponse.json({ error: 'items required' }, { status: 400 });
   }
-  if (!payment || !['CASH', 'TRANSFER', 'QR', 'CARD', 'OTHER'].includes(payment.method)) {
+  if (!payment || !['CASH', 'TRANSFER', 'QR', 'QR_FIELD', 'CARD', 'OTHER'].includes(payment.method)) {
     return NextResponse.json({ error: 'payment.method invalid' }, { status: 400 });
   }
 

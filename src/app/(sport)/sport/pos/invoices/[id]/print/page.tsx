@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from 'react';
 import { kickDrawer } from '@/lib/pos-drawer';
+import { methodLabel } from '@/lib/payment-methods';
 
 type SnapItem = { tabName?: string; productName: string; qty: number; unitPrice: number; discount: number };
 type Payment = { method: string; amount: number; cashReceived: number | null; changeAmount: number | null; refNo: string | null };
@@ -157,7 +158,7 @@ function ReceiptBody({ inv, settings }: { inv: Invoice; settings: Settings }) {
             <tbody>
               {inv.splits.map((sp, i) => (
                 <tr key={i}>
-                  <td>{sp.label} [{sp.method}]{sp.refNo ? ` ${sp.refNo}` : ''}</td>
+                  <td>{sp.label} [{methodLabel(sp.method)}]{sp.refNo ? ` ${sp.refNo}` : ''}</td>
                   <td className="right">{sp.amount.toFixed(2)}</td>
                 </tr>
               ))}
@@ -167,7 +168,7 @@ function ReceiptBody({ inv, settings }: { inv: Invoice; settings: Settings }) {
       ) : (
         inv.payments.map((p, i) => (
           <div key={i}>
-            <div>ชำระ ({p.method}): {p.amount.toFixed(2)}</div>
+            <div>ชำระ ({methodLabel(p.method)}): {p.amount.toFixed(2)}</div>
             {p.cashReceived !== null && <div>รับเงินสด: {p.cashReceived.toFixed(2)}</div>}
             {p.changeAmount !== null && <div>ทอน: {p.changeAmount.toFixed(2)}</div>}
             {p.refNo && <div>Ref: {p.refNo}</div>}

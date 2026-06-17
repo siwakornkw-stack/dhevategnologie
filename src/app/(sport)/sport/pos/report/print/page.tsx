@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { businessDayRange } from '@/lib/business-day';
+import { methodLabel } from '@/lib/payment-methods';
 
 type Report = {
   totals: {
@@ -94,7 +95,7 @@ export default function SalesReportPrintPage() {
         <table>
           <tbody>
             {Object.entries(data.byMethod).filter(([, v]) => v !== 0).map(([m, v]) => (
-              <tr key={m}><td>{m}</td><td className="right">{v.toFixed(2)}</td></tr>
+              <tr key={m}><td>{methodLabel(m)}</td><td className="right">{v.toFixed(2)}</td></tr>
             ))}
           </tbody>
         </table>

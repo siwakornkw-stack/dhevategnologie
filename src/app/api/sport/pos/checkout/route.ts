@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
       } else {
         if (!payment) throw new Error('PAYMENT_REQUIRED');
         const p = payment as PaymentInput;
-        if (!['CASH', 'TRANSFER', 'QR', 'CARD', 'OTHER'].includes(p.method)) throw new Error('PAYMENT_METHOD_INVALID');
+        if (!['CASH', 'TRANSFER', 'QR', 'QR_FIELD', 'CARD', 'OTHER'].includes(p.method)) throw new Error('PAYMENT_METHOD_INVALID');
         if (p.method === 'CASH' && p.cashReceived !== undefined && Number(p.cashReceived) < grandTotal) {
           throw new Error('CASH_INSUFFICIENT');
         }
@@ -209,7 +209,7 @@ export async function POST(req: NextRequest) {
 
       const posId = posInvoice?.id ?? null;
       const bookId = bookingInvoice?.id ?? null;
-      type Method = 'CASH' | 'TRANSFER' | 'QR' | 'CARD' | 'OTHER';
+      type Method = 'CASH' | 'TRANSFER' | 'QR' | 'QR_FIELD' | 'CARD' | 'OTHER';
       const clean = (s: string | null) => (s == null ? null : String(s).slice(0, 100));
       const pay = (invoiceId: string, method: Method, amount: number, cashReceived: number | null, changeAmount: number | null, refNo: string | null) =>
         tx.posPayment.create({ data: { invoiceId, method, amount: +amount.toFixed(2), cashReceived, changeAmount, refNo: clean(refNo) } });
@@ -223,7 +223,7 @@ export async function POST(req: NextRequest) {
           // Per-line target: each split is paid directly to the field (BOOKING) or product (POS) invoice.
           let bookSum = 0, prodSum = 0;
           for (const sp of splitList) {
-            if (!['CASH', 'TRANSFER', 'QR', 'CARD', 'OTHER'].includes(sp.method)) throw new Error('PAYMENT_METHOD_INVALID');
+            if (!['CASH', 'TRANSFER', 'QR', 'QR_FIELD', 'CARD', 'OTHER'].includes(sp.method)) throw new Error('PAYMENT_METHOD_INVALID');
             const method = sp.method as Method;
             const amt = +Number(sp.amount).toFixed(2);
             if (!Number.isFinite(amt) || amt < 0) throw new Error('SPLIT_AMOUNT_INVALID');
@@ -240,7 +240,7 @@ export async function POST(req: NextRequest) {
           // Allocate booking-first: fill the booking invoice, remainder goes to the POS invoice.
           let remBooking = bookId ? bookingTotal : 0;
           for (const sp of splitList) {
-            if (!['CASH', 'TRANSFER', 'QR', 'CARD', 'OTHER'].includes(sp.method)) throw new Error('PAYMENT_METHOD_INVALID');
+            if (!['CASH', 'TRANSFER', 'QR', 'QR_FIELD', 'CARD', 'OTHER'].includes(sp.method)) throw new Error('PAYMENT_METHOD_INVALID');
             const method = sp.method as Method;
             let amt = Number(sp.amount);
             if (!Number.isFinite(amt) || amt < 0) throw new Error('SPLIT_AMOUNT_INVALID');

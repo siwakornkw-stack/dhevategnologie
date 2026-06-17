@@ -51,6 +51,7 @@ enum PaymentMethod {
   CASH
   TRANSFER
   QR
+  QR_FIELD
   CARD
   MIXED
   OTHER

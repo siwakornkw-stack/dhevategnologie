@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { kickDrawer } from '@/lib/pos-drawer';
+import { POS_PAY_METHODS, methodLabel, type PosPayMethod } from '@/lib/payment-methods';
 
 type Product = { id: string; name: string; sku: string | null; category: string | null; price: number; stockQty: number; stockUnit: string; imageUrl: string | null; isActive: boolean };
 type Item = { id: string; productName: string; qty: number; unitPrice: number; discount: number };
@@ -424,7 +425,7 @@ function QuickSaleModal({ cart, setCart, onClose, onPaid }: {
   onClose: () => void;
   onPaid: (invoiceId: string) => void;
 }) {
-  const [method, setMethod] = useState<'CASH' | 'QR' | 'TRANSFER' | 'CARD'>('CASH');
+  const [method, setMethod] = useState<PosPayMethod>('CASH');
   const [cashReceived, setCashReceived] = useState<string>('');
   const [discount, setDiscount] = useState<string>('0');
   const [refNo, setRefNo] = useState<string>('');
@@ -714,8 +715,8 @@ function QuickSaleModal({ cart, setCart, onClose, onPaid }: {
           <div className="flex justify-between font-bold text-lg"><span>TOTAL</span><span className="tabular-nums">{total.toFixed(2)}</span></div>
           {earnPreview > 0 && <div className="text-xs text-gray-500 dark:text-gray-400 text-right">จะได้ {earnPreview} pt</div>}
           <div className="flex gap-2 flex-wrap">
-            {(['CASH', 'QR', 'TRANSFER', 'CARD'] as const).map((m) => (
-              <button key={m} onClick={() => setMethod(m)} aria-pressed={method === m} className={`px-3 py-1 rounded text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${method === m ? 'bg-indigo-500 text-white' : 'border dark:border-gray-700'}`}>{m}</button>
+            {POS_PAY_METHODS.map((m) => (
+              <button key={m} onClick={() => setMethod(m)} aria-pressed={method === m} className={`px-3 py-1 rounded text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${method === m ? 'bg-indigo-500 text-white' : 'border dark:border-gray-700'}`}>{methodLabel(m)}</button>
             ))}
           </div>
           {method === 'CASH' ? (
