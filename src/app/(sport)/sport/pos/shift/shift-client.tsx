@@ -181,7 +181,10 @@ export function ShiftClient() {
                 เปิด: {new Date(current.openedAt).toLocaleString('th-TH')}
               </div>
             </div>
-            <span className="text-xs px-2 py-1 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">OPEN</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs px-2 py-1 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">OPEN</span>
+              <a href={`/sport/pos/shift/${current.id}/print`} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">พิมพ์ X-report</a>
+            </div>
           </div>
 
           {detail?.summary && (
