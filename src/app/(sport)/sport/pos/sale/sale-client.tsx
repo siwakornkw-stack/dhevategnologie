@@ -23,6 +23,7 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
   const [currentTabId, setCurrentTabId] = useState<string | null>(null);
   const [q, setQ] = useState('');
   const [cat, setCat] = useState('');
+  const [sortBy, setSortBy] = useState<'' | 'price-asc' | 'price-desc'>('');
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickCart, setQuickCart] = useState<{ productId: string; name: string; qty: number; price: number }[]>([]);
   const [tabNameOpen, setTabNameOpen] = useState(false);
@@ -61,11 +62,16 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
   }, []);
 
   const categories = useMemo(() => Array.from(new Set(products.map((p) => p.category).filter(Boolean))) as string[], [products]);
-  const filtered = products.filter((p) =>
-    p.isActive &&
-    (!cat || p.category === cat) &&
-    (!q || p.name.toLowerCase().includes(q.toLowerCase()) || (p.sku || '').toLowerCase().includes(q.toLowerCase())),
-  );
+  const filtered = useMemo(() => {
+    const list = products.filter((p) =>
+      p.isActive &&
+      (!cat || p.category === cat) &&
+      (!q || p.name.toLowerCase().includes(q.toLowerCase()) || (p.sku || '').toLowerCase().includes(q.toLowerCase())),
+    );
+    if (sortBy === 'price-asc') return [...list].sort((a, b) => a.price - b.price);
+    if (sortBy === 'price-desc') return [...list].sort((a, b) => b.price - a.price);
+    return list;
+  }, [products, cat, q, sortBy]);
   const currentTab = tabs.find((t) => t.id === currentTabId) || null;
 
   async function createTab() {
@@ -296,6 +302,12 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
               className="px-3 py-2 rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900">
               <option value="">ทั้งหมด</option>
               {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value as '' | 'price-asc' | 'price-desc')}
+              className="px-3 py-2 rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900">
+              <option value="">เรียง: ปกติ</option>
+              <option value="price-asc">ราคา: ต่ำ → สูง</option>
+              <option value="price-desc">ราคา: สูง → ต่ำ</option>
             </select>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
