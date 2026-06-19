@@ -10,12 +10,14 @@ export async function POST(req: NextRequest) {
   const session = await requirePosRole(['ADMIN', 'CASHIER']);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { items, payment, discount, note, customer, pointsToRedeem, couponCode } = await req.json();
+  const { items, payment, splits, discount, note, customer, pointsToRedeem, couponCode } = await req.json();
   const redeemReq = Math.max(0, Math.floor(Number(pointsToRedeem) || 0));
   if (!Array.isArray(items) || items.length === 0) {
     return NextResponse.json({ error: 'items required' }, { status: 400 });
   }
-  if (!payment || !['CASH', 'TRANSFER', 'QR', 'QR_FIELD', 'CARD', 'OTHER'].includes(payment.method)) {
+  const PAY_METHODS = ['CASH', 'TRANSFER', 'QR', 'QR_FIELD', 'CARD', 'OTHER'];
+  const hasSplits = Array.isArray(splits) && splits.length > 0;
+  if (!hasSplits && (!payment || !PAY_METHODS.includes(payment.method))) {
     return NextResponse.json({ error: 'payment.method invalid' }, { status: 400 });
   }
 
@@ -171,22 +173,37 @@ export async function POST(req: NextRequest) {
           if (attempts > 5) throw e;
         }
       }
-      const amount = finalTotal;
-      const cashReceived = payment.method === 'CASH' && payment.cashReceived !== undefined ? Number(payment.cashReceived) : null;
-      const changeAmount = cashReceived !== null ? +(cashReceived - finalTotal).toFixed(2) : null;
-      if (payment.method === 'CASH' && cashReceived !== null && cashReceived < finalTotal) {
-        throw new Error('CASH_INSUFFICIENT');
+      if (hasSplits) {
+        // cash+qr (or any multi-method) single bill: one payment + split row per line.
+        let sum = 0;
+        for (const sp of splits as Array<{ label?: string; amount: number; method: string }>) {
+          if (!PAY_METHODS.includes(sp.method)) throw new Error('PAYMENT_METHOD_INVALID');
+          const amt = +Number(sp.amount).toFixed(2);
+          if (!Number.isFinite(amt) || amt < 0) throw new Error('SPLIT_AMOUNT_INVALID');
+          if (amt <= 0.0001) continue;
+          await tx.posInvoiceSplit.create({ data: { invoiceId: invoice.id, label: String(sp.label || '').slice(0, 100), amount: amt, method: sp.method as 'CASH' | 'TRANSFER' | 'QR' | 'QR_FIELD' | 'CARD' | 'OTHER' } });
+          await tx.posPayment.create({ data: { invoiceId: invoice.id, method: sp.method as 'CASH' | 'TRANSFER' | 'QR' | 'QR_FIELD' | 'CARD' | 'OTHER', amount: amt, cashReceived: null, changeAmount: null, refNo: null } });
+          sum = +(sum + amt).toFixed(2);
+        }
+        if (Math.abs(sum - finalTotal) > 0.01) throw new Error('SPLIT_MISMATCH');
+      } else {
+        const amount = finalTotal;
+        const cashReceived = payment.method === 'CASH' && payment.cashReceived !== undefined ? Number(payment.cashReceived) : null;
+        const changeAmount = cashReceived !== null ? +(cashReceived - finalTotal).toFixed(2) : null;
+        if (payment.method === 'CASH' && cashReceived !== null && cashReceived < finalTotal) {
+          throw new Error('CASH_INSUFFICIENT');
+        }
+        await tx.posPayment.create({
+          data: {
+            invoiceId: invoice.id,
+            method: payment.method,
+            amount,
+            cashReceived,
+            changeAmount,
+            refNo: payment.refNo || null,
+          },
+        });
       }
-      await tx.posPayment.create({
-        data: {
-          invoiceId: invoice.id,
-          method: payment.method,
-          amount,
-          cashReceived,
-          changeAmount,
-          refNo: payment.refNo || null,
-        },
-      });
 
       if (customerId && pointsRedeemed > 0) await redeemPoints(tx, customerId, pointsRedeemed, invoice.invoiceNo);
       if (customerId && pointsEarned > 0) await earnPoints(tx, customerId, pointsEarned, invoice.invoiceNo);
@@ -215,6 +232,9 @@ export async function POST(req: NextRequest) {
     if (msg === 'POINTS_REDEEM_DISABLED') return NextResponse.json({ error: 'ระบบ redeem ปิดอยู่' }, { status: 400 });
     if (msg.startsWith('STOCK_INSUFFICIENT')) return NextResponse.json({ error: `สต็อกไม่พอ: ${msg.split(':')[1]}` }, { status: 409 });
     if (msg === 'CASH_INSUFFICIENT') return NextResponse.json({ error: 'เงินสดไม่พอ' }, { status: 400 });
+    if (msg === 'PAYMENT_METHOD_INVALID') return NextResponse.json({ error: 'วิธีจ่ายไม่ถูกต้อง' }, { status: 400 });
+    if (msg === 'SPLIT_AMOUNT_INVALID') return NextResponse.json({ error: 'จำนวนเงิน split ไม่ถูกต้อง' }, { status: 400 });
+    if (msg === 'SPLIT_MISMATCH') return NextResponse.json({ error: 'ผลรวม split ไม่เท่ากับยอดบิล' }, { status: 400 });
     if (msg === 'COUPON_DISABLED') return NextResponse.json({ error: 'ระบบคูปองปิดอยู่' }, { status: 403 });
     if (msg === 'COUPON_INVALID') return NextResponse.json({ error: 'คูปองไม่ถูกต้องหรือหมดอายุ' }, { status: 400 });
     if (msg === 'PRODUCT_NOT_FOUND') return NextResponse.json({ error: 'ไม่พบสินค้า (อาจถูกลบ)' }, { status: 404 });

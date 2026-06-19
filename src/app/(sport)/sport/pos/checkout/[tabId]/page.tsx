@@ -38,6 +38,8 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
   const [splits, setSplits] = useState<Split[]>([]);
   const [payMethod, setPayMethod] = useState<PosPayMethod>('CASH');
   const [cashReceived, setCashReceived] = useState('');
+  const [cashQr, setCashQr] = useState(false); // เงินสด+QR combo (UI mode -> 2-line split)
+  const [cqCash, setCqCash] = useState(''); // cash portion of the cash+qr split
   const [refNo, setRefNo] = useState('');
   const [busy, setBusy] = useState(false);
   const [taxInvoice, setTaxInvoice] = useState(false);
@@ -143,6 +145,10 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
     ? Math.abs(splitBookingSum - subtotalBooking) < 0.01 && Math.abs(splitProductSum - posFinal) < 0.01
     : Math.abs(splitSum - total) < 0.01;
   const change = Math.max((Number(cashReceived) || 0) - total, 0);
+  // เงินสด+QR: cash portion (capped to total), QR auto-fills the rest, change is on the cash portion only.
+  const cqCashNum = Math.min(Math.max(Number(cqCash) || 0, 0), total);
+  const cqQr = +(total - cqCashNum).toFixed(2);
+  const cqChange = Math.max((Number(cashReceived) || 0) - cqCashNum, 0);
 
   async function searchCust(q: string) {
     setCustSearch(q);
@@ -173,7 +179,14 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
       ...(coupon ? { couponCode: coupon.code } : {}),
       ...(customerPayload ? { customer: customerPayload } : {}),
       ...(cust.id && ptUsed > 0 ? { pointsToRedeem: ptUsed } : {}),
-      ...(splitMode
+      ...(cashQr
+        ? {
+            splits: [
+              ...(cqCashNum > 0 ? [{ label: 'เงินสด', amount: cqCashNum, method: 'CASH' }] : []),
+              ...(cqQr > 0 ? [{ label: 'QR', amount: cqQr, method: 'QR' }] : []),
+            ],
+          }
+        : splitMode
         ? { splits }
         : {
             payment: {
@@ -190,8 +203,9 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
     setBusy(false);
     if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.error || 'ชำระไม่สำเร็จ'); return; }
     const inv = await r.json();
-    toast.success(!splitMode && payMethod === 'CASH' && change > 0 ? `บันทึกบิลแล้ว · ทอน ฿${change.toFixed(2)}` : 'บันทึกบิลแล้ว');
-    const hasCash = splitMode ? splits.some((s) => s.method === 'CASH') : payMethod === 'CASH';
+    const ch = cashQr ? cqChange : (!splitMode && payMethod === 'CASH' ? change : 0);
+    toast.success(ch > 0 ? `บันทึกบิลแล้ว · ทอน ฿${ch.toFixed(2)}` : 'บันทึกบิลแล้ว');
+    const hasCash = cashQr ? cqCashNum > 0 : splitMode ? splits.some((s) => s.method === 'CASH') : payMethod === 'CASH';
     const kickParam = hasCash ? '?kick=1' : '';
     const w = window.open(`/sport/pos/invoices/${inv.id}/print${kickParam}`, '_blank');
     if (!w) toast.error('เปิดหน้าพิมพ์ไม่ได้ — ตรวจ popup blocker แล้วเปิดบิลจากรายการ invoices', { duration: 8000 });
@@ -358,10 +372,25 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
           <>
             <div className="flex gap-2 flex-wrap">
               {POS_PAY_METHODS.map((m) => (
-                <button key={m} onClick={() => setPayMethod(m)} aria-pressed={payMethod === m} className={`px-3 py-1 rounded text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${payMethod === m ? 'bg-indigo-500 text-white' : 'border dark:border-gray-700'}`}>{methodLabel(m)}</button>
+                <button key={m} onClick={() => { setPayMethod(m); setCashQr(false); }} aria-pressed={!cashQr && payMethod === m} className={`px-3 py-1 rounded text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${!cashQr && payMethod === m ? 'bg-indigo-500 text-white' : 'border dark:border-gray-700'}`}>{methodLabel(m)}</button>
               ))}
+              <button onClick={() => setCashQr(true)} aria-pressed={cashQr} className={`px-3 py-1 rounded text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${cashQr ? 'bg-indigo-500 text-white' : 'border dark:border-gray-700'}`}>เงินสด+QR</button>
             </div>
-            {payMethod === 'CASH' ? (
+            {cashQr ? (
+              <div className="space-y-2">
+                <div className="flex gap-2 items-center text-sm">
+                  <span className="w-20">เงินสด (จ่าย)</span>
+                  <input type="number" value={cqCash} onChange={(e) => setCqCash(e.target.value)} className="flex-1 px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-700" />
+                </div>
+                <div className="flex justify-between text-sm"><span>QR (อัตโนมัติ)</span><span className="font-semibold tabular-nums">{cqQr.toFixed(2)}</span></div>
+                <div className="flex gap-2 items-center text-sm">
+                  <span className="w-20">รับเงินสด</span>
+                  <input type="number" value={cashReceived} onChange={(e) => setCashReceived(e.target.value)} className="flex-1 px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-700" />
+                  <button onClick={() => setCashReceived(cqCashNum.toFixed(2))} className="px-2 py-1 text-xs rounded border border-indigo-500 text-indigo-600 dark:text-indigo-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">พอดี</button>
+                </div>
+                <div className="flex justify-between text-sm"><span>เงินทอน</span><span className="font-semibold">{cqChange.toFixed(2)}</span></div>
+              </div>
+            ) : payMethod === 'CASH' ? (
               <div className="space-y-2">
                 <div className="flex gap-2 items-center text-sm">
                   <span className="w-16">รับเงิน</span>
@@ -417,7 +446,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
 
         <button
           onClick={submit}
-          disabled={busy || total <= 0 || (splitMode && !splitOk) || (!splitMode && payMethod === 'CASH' && Number(cashReceived) < total)}
+          disabled={busy || total <= 0 || (splitMode && !splitOk) || (cashQr && Number(cashReceived || 0) < cqCashNum) || (!splitMode && !cashQr && payMethod === 'CASH' && Number(cashReceived) < total)}
           className="w-full py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-semibold disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
         >
           {busy ? 'กำลังบันทึก...' : 'ยืนยัน + พิมพ์บิล'}

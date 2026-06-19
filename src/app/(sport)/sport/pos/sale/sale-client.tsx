@@ -427,6 +427,8 @@ function QuickSaleModal({ cart, setCart, onClose, onPaid }: {
 }) {
   const [method, setMethod] = useState<PosPayMethod>('CASH');
   const [cashReceived, setCashReceived] = useState<string>('');
+  const [cashQr, setCashQr] = useState(false); // เงินสด+QR combo
+  const [cqCash, setCqCash] = useState<string>('');
   const [discount, setDiscount] = useState<string>('0');
   const [refNo, setRefNo] = useState<string>('');
   const [busy, setBusy] = useState(false);
@@ -500,6 +502,9 @@ function QuickSaleModal({ cart, setCart, onClose, onPaid }: {
   const total = +Math.max(grossTotal - redeemValue, 0).toFixed(2);
   const earnPreview = cust && pointsEarnPerBaht > 0 ? Math.floor(total * pointsEarnPerBaht) : 0;
   const change = Math.max((Number(cashReceived) || 0) - total, 0);
+  const cqCashNum = Math.min(Math.max(Number(cqCash) || 0, 0), total);
+  const cqQr = +(total - cqCashNum).toFixed(2);
+  const cqChange = Math.max((Number(cashReceived) || 0) - cqCashNum, 0);
 
   async function pay() {
     if (cart.length === 0) return;
@@ -511,12 +516,21 @@ function QuickSaleModal({ cart, setCart, onClose, onPaid }: {
         // Sending unitPrice would trip the ADMIN-only override guard for CASHIER.
         items: cart.map((c) => ({ productId: c.productId, qty: c.qty })),
         discount: Number(discount) || 0,
-        payment: {
-          method,
-          amount: total,
-          cashReceived: method === 'CASH' ? Number(cashReceived) || total : undefined,
-          refNo: refNo || undefined,
-        },
+        ...(cashQr
+          ? {
+              splits: [
+                ...(cqCashNum > 0 ? [{ label: 'เงินสด', amount: cqCashNum, method: 'CASH' }] : []),
+                ...(cqQr > 0 ? [{ label: 'QR', amount: cqQr, method: 'QR' }] : []),
+              ],
+            }
+          : {
+              payment: {
+                method,
+                amount: total,
+                cashReceived: method === 'CASH' ? Number(cashReceived) || total : undefined,
+                refNo: refNo || undefined,
+              },
+            }),
         ...(cust || taxOpen
           ? {
               customer: {
@@ -535,8 +549,9 @@ function QuickSaleModal({ cart, setCart, onClose, onPaid }: {
     setBusy(false);
     if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.error || 'ชำระไม่สำเร็จ'); return; }
     const inv = await r.json();
-    toast.success(method === 'CASH' && change > 0 ? `บันทึกบิลแล้ว · ทอน ฿${change.toFixed(2)}` : 'บันทึกบิลแล้ว');
-    const kickParam = method === 'CASH' ? '?kick=1' : '';
+    const ch = cashQr ? cqChange : (method === 'CASH' ? change : 0);
+    toast.success(ch > 0 ? `บันทึกบิลแล้ว · ทอน ฿${ch.toFixed(2)}` : 'บันทึกบิลแล้ว');
+    const kickParam = (cashQr ? cqCashNum > 0 : method === 'CASH') ? '?kick=1' : '';
     const w = window.open(`/sport/pos/invoices/${inv.id}/print${kickParam}`, '_blank');
     if (!w) {
       toast.error('เปิดหน้าพิมพ์ไม่ได้ — ตรวจ popup blocker แล้วกด "พิมพ์บิลล่าสุด"', { duration: 8000 });
@@ -716,10 +731,25 @@ function QuickSaleModal({ cart, setCart, onClose, onPaid }: {
           {earnPreview > 0 && <div className="text-xs text-gray-500 dark:text-gray-400 text-right">จะได้ {earnPreview} pt</div>}
           <div className="flex gap-2 flex-wrap">
             {POS_PAY_METHODS.map((m) => (
-              <button key={m} onClick={() => setMethod(m)} aria-pressed={method === m} className={`px-3 py-1 rounded text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${method === m ? 'bg-indigo-500 text-white' : 'border dark:border-gray-700'}`}>{methodLabel(m)}</button>
+              <button key={m} onClick={() => { setMethod(m); setCashQr(false); }} aria-pressed={!cashQr && method === m} className={`px-3 py-1 rounded text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${!cashQr && method === m ? 'bg-indigo-500 text-white' : 'border dark:border-gray-700'}`}>{methodLabel(m)}</button>
             ))}
+            <button onClick={() => setCashQr(true)} aria-pressed={cashQr} className={`px-3 py-1 rounded text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${cashQr ? 'bg-indigo-500 text-white' : 'border dark:border-gray-700'}`}>เงินสด+QR</button>
           </div>
-          {method === 'CASH' ? (
+          {cashQr ? (
+            <>
+              <div className="flex gap-2 items-center text-sm">
+                <span className="w-20">เงินสด (จ่าย)</span>
+                <input type="number" value={cqCash} onChange={(e) => setCqCash(e.target.value)} className="flex-1 px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-700" />
+              </div>
+              <div className="flex justify-between text-sm"><span>QR (อัตโนมัติ)</span><span className="font-semibold tabular-nums">{cqQr.toFixed(2)}</span></div>
+              <div className="flex gap-2 items-center text-sm">
+                <span className="w-20">รับเงินสด</span>
+                <input type="number" value={cashReceived} onChange={(e) => setCashReceived(e.target.value)} className="flex-1 px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-700" />
+                <button onClick={() => setCashReceived(cqCashNum.toFixed(2))} className="px-2 py-1 text-xs rounded border dark:border-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">พอดี</button>
+              </div>
+              <div className="flex justify-between text-sm"><span>ทอน</span><span className="font-semibold tabular-nums">{cqChange.toFixed(2)}</span></div>
+            </>
+          ) : method === 'CASH' ? (
             <>
               <div className="flex gap-2 items-center">
                 <span className="text-xs w-16">รับเงิน</span>
@@ -739,7 +769,7 @@ function QuickSaleModal({ cart, setCart, onClose, onPaid }: {
               <div className="flex justify-between text-sm"><span>ยอดชำระ</span><span className="font-semibold tabular-nums">{total.toFixed(2)}</span></div>
             </>
           )}
-          <button onClick={pay} disabled={busy || cart.length === 0 || (method === 'CASH' && Number(cashReceived) < total)}
+          <button onClick={pay} disabled={busy || cart.length === 0 || (cashQr && Number(cashReceived || 0) < cqCashNum) || (!cashQr && method === 'CASH' && Number(cashReceived) < total)}
             className="w-full py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-semibold disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900">
             {busy ? 'กำลังบันทึก...' : 'จ่าย + พิมพ์บิล'}
           </button>
