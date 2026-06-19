@@ -40,6 +40,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
   const [cashReceived, setCashReceived] = useState('');
   const [cashQr, setCashQr] = useState(false); // เงินสด+QR combo (UI mode -> 2-line split)
   const [cqCash, setCqCash] = useState(''); // cash portion of the cash+qr split
+  const [cqMethod, setCqMethod] = useState<'QR' | 'QR_FIELD'>('QR'); // non-cash portion -> QR or QR สนาม
   const [refNo, setRefNo] = useState('');
   const [busy, setBusy] = useState(false);
   const [taxInvoice, setTaxInvoice] = useState(false);
@@ -183,7 +184,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
         ? {
             splits: [
               ...(cqCashNum > 0 ? [{ label: 'เงินสด', amount: cqCashNum, method: 'CASH' }] : []),
-              ...(cqQr > 0 ? [{ label: 'QR', amount: cqQr, method: 'QR' }] : []),
+              ...(cqQr > 0 ? [{ label: cqMethod === 'QR_FIELD' ? 'QR สนาม' : 'QR', amount: cqQr, method: cqMethod }] : []),
             ],
           }
         : splitMode
@@ -374,7 +375,8 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
               {POS_PAY_METHODS.map((m) => (
                 <button key={m} onClick={() => { setPayMethod(m); setCashQr(false); }} aria-pressed={!cashQr && payMethod === m} className={`px-3 py-1 rounded text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${!cashQr && payMethod === m ? 'bg-indigo-500 text-white' : 'border dark:border-gray-700'}`}>{methodLabel(m)}</button>
               ))}
-              <button onClick={() => setCashQr(true)} aria-pressed={cashQr} className={`px-3 py-1 rounded text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${cashQr ? 'bg-indigo-500 text-white' : 'border dark:border-gray-700'}`}>เงินสด+QR</button>
+              <button onClick={() => { setCashQr(true); setCqMethod('QR'); }} aria-pressed={cashQr && cqMethod === 'QR'} className={`px-3 py-1 rounded text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${cashQr && cqMethod === 'QR' ? 'bg-indigo-500 text-white' : 'border dark:border-gray-700'}`}>เงินสด+QR</button>
+              <button onClick={() => { setCashQr(true); setCqMethod('QR_FIELD'); }} aria-pressed={cashQr && cqMethod === 'QR_FIELD'} className={`px-3 py-1 rounded text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${cashQr && cqMethod === 'QR_FIELD' ? 'bg-indigo-500 text-white' : 'border dark:border-gray-700'}`}>เงินสด+QR สนาม</button>
             </div>
             {cashQr ? (
               <div className="space-y-2">
@@ -382,7 +384,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
                   <span className="w-20">เงินสด (จ่าย)</span>
                   <input type="number" value={cqCash} onChange={(e) => setCqCash(e.target.value)} className="flex-1 px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-700" />
                 </div>
-                <div className="flex justify-between text-sm"><span>QR (อัตโนมัติ)</span><span className="font-semibold tabular-nums">{cqQr.toFixed(2)}</span></div>
+                <div className="flex justify-between text-sm"><span>{cqMethod === 'QR_FIELD' ? 'QR สนาม' : 'QR'} (อัตโนมัติ)</span><span className="font-semibold tabular-nums">{cqQr.toFixed(2)}</span></div>
                 <div className="flex gap-2 items-center text-sm">
                   <span className="w-20">รับเงินสด</span>
                   <input type="number" value={cashReceived} onChange={(e) => setCashReceived(e.target.value)} className="flex-1 px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-700" />

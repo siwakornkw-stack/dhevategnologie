@@ -441,6 +441,7 @@ function QuickSaleModal({ cart, setCart, onClose, onPaid }: {
   const [cashReceived, setCashReceived] = useState<string>('');
   const [cashQr, setCashQr] = useState(false); // เงินสด+QR combo
   const [cqCash, setCqCash] = useState<string>('');
+  const [cqMethod, setCqMethod] = useState<'QR' | 'QR_FIELD'>('QR'); // non-cash portion -> QR or QR สนาม
   const [discount, setDiscount] = useState<string>('0');
   const [refNo, setRefNo] = useState<string>('');
   const [busy, setBusy] = useState(false);
@@ -532,7 +533,7 @@ function QuickSaleModal({ cart, setCart, onClose, onPaid }: {
           ? {
               splits: [
                 ...(cqCashNum > 0 ? [{ label: 'เงินสด', amount: cqCashNum, method: 'CASH' }] : []),
-                ...(cqQr > 0 ? [{ label: 'QR', amount: cqQr, method: 'QR' }] : []),
+                ...(cqQr > 0 ? [{ label: cqMethod === 'QR_FIELD' ? 'QR สนาม' : 'QR', amount: cqQr, method: cqMethod }] : []),
               ],
             }
           : {
@@ -745,7 +746,8 @@ function QuickSaleModal({ cart, setCart, onClose, onPaid }: {
             {POS_PAY_METHODS.map((m) => (
               <button key={m} onClick={() => { setMethod(m); setCashQr(false); }} aria-pressed={!cashQr && method === m} className={`px-3 py-1 rounded text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${!cashQr && method === m ? 'bg-indigo-500 text-white' : 'border dark:border-gray-700'}`}>{methodLabel(m)}</button>
             ))}
-            <button onClick={() => setCashQr(true)} aria-pressed={cashQr} className={`px-3 py-1 rounded text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${cashQr ? 'bg-indigo-500 text-white' : 'border dark:border-gray-700'}`}>เงินสด+QR</button>
+            <button onClick={() => { setCashQr(true); setCqMethod('QR'); }} aria-pressed={cashQr && cqMethod === 'QR'} className={`px-3 py-1 rounded text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${cashQr && cqMethod === 'QR' ? 'bg-indigo-500 text-white' : 'border dark:border-gray-700'}`}>เงินสด+QR</button>
+            <button onClick={() => { setCashQr(true); setCqMethod('QR_FIELD'); }} aria-pressed={cashQr && cqMethod === 'QR_FIELD'} className={`px-3 py-1 rounded text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${cashQr && cqMethod === 'QR_FIELD' ? 'bg-indigo-500 text-white' : 'border dark:border-gray-700'}`}>เงินสด+QR สนาม</button>
           </div>
           {cashQr ? (
             <>
@@ -753,7 +755,7 @@ function QuickSaleModal({ cart, setCart, onClose, onPaid }: {
                 <span className="w-20">เงินสด (จ่าย)</span>
                 <input type="number" value={cqCash} onChange={(e) => setCqCash(e.target.value)} className="flex-1 px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-700" />
               </div>
-              <div className="flex justify-between text-sm"><span>QR (อัตโนมัติ)</span><span className="font-semibold tabular-nums">{cqQr.toFixed(2)}</span></div>
+              <div className="flex justify-between text-sm"><span>{cqMethod === 'QR_FIELD' ? 'QR สนาม' : 'QR'} (อัตโนมัติ)</span><span className="font-semibold tabular-nums">{cqQr.toFixed(2)}</span></div>
               <div className="flex gap-2 items-center text-sm">
                 <span className="w-20">รับเงินสด</span>
                 <input type="number" value={cashReceived} onChange={(e) => setCashReceived(e.target.value)} className="flex-1 px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-700" />
