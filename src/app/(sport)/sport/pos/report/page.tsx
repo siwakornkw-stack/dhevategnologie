@@ -11,6 +11,7 @@ type Report = {
     totalSales: number; totalRefunds: number; netSales: number; totalProduct: number; totalBooking: number;
     totalDiscount: number; totalVat: number;
     totalServiceCharge: number; totalCost: number; grossProfit: number; marginPct: number;
+    bookingCount: number;
   };
   byMethod: Record<string, number>;
   byCategory: { category: string; count: number; revenue: number }[];
@@ -82,12 +83,19 @@ export default function PosReportPage() {
 
       <div className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-700/50 overflow-hidden">
         <div className="px-4 py-2 font-semibold border-b dark:border-gray-800">ตามหมวด (ประเภทรายการ)</div>
-        {data.byCategory.length === 0 ? <div className="p-6 text-center text-xs text-gray-400">ไม่มี</div> :
+        {data.byCategory.length === 0 && data.totals.totalBooking === 0 ? <div className="p-6 text-center text-xs text-gray-400">ไม่มี</div> :
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-800 text-xs text-gray-500">
               <tr><th className="px-4 py-2 text-left">หมวด</th><th className="px-4 py-2 text-right">จำนวน</th><th className="px-4 py-2 text-right">ยอด</th></tr>
             </thead>
             <tbody className="divide-y dark:divide-gray-800">
+              {data.totals.totalBooking > 0 && (
+                <tr>
+                  <td className="px-4 py-2">สนาม</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{data.totals.bookingCount}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{data.totals.totalBooking.toFixed(2)}</td>
+                </tr>
+              )}
               {data.byCategory.map((c) => (
                 <tr key={c.category}>
                   <td className="px-4 py-2">{c.category}</td>

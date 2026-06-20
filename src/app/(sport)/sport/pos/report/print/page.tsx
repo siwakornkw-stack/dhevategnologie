@@ -8,7 +8,7 @@ type Report = {
   totals: {
     invoiceCount: number; voidCount: number;
     totalSales: number; totalRefunds: number; netSales: number; totalProduct: number; totalBooking: number;
-    totalDiscount: number; totalVat: number; totalServiceCharge: number;
+    totalDiscount: number; totalVat: number; totalServiceCharge: number; bookingCount: number;
   };
   byMethod: Record<string, number>;
   byCategory: { category: string; count: number; revenue: number }[];
@@ -103,13 +103,22 @@ export default function SalesReportPrintPage() {
         <div style={{ fontWeight: 'bold' }}>ตามหมวด:</div>
         <table>
           <tbody>
-            {data.byCategory.length === 0 ? <tr><td colSpan={2} style={{ color: '#666' }}>-</td></tr> :
-              data.byCategory.map((c) => (
-                <tr key={c.category}>
-                  <td>{c.category} <span style={{ color: '#666' }}>x{c.count}</span></td>
-                  <td className="right">{c.revenue.toFixed(2)}</td>
-                </tr>
-              ))}
+            {data.byCategory.length === 0 && t.totalBooking === 0 ? <tr><td colSpan={2} style={{ color: '#666' }}>-</td></tr> : (
+              <>
+                {t.totalBooking > 0 && (
+                  <tr>
+                    <td>สนาม <span style={{ color: '#666' }}>x{t.bookingCount}</span></td>
+                    <td className="right">{t.totalBooking.toFixed(2)}</td>
+                  </tr>
+                )}
+                {data.byCategory.map((c) => (
+                  <tr key={c.category}>
+                    <td>{c.category} <span style={{ color: '#666' }}>x{c.count}</span></td>
+                    <td className="right">{c.revenue.toFixed(2)}</td>
+                  </tr>
+                ))}
+              </>
+            )}
           </tbody>
         </table>
         {data.topProducts.length > 0 && (

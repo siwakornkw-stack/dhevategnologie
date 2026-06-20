@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
   const totalSales = paid.reduce((s, i) => s + i.total, 0);
   const totalProduct = paid.reduce((s, i) => s + i.subtotalProduct, 0);
   const totalBooking = paid.reduce((s, i) => s + i.subtotalBooking, 0);
+  const bookingCount = paid.reduce((s, i) => s + (Array.isArray(i.bookingIds) ? i.bookingIds.length : 0), 0);
   const totalDiscount = paid.reduce((s, i) => s + i.discount, 0);
   const totalVat = paid.reduce((s, i) => s + i.vatAmount, 0);
   const totalServiceCharge = paid.reduce((s, i) => s + (i.serviceCharge || 0), 0);
@@ -99,6 +100,7 @@ export async function GET(req: NextRequest) {
       netSales,
       totalProduct,
       totalBooking,
+      bookingCount,
       totalDiscount,
       totalVat,
       totalServiceCharge,
