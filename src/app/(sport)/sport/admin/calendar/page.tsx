@@ -132,6 +132,7 @@ export default async function AdminCalendarPage({ searchParams }: PageProps) {
                                 <div className="font-semibold truncate tabular-nums">{b.timeSlot}</div>
                                 <div className="truncate opacity-80">{b.user.name ?? '-'}</div>
                                 <div className="text-xs opacity-60">{STATUS_LABELS[b.status]}</div>
+                                {b.note && <div className="text-xs italic opacity-70 break-words whitespace-pre-wrap mt-0.5">หมายเหตุ: {b.note}</div>}
                               </>
                             );
                             const editable = b.status === 'PENDING' || b.status === 'APPROVED';
