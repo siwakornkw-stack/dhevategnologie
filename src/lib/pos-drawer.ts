@@ -1,4 +1,4 @@
-export const DRAWER_AGENT_URL = 'http://127.0.0.1:7654';
+const DRAWER_AGENT_URL = 'http://127.0.0.1:7654';
 
 export async function kickDrawer(): Promise<boolean> {
   try {

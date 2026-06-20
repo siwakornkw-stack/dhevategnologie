@@ -1,9 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { forwardRef, HTMLProps, useId, useState } from 'react';
-import { Label } from '../label';
-import { EyeCloseIcon, EyeIcon } from '@/icons/icons';
+import { forwardRef } from 'react';
 
 export interface InputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -31,57 +29,3 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
 );
 
 Input.displayName = 'Input';
-
-type InputGroupProps = Omit<HTMLProps<HTMLInputElement>, 'id'> & {
-  label: string;
-  groupClassName?: string;
-  error?: string;
-};
-
-export function InputGroup({
-  label,
-  groupClassName,
-  error,
-  ...props
-}: InputGroupProps) {
-  const id = useId();
-
-  return (
-    <div className={groupClassName}>
-      <Label htmlFor={id}>{label}</Label>
-      <Input id={id} {...props} />
-      {error && <p className="text-red-500 text-sm mt-1.5">{error}</p>}
-    </div>
-  );
-}
-
-type PasswordInputProps = Omit<HTMLProps<HTMLInputElement>, 'id'> & {
-  label: string;
-  error?: string;
-};
-
-export function PasswordInput({ label, error, ...props }: PasswordInputProps) {
-  const [showPassword, setShowPassword] = useState(false);
-  const id = useId();
-
-  return (
-    <div>
-      <Label htmlFor={id}>{label}</Label>
-
-      <div className="relative mt-1.5">
-        <Input id={id} type={showPassword ? 'text' : 'password'} {...props} />
-        <button
-          type="button"
-          title={showPassword ? 'Hide password' : 'Show password'}
-          aria-label={showPassword ? 'Hide password' : 'Show password'}
-          className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-gray-500 dark:text-gray-400 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-          onClick={() => setShowPassword(!showPassword)}
-        >
-          {showPassword ? <EyeCloseIcon /> : <EyeIcon />}
-        </button>
-      </div>
-
-      {error && <p className="text-red-500 text-sm mt-1.5">{error}</p>}
-    </div>
-  );
-}

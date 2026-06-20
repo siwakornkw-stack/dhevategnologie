@@ -48,7 +48,7 @@ export function StockClient({ initialProducts = [], initialMovements = [] }: Sto
   const [exporting, setExporting] = useState(false);
   const [stockTakeOpen, setStockTakeOpen] = useState(false);
   const [counts, setCounts] = useState<Record<string, string>>({});
-  const [stProgress, setStProgress] = useState<{ done: number; total: number; ok: number; fail: number } | null>(null);
+  const [stSaving, setStSaving] = useState(false);
 
   async function fetchMovements(pid: string, skip = 0): Promise<Movement[]> {
     const params = new URLSearchParams({ limit: String(PAGE) });
@@ -157,7 +157,7 @@ export function StockClient({ initialProducts = [], initialMovements = [] }: Sto
     const seed: Record<string, string> = {};
     products.forEach((p) => { seed[p.id] = String(p.stockQty); });
     setCounts(seed);
-    setStProgress(null);
+    setStSaving(false);
     setStockTakeOpen(true);
   }
 
@@ -178,7 +178,7 @@ export function StockClient({ initialProducts = [], initialMovements = [] }: Sto
     if (rows.length === 0) { toast.error('ไม่มีรายการที่ต้องปรับ'); return; }
     if (!confirm(`ปรับ ${rows.length} รายการ ยืนยัน?`)) return;
 
-    setStProgress({ done: 0, total: rows.length, ok: 0, fail: 0 });
+    setStSaving(true);
     try {
       const r = await fetch('/api/sport/pos/stock/bulk', {
         method: 'POST',
@@ -191,17 +191,17 @@ export function StockClient({ initialProducts = [], initialMovements = [] }: Sto
       if (r.ok) {
         const data = await r.json().catch(() => ({ count: rows.length }));
         const count = data?.count ?? rows.length;
-        setStProgress({ done: rows.length, total: rows.length, ok: count, fail: 0 });
         await load();
         setStockTakeOpen(false);
+        setStSaving(false);
         toast.success(`สำเร็จ ${count} รายการ`);
       } else {
         const e = await r.json().catch(() => ({}));
-        setStProgress(null);
+        setStSaving(false);
         toast.error(e.error || 'บันทึกไม่สำเร็จ — ไม่มีรายการใดถูกปรับ');
       }
     } catch {
-      setStProgress(null);
+      setStSaving(false);
       toast.error('บันทึกไม่สำเร็จ — ไม่มีรายการใดถูกปรับ');
     }
   }
@@ -267,11 +267,11 @@ export function StockClient({ initialProducts = [], initialMovements = [] }: Sto
       </form>
 
       {stockTakeOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => !stProgress && setStockTakeOpen(false)}>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => !stSaving && setStockTakeOpen(false)}>
           <div className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-700/50 max-w-3xl w-full max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="p-4 border-b dark:border-gray-800 flex items-center justify-between">
               <h2 className="font-bold">นับสต๊อก (Stock-take)</h2>
-              <button onClick={() => !stProgress && setStockTakeOpen(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+              <button onClick={() => !stSaving && setStockTakeOpen(false)} className="text-gray-400 hover:text-gray-600">✕</button>
             </div>
             <div className="p-4 overflow-y-auto flex-1">
               <p className="text-xs text-gray-500 mb-3">กรอกจำนวนนับจริง — รายการที่ตรงกับระบบจะถูกข้าม. ADJUST movement จะถูกบันทึก + audit log.</p>
@@ -312,17 +312,11 @@ export function StockClient({ initialProducts = [], initialMovements = [] }: Sto
               </table>
             </div>
             <div className="p-4 border-t dark:border-gray-800 flex items-center justify-between gap-3">
-              {stProgress ? (
-                <div className="text-sm text-gray-500">
-                  {stProgress.done} / {stProgress.total} (สำเร็จ {stProgress.ok} / ล้มเหลว {stProgress.fail})
-                </div>
-              ) : (
-                <div className="text-xs text-gray-400">เว้นว่างเพื่อข้าม row</div>
-              )}
+              <div className="text-xs text-gray-400">เว้นว่างเพื่อข้าม row</div>
               <div className="flex gap-2">
-                <button disabled={!!stProgress} onClick={() => setStockTakeOpen(false)} className="px-3 py-2 border dark:border-gray-700 rounded text-sm disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">ยกเลิก</button>
-                <button disabled={!!stProgress} onClick={runStockTake} className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded text-sm disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
-                  {stProgress ? 'กำลังบันทึก...' : 'บันทึก stock-take'}
+                <button disabled={stSaving} onClick={() => setStockTakeOpen(false)} className="px-3 py-2 border dark:border-gray-700 rounded text-sm disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">ยกเลิก</button>
+                <button disabled={stSaving} onClick={runStockTake} className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded text-sm disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                  {stSaving ? 'กำลังบันทึก...' : 'บันทึก stock-take'}
                 </button>
               </div>
             </div>

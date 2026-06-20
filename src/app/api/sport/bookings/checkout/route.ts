@@ -7,7 +7,6 @@ import { rateLimit, BOOKING_RATE_LIMIT, getClientIp } from '@/lib/rate-limit';
 import { hasSlotConflict, calculateCouponDiscount, isCouponUsable, calculatePriceWithRules } from '@/lib/booking';
 import { isCouponSystemEnabled } from '@/lib/settings';
 import { sendBookingCreatedEmail } from '@/lib/email';
-import { notifyLineNewBooking } from '@/lib/line-notify';
 import { sendPushToUser } from '@/lib/web-push';
 
 export async function POST(req: NextRequest) {
@@ -186,9 +185,7 @@ export async function POST(req: NextRequest) {
       where: { role: 'ADMIN' },
       select: { id: true, notifInApp: true },
     });
-    const tasks: Promise<unknown>[] = [
-      notifyLineNewBooking(bookingInfo).catch(() => {}),
-    ];
+    const tasks: Promise<unknown>[] = [];
     for (const admin of admins) {
       if (admin.notifInApp) {
         tasks.push(

@@ -15,3 +15,12 @@ export function businessDayRange(fromStr: string, toStr: string): { from: Date; 
   to.setHours(BUSINESS_DAY_CUTOFF_HOUR, 0, 0, -1); // 1ms before next day's cutoff
   return { from, to };
 }
+
+/** Local-time yyyy-mm-dd for today (date-input default). Not toISOString — that shifts by UTC offset. */
+export function todayIso(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}

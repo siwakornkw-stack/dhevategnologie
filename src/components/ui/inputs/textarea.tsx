@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { forwardRef, useEffect, useRef, useState } from 'react';
+import { forwardRef } from 'react';
 
 export interface TextareaProps
   extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -30,59 +30,3 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
 Textarea.displayName = 'Textarea';
 
 export { Textarea };
-
-type PropsType = Omit<TextareaProps, 'error' | 'value' | 'onChange'> & {
-  onChange?: (value: string) => void;
-  defaultValue?: string;
-  value?: string;
-} & (
-    | { withDefaultStyles?: boolean }
-    | {
-        withDefaultStyles: true;
-        error?: boolean;
-      }
-  );
-
-export function AutoGrowingTextArea({
-  onChange,
-  withDefaultStyles,
-  className,
-  value: inputValue,
-  ...props
-}: PropsType) {
-  const [value, setValue] = useState(inputValue || '');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = '0';
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-      onChange?.(value);
-    }
-  }, [onChange, value]);
-
-  if (withDefaultStyles) {
-    return (
-      <Textarea
-        ref={textareaRef}
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        className={'min-h-14 max-h-40 ' + className}
-        {...props}
-      />
-    );
-  }
-
-  return (
-    <textarea
-      ref={textareaRef}
-      onChange={(e) => setValue(e.target.value)}
-      value={value}
-      className={cn(
-        'w-full bg-transparent outline-none resize-none min-h-14 max-h-40',
-        className
-      )}
-      {...props}
-    />
-  );
-}

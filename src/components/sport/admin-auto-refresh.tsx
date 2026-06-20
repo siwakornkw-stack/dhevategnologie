@@ -2,11 +2,11 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-export function AdminAutoRefresh({ intervalMs = 30_000 }: { intervalMs?: number }) {
+export function AdminAutoRefresh() {
   const router = useRouter();
   useEffect(() => {
-    const id = setInterval(() => router.refresh(), intervalMs);
+    const id = setInterval(() => router.refresh(), 30_000);
     return () => clearInterval(id);
-  }, [router, intervalMs]);
+  }, [router]);
   return null;
 }

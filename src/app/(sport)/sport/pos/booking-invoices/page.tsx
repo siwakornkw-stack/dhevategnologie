@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { todayIso } from '@/lib/business-day';
 
 type Snap = { fieldName?: string; date?: string; timeSlot?: string; amount?: number };
 type Invoice = {
@@ -16,11 +17,6 @@ type Report = {
   byField: { fieldId: string; fieldName: string; count: number; amount: number }[];
   byDay: { date: string; count: number; amount: number }[];
 };
-
-function todayIso() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 export default function BookingInvoicesPage() {
   const [from, setFrom] = useState(todayIso());

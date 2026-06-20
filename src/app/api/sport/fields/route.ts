@@ -103,13 +103,10 @@ export async function POST(req: NextRequest) {
       openTime: openTime || '08:00', closeTime: closeTime || '22:00',
       lat: lat ? Number(lat) : null,
       lng: lng ? Number(lng) : null,
-      ...(Array.isArray(priceRules) && priceRules.length > 0
+      ...(validRules.length > 0
         ? {
             priceRules: {
-              create: priceRules
-                .filter((r: { startTime?: string; endTime?: string; pricePerHour?: unknown }) =>
-                  r.startTime && r.endTime && r.startTime !== r.endTime && Number(r.pricePerHour) > 0,
-                )
+              create: validRules
                 .map((r: { startTime: string; endTime: string; pricePerHour: unknown; label?: string }) => ({
                   startTime: r.startTime,
                   endTime: r.endTime,

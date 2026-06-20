@@ -365,7 +365,6 @@
     "notifSection": {
       "title": "🔔 Notifications",
       "email": "📧 Email",
-      "line": "💬 LINE Notify",
       "inApp": "🔔 In-App & Push",
       "saveSettings": "Save notification settings"
     },

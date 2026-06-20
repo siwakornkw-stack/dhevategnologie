@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { businessDayRange } from '@/lib/business-day';
+import { businessDayRange, todayIso } from '@/lib/business-day';
 import { methodLabel } from '@/lib/payment-methods';
 
 type Report = {
@@ -16,14 +16,6 @@ type Report = {
   byCategory: { category: string; count: number; revenue: number }[];
   topProducts: { productId: string; name: string; qty: number; revenue: number }[];
 };
-
-function todayIso() {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
 
 export default function PosReportPage() {
   const [from, setFrom] = useState(todayIso());

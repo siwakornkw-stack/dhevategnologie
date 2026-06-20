@@ -4,7 +4,6 @@ import { auth } from '@/lib/auth';
 import { stripe } from '@/lib/stripe';
 import { sendBookingApprovedEmail, sendBookingRejectedEmail } from '@/lib/email';
 import { sendPushToUser } from '@/lib/web-push';
-import { notifyLineBulkStatus } from '@/lib/line-notify';
 import { calculatePriceWithRules } from '@/lib/booking';
 
 const REFERRAL_BONUS = 50;
@@ -138,7 +137,6 @@ export async function POST(req: NextRequest) {
         await Promise.allSettled(tasks);
       })
     );
-    notifyLineBulkStatus('APPROVED', bookings.length).catch(() => {});
   } else {
     // REJECTED — send notifications and refund if paid
     prisma.auditLog.create({
@@ -198,7 +196,6 @@ export async function POST(req: NextRequest) {
         await Promise.allSettled(tasks);
       })
     );
-    notifyLineBulkStatus('REJECTED', bookings.length).catch(() => {});
   }
 
   return NextResponse.json({ updated: bookings.length });

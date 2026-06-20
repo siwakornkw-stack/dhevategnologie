@@ -3,11 +3,10 @@ import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { BookingStatus, Prisma } from '@prisma/client';
 import { sendBookingApprovedEmail, sendBookingCancelledEmail, sendBookingRejectedEmail } from '@/lib/email';
-import { notifyLineBookingStatus } from '@/lib/line-notify';
 import { stripe } from '@/lib/stripe';
 import { notifyWaitingList } from '@/lib/waiting-list-notify';
 import { sendPushToUser } from '@/lib/web-push';
-import { calculatePriceWithRules } from '@/lib/booking';
+import { calculatePriceWithRules, parseSlotRange, rangesOverlap } from '@/lib/booking';
 import { rateLimit, BOOKING_RATE_LIMIT } from '@/lib/rate-limit';
 
 const REFERRAL_BONUS = 50;
@@ -43,20 +42,6 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 function toMinutes(t: string): number {
   const [h, m] = t.split(':').map(Number);
   return h * 60 + m;
-}
-
-function parseSlot(ts: string): [number, number] | null {
-  const parts = ts.split('-');
-  if (parts.length !== 2) return null;
-  const s = toMinutes(parts[0]);
-  let e = toMinutes(parts[1]);
-  if (isNaN(s) || isNaN(e) || s === e) return null;
-  if (e < s) e += 1440;
-  return [s, e];
-}
-
-function overlaps(aStart: number, aEnd: number, bStart: number, bEnd: number): boolean {
-  return aStart < bEnd && aEnd > bStart;
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -98,7 +83,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const targetDate = new Date(targetDateStr);
     if (isNaN(targetDate.getTime())) return NextResponse.json({ error: 'วันที่ไม่ถูกต้อง' }, { status: 400 });
 
-    const parsed = parseSlot(targetSlot);
+    const parsed = parseSlotRange(targetSlot);
     if (!parsed) return NextResponse.json({ error: 'รูปแบบช่วงเวลาไม่ถูกต้อง' }, { status: 400 });
     const [s, e] = parsed;
     if (e - s < 5) return NextResponse.json({ error: 'ระยะเวลาขั้นต่ำ 5 นาที' }, { status: 400 });
@@ -152,8 +137,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           select: { timeSlot: true },
         });
         const conflict = existing.some((b) => {
-          const p = parseSlot(b.timeSlot);
-          return p ? overlaps(s, e, p[0], p[1]) : false;
+          const p = parseSlotRange(b.timeSlot);
+          return p ? rangesOverlap(s, e, p[0], p[1]) : false;
         });
         if (conflict) throw new Error('conflict');
 
@@ -366,7 +351,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   if (status === 'APPROVED') {
     if (updated.user.notifEmail) notifTasks.push(sendBookingApprovedEmail(updated.user.email, emailData).catch(() => {}));
-    notifTasks.push(notifyLineBookingStatus('APPROVED', emailData).catch(() => {}));
     if (updated.user.notifInApp) {
       notifTasks.push(
         prisma.notification.create({
@@ -377,7 +361,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
   } else if (status === 'REJECTED') {
     if (updated.user.notifEmail) notifTasks.push(sendBookingRejectedEmail(updated.user.email, emailData).catch(() => {}));
-    notifTasks.push(notifyLineBookingStatus('REJECTED', emailData).catch(() => {}));
     if (updated.user.notifInApp) {
       notifTasks.push(
         prisma.notification.create({

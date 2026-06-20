@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePosRole, applyStock } from '@/lib/pos';
+import { calculatePriceWithRules } from '@/lib/booking';
 
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const session = await requirePosRole(['ADMIN', 'CASHIER']);
@@ -26,7 +27,6 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       include: { field: { select: { name: true, pricePerHour: true, priceRules: true } }, user: { select: { name: true, phone: true } } },
     });
     if (b) {
-      const { calculatePriceWithRules } = await import('@/lib/booking');
       const [start, end] = b.timeSlot.split('-');
       bookingSubtotal = calculatePriceWithRules(start, end, b.field.pricePerHour, b.field.priceRules);
       if (b.discountAmount) bookingSubtotal = Math.max(bookingSubtotal - b.discountAmount, 0);

@@ -365,7 +365,6 @@
     "notifSection": {
       "title": "🔔 การแจ้งเตือน",
       "email": "📧 อีเมล",
-      "line": "💬 LINE Notify",
       "inApp": "🔔 In-App & Push",
       "saveSettings": "บันทึกการตั้งค่าแจ้งเตือน"
     },

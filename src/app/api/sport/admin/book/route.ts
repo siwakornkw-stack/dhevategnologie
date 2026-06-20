@@ -2,24 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
+import { parseSlotRange, rangesOverlap } from '@/lib/booking';
 
 function toMinutes(t: string): number {
   const [h, m] = t.split(':').map(Number);
   return h * 60 + m;
-}
-
-function parseSlot(ts: string): [number, number] | null {
-  const parts = ts.split('-');
-  if (parts.length !== 2) return null;
-  const s = toMinutes(parts[0]);
-  let e = toMinutes(parts[1]);
-  if (isNaN(s) || isNaN(e) || s === e) return null;
-  if (e < s) e += 1440;
-  return [s, e];
-}
-
-function overlaps(aStart: number, aEnd: number, bStart: number, bEnd: number): boolean {
-  return aStart < bEnd && aEnd > bStart;
 }
 
 export async function POST(req: NextRequest) {
@@ -46,7 +33,7 @@ export async function POST(req: NextRequest) {
     bookingUserId = customer.id;
   }
 
-  const incoming = parseSlot(timeSlot);
+  const incoming = parseSlotRange(timeSlot);
   if (!incoming) {
     return NextResponse.json({ error: 'รูปแบบช่วงเวลาไม่ถูกต้อง' }, { status: 400 });
   }
@@ -103,8 +90,8 @@ export async function POST(req: NextRequest) {
         });
 
         const conflict = existing.some((b) => {
-          const p = parseSlot(b.timeSlot);
-          return p ? overlaps(newStart, newEnd, p[0], p[1]) : false;
+          const p = parseSlotRange(b.timeSlot);
+          return p ? rangesOverlap(newStart, newEnd, p[0], p[1]) : false;
         });
 
         if (conflict) throw new Error('conflict');
@@ -125,10 +112,7 @@ export async function POST(req: NextRequest) {
     );
 
     return NextResponse.json(booking, { status: 201 });
-  } catch (err) {
-    const msg = err instanceof Error && err.message === 'conflict'
-      ? 'ช่วงเวลานี้ถูกจองแล้ว'
-      : 'ช่วงเวลานี้ถูกจองแล้ว';
-    return NextResponse.json({ error: msg }, { status: 409 });
+  } catch {
+    return NextResponse.json({ error: 'ช่วงเวลานี้ถูกจองแล้ว' }, { status: 409 });
   }
 }

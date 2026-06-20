@@ -21,14 +21,6 @@ export function generateTimeSlots(openTime: string, closeTime: string, stepMin: 
 }
 
 
-export function formatDate(date: Date): string {
-  return date.toLocaleDateString('th-TH', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  });
-}
-
 export function formatDateISO(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -131,25 +123,6 @@ export function expandTimeSlot(ts: string): string[] {
     result.push(`${toTime(m % 1440)}-${toTime(next % 1440)}`);
   }
   return result;
-}
-
-/**
- * Parse "HH:MM-HH:MM" into [startMin, endMin], normalizing overnight ranges (+1440).
- * Returns null for malformed or zero-length ranges.
- */
-export function parseSlot(ts: string): [number, number] | null {
-  const parts = ts.split('-');
-  if (parts.length !== 2) return null;
-  const s = toMinutes(parts[0]);
-  let e = toMinutes(parts[1]);
-  if (isNaN(s) || isNaN(e) || s === e) return null;
-  if (e < s) e += 1440;
-  return [s, e];
-}
-
-/** True if interval [aStart,aEnd) overlaps [bStart,bEnd). */
-export function slotsOverlap(aStart: number, aEnd: number, bStart: number, bEnd: number): boolean {
-  return aStart < bEnd && aEnd > bStart;
 }
 
 /**
