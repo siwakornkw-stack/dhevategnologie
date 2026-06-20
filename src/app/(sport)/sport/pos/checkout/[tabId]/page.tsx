@@ -184,7 +184,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
         ? {
             splits: [
               ...(cqCashNum > 0 ? [{ label: 'เงินสด', amount: cqCashNum, method: 'CASH' }] : []),
-              ...(cqQr > 0 ? [{ label: cqMethod === 'QR_FIELD' ? 'QR สนาม' : 'QR', amount: cqQr, method: cqMethod }] : []),
+              ...(cqQr > 0 ? [{ label: methodLabel(cqMethod), amount: cqQr, method: cqMethod }] : []),
             ],
           }
         : splitMode
@@ -384,7 +384,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
                   <span className="w-20">เงินสด (จ่าย)</span>
                   <input type="number" value={cqCash} onChange={(e) => setCqCash(e.target.value)} className="flex-1 px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-700" />
                 </div>
-                <div className="flex justify-between text-sm"><span>{cqMethod === 'QR_FIELD' ? 'QR สนาม' : 'QR'} (อัตโนมัติ)</span><span className="font-semibold tabular-nums">{cqQr.toFixed(2)}</span></div>
+                <div className="flex justify-between text-sm"><span>{methodLabel(cqMethod)} (อัตโนมัติ)</span><span className="font-semibold tabular-nums">{cqQr.toFixed(2)}</span></div>
                 <div className="flex gap-2 items-center text-sm">
                   <span className="w-20">รับเงินสด</span>
                   <input type="number" value={cashReceived} onChange={(e) => setCashReceived(e.target.value)} className="flex-1 px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-700" />

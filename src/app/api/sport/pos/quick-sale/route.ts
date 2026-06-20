@@ -187,7 +187,6 @@ export async function POST(req: NextRequest) {
         }
         if (Math.abs(sum - finalTotal) > 0.01) throw new Error('SPLIT_MISMATCH');
       } else {
-        const amount = finalTotal;
         const cashReceived = payment.method === 'CASH' && payment.cashReceived !== undefined ? Number(payment.cashReceived) : null;
         const changeAmount = cashReceived !== null ? +(cashReceived - finalTotal).toFixed(2) : null;
         if (payment.method === 'CASH' && cashReceived !== null && cashReceived < finalTotal) {
@@ -197,7 +196,7 @@ export async function POST(req: NextRequest) {
           data: {
             invoiceId: invoice.id,
             method: payment.method,
-            amount,
+            amount: finalTotal,
             cashReceived,
             changeAmount,
             refNo: payment.refNo || null,
