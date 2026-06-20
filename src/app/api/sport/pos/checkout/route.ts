@@ -267,8 +267,14 @@ export async function POST(req: NextRequest) {
         const cashReceived = method === 'CASH' && p.cashReceived !== undefined ? Number(p.cashReceived) : null;
         const changeAmount = cashReceived !== null ? +(cashReceived - grandTotal).toFixed(2) : null;
         if (posId && bookId) {
-          await pay(bookId, bookMethod(method), bookingTotal, null, null, null);
-          await pay(posId, method, posFinalTotal, cashReceived, changeAmount, p.refNo || null);
+          // One combined payment for a tab that includes a field booking lands in a single
+          // account. When the method is QR it is the field (QR สนาม) account, so the product
+          // portion is recorded as QR_FIELD too instead of being split to the shop QR account.
+          // Cash/transfer/card pass through unchanged. To route products to the shop QR account
+          // separately, use the cash+QR or manual-split payment modes.
+          const combinedMethod = bookMethod(method);
+          await pay(bookId, combinedMethod, bookingTotal, null, null, null);
+          await pay(posId, combinedMethod, posFinalTotal, cashReceived, changeAmount, p.refNo || null);
         } else if (posId) {
           await pay(posId, method, posFinalTotal, cashReceived, changeAmount, p.refNo || null);
         } else {
