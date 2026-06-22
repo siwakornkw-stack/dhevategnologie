@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
   const session = await requirePosRole(['ADMIN', 'CASHIER']);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { tabId, includeBooking, discount, payment, splits, note, customer, pointsToRedeem, couponCode } = await req.json();
+  const { tabId, includeBooking, discount, bookingDiscount, payment, splits, note, customer, pointsToRedeem, couponCode } = await req.json();
   if (!tabId) return NextResponse.json({ error: 'tabId required' }, { status: 400 });
 
   const redeemReq = Math.max(0, Math.floor(Number(pointsToRedeem) || 0));
@@ -130,7 +130,11 @@ export async function POST(req: NextRequest) {
         pointsRedeemValue = +(pointsRedeemed * ptValue).toFixed(2);
       }
       const posFinalTotal = +Math.max(vat.total - pointsRedeemValue, 0).toFixed(2);
-      const bookingTotal = subtotalBooking;
+      // Field-charge discount applies to the booking invoice only (capped to its subtotal).
+      const bookDisc = Number(bookingDiscount) || 0;
+      if (!Number.isFinite(bookDisc) || bookDisc < 0) throw new Error('BOOKING_DISCOUNT_INVALID');
+      const bookingDiscApplied = Math.min(bookDisc, subtotalBooking);
+      const bookingTotal = +Math.max(subtotalBooking - bookingDiscApplied, 0).toFixed(2);
       const grandTotal = +(posFinalTotal + bookingTotal).toFixed(2);
 
       // Payment validation (against the combined amount collected from the customer)
@@ -191,12 +195,13 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Booking invoice carries the raw field charge, linked back to the POS invoice as its source.
+      // Booking invoice carries the field charge (gross subtotal + discount + net total),
+      // linked back to the POS invoice as its source.
       let bookingInvoice: { id: string; invoiceNo: string } | null = null;
       if (hasBooking) {
         bookingInvoice = await createInvoice({
           type: 'BOOKING',
-          subtotalProduct: 0, subtotalBooking: bookingTotal, discount: 0,
+          subtotalProduct: 0, subtotalBooking, discount: bookingDiscApplied,
           vatMode: 'NONE', vatRate: 0, vatAmount: 0, total: bookingTotal,
           serviceCharge: 0, totalCost: 0,
           pointsEarned: 0, pointsRedeemed: 0, pointsRedeemValue: 0,
@@ -314,6 +319,7 @@ export async function POST(req: NextRequest) {
     const msg = e instanceof Error ? e.message : 'checkout failed';
     if (msg === 'SHIFT_REQUIRED') return NextResponse.json({ error: 'ต้องเปิดกะก่อนขาย' }, { status: 409 });
     if (msg === 'DISCOUNT_INVALID') return NextResponse.json({ error: 'ส่วนลดไม่ถูกต้อง' }, { status: 400 });
+    if (msg === 'BOOKING_DISCOUNT_INVALID') return NextResponse.json({ error: 'ส่วนลดค่าสนามไม่ถูกต้อง' }, { status: 400 });
     if (msg === 'POINTS_INSUFFICIENT') return NextResponse.json({ error: 'แต้มไม่พอ' }, { status: 400 });
     if (msg === 'POINTS_REDEEM_DISABLED') return NextResponse.json({ error: 'ระบบ redeem ปิดอยู่' }, { status: 400 });
     if (msg === 'SPLIT_MISMATCH') return NextResponse.json({ error: 'ผลรวม split ไม่เท่ากับยอดบิล' }, { status: 400 });

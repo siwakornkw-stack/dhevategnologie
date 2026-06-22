@@ -34,6 +34,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
   const [settings, setSettings] = useState<Settings | null>(null);
   const [includeBooking, setIncludeBooking] = useState(true);
   const [discount, setDiscount] = useState('0');
+  const [bookingDiscount, setBookingDiscount] = useState('0');
   const [splitMode, setSplitMode] = useState(false);
   const [splits, setSplits] = useState<Split[]>([]);
   const [payMethod, setPayMethod] = useState<PosPayMethod>('CASH');
@@ -76,7 +77,8 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
       perTeam.push({ label: x.teamLabel || x.name, sub });
     }
     const productSum = perTeam.reduce((s, x) => s + x.sub, 0);
-    const book = includeBooking && tab.booking && !tab.booking.paidAt ? tab.bookingSubtotal : 0;
+    const grossBook = includeBooking && tab.booking && !tab.booking.paidAt ? tab.bookingSubtotal : 0;
+    const book = +Math.max(grossBook - Math.min(Math.max(Number(bookingDiscount) || 0, 0), grossBook), 0).toFixed(2);
     // Mirror the totals math: discount/coupon/VAT/points on products only, field charge raw.
     const discN = Number(discount) || 0;
     const baseCoupon = Math.max(productSum - discN, 0);
@@ -107,7 +109,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
     }
     if (book > 0) init.push({ label: 'ค่าสนาม', amount: book, method: 'CASH', target: 'BOOKING' });
     setSplits(init);
-  }, [tab, settings, includeBooking, discount, coupon, pointsToRedeem, cust, splits.length]);
+  }, [tab, settings, includeBooking, discount, bookingDiscount, coupon, pointsToRedeem, cust, splits.length]);
 
   if (!tab || !settings) return <div className="wrapper py-8 text-gray-400">กำลังโหลด...</div>;
 
@@ -115,6 +117,8 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
   const subtotalProduct = allItems.reduce((s, i) => s + (i.unitPrice * i.qty - i.discount), 0);
 
   const subtotalBooking = includeBooking && tab.booking && !tab.booking.paidAt ? tab.bookingSubtotal : 0;
+  const bookDiscNum = Math.min(Math.max(Number(bookingDiscount) || 0, 0), subtotalBooking);
+  const bookingTotal = +(subtotalBooking - bookDiscNum).toFixed(2);
 
   // Field charge is billed raw on its own invoice; discount/coupon/service charge/VAT/points apply to products only.
   const discNum = Number(discount) || 0;
@@ -134,7 +138,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
   const ptUsed = Math.min(ptReqRaw, ptMaxByBalance, ptMaxByCart);
   const redeemValue = +(ptUsed * ptValue).toFixed(2);
   const posFinal = +Math.max(grossTotal - redeemValue, 0).toFixed(2);
-  const total = +(posFinal + subtotalBooking).toFixed(2);
+  const total = +(posFinal + bookingTotal).toFixed(2);
   const earnPreview = cust.id && settings.pointsEarnPerBaht > 0 ? Math.floor(posFinal * settings.pointsEarnPerBaht) : 0;
 
   const splitSum = splits.reduce((s, x) => s + Number(x.amount || 0), 0);
@@ -143,7 +147,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
   const splitProductSum = splits.filter((x) => (x.target ?? 'PRODUCT') !== 'BOOKING').reduce((s, x) => s + Number(x.amount || 0), 0);
   // With a field bill, each side must balance to its own invoice; otherwise the grand total must match.
   const splitOk = hasBookingBill
-    ? Math.abs(splitBookingSum - subtotalBooking) < 0.01 && Math.abs(splitProductSum - posFinal) < 0.01
+    ? Math.abs(splitBookingSum - bookingTotal) < 0.01 && Math.abs(splitProductSum - posFinal) < 0.01
     : Math.abs(splitSum - total) < 0.01;
   const change = Math.max((Number(cashReceived) || 0) - total, 0);
   // เงินสด+QR: cash portion (capped to total), QR auto-fills the rest, change is on the cash portion only.
@@ -177,6 +181,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
       tabId,
       includeBooking,
       discount: discNum,
+      bookingDiscount: bookDiscNum,
       ...(coupon ? { couponCode: coupon.code } : {}),
       ...(customerPayload ? { customer: customerPayload } : {}),
       ...(cust.id && ptUsed > 0 ? { pointsToRedeem: ptUsed } : {}),
@@ -249,6 +254,12 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
         <div className="border-t dark:border-gray-800 pt-3 space-y-1 text-sm">
           <div className="flex justify-between"><span>Subtotal สินค้า</span><span className="tabular-nums">{subtotalProduct.toFixed(2)}</span></div>
           {subtotalBooking > 0 && <div className="flex justify-between"><span>Subtotal สนาม</span><span className="tabular-nums">{subtotalBooking.toFixed(2)}</span></div>}
+          {subtotalBooking > 0 && (
+            <div className="flex justify-between items-center">
+              <span>ส่วนลดค่าสนาม</span>
+              <input type="number" value={bookingDiscount} onChange={(e) => setBookingDiscount(e.target.value)} className="w-24 px-2 py-1 border rounded text-right dark:bg-gray-800 dark:border-gray-700" />
+            </div>
+          )}
           <div className="flex justify-between items-center">
             <span>ส่วนลด</span>
             <input type="number" value={discount} onChange={(e) => setDiscount(e.target.value)} className="w-24 px-2 py-1 border rounded text-right dark:bg-gray-800 dark:border-gray-700" />
