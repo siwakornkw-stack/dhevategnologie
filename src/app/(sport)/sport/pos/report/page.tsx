@@ -18,6 +18,19 @@ type Report = {
   topProducts: { productId: string; name: string; qty: number; revenue: number }[];
 };
 
+// "ตามวิธีจ่าย" display order + labels for this report only (the shared methodLabel
+// stays unchanged on receipts / X-Z reports / payment buttons).
+const REPORT_METHOD_ORDER = ['QR_FIELD', 'QR', 'CASH', 'TRANSFER', 'CARD', 'OTHER'];
+const REPORT_METHOD_LABEL: Record<string, string> = {
+  QR_FIELD: 'QR บัญชีบริษัท',
+  QR: 'QR บัญชีส่วนตัว',
+  CASH: 'CASH เงินสด',
+};
+const methodRank = (m: string) => {
+  const i = REPORT_METHOD_ORDER.indexOf(m);
+  return i === -1 ? REPORT_METHOD_ORDER.length : i;
+};
+
 export default function PosReportPage() {
   const [from, setFrom] = useState(todayIso());
   const [to, setTo] = useState(todayIso());
@@ -74,8 +87,8 @@ export default function PosReportPage() {
         <div className="font-semibold mb-2">ตามวิธีจ่าย</div>
         {Object.keys(data.byMethod).length === 0 ? <div className="text-xs text-gray-400">ไม่มี</div> :
           <div className="space-y-1 text-sm">
-            {Object.entries(data.byMethod).map(([m, v]) => (
-              <div key={m} className="flex justify-between"><span>{methodLabel(m)}</span><span className="tabular-nums">฿{v.toFixed(2)}</span></div>
+            {Object.entries(data.byMethod).sort(([a], [b]) => methodRank(a) - methodRank(b)).map(([m, v]) => (
+              <div key={m} className="flex justify-between"><span>{REPORT_METHOD_LABEL[m] ?? methodLabel(m)}</span><span className="tabular-nums">฿{v.toFixed(2)}</span></div>
             ))}
           </div>
         }
