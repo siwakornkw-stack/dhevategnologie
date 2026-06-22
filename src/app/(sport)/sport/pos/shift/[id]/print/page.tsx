@@ -55,8 +55,10 @@ export default function ShiftPrintPage({ params }: { params: Promise<{ id: strin
           body { margin: 0; }
           .no-print, header, footer { display: none !important; }
           .receipt-page { min-height: 0 !important; padding: 0 !important; background: #fff !important; }
-          .receipt { page-break-after: always; }
+          .receipt { page-break-after: always; page-break-inside: avoid; break-inside: avoid; }
           .receipt:last-child { page-break-after: auto; }
+          /* keep each section's rows together so the long summary slip never cuts mid-table */
+          .receipt table, .receipt tr { page-break-inside: avoid; break-inside: avoid; }
         }
         .receipt { width: ${width}; margin: 0 auto; background: white; padding: 8px; font-family: 'Tahoma', monospace; font-size: 11px; color: #000; }
         .receipt .center { text-align: center; }
