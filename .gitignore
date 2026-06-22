@@ -57,3 +57,8 @@ next-env.d.ts
 # claude worktrees
 .claude/worktrees/
 .env*
+
+# local tool output / artifacts (accidentally committed once)
+.impeccable/
+stock-beersing.csv
+*.exe
