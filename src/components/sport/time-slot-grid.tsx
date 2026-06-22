@@ -49,6 +49,7 @@ export function TimeSlotGrid({ slots, bookedSlots, selectedSlots, onSelect, onWa
         const slotStatus = getSlotStatus(slot, bookedSlots);
         const isThisBooked = !!slotStatus;
         const isApproved = slotStatus === 'APPROVED';
+        const isBlocked = slotStatus === 'BLOCKED';
         const isSelected = selectedSlots.includes(slot);
         const isWaiting = waitingSlots.includes(slot);
 
@@ -82,8 +83,8 @@ export function TimeSlotGrid({ slots, bookedSlots, selectedSlots, onSelect, onWa
               <div className="font-semibold">{slotStart}</div>
               <div className="text-xs font-normal opacity-60">–{slotEnd}</div>
               {isThisBooked ? (
-                <div className={cn('text-xs mt-0.5 font-normal', isApproved ? 'text-red-400' : 'text-yellow-400')}>
-                  {isApproved ? t('slotBooked') : t('slotPending')}
+                <div className={cn('text-xs mt-0.5 font-normal', isBlocked ? 'text-gray-400' : isApproved ? 'text-red-400' : 'text-yellow-400')}>
+                  {isBlocked ? 'ปิด' : isApproved ? t('slotBooked') : t('slotPending')}
                 </div>
               ) : isInvalidStart && !isSelected ? (
                 <div className="text-xs mt-0.5 font-normal text-gray-400">{t('slotUnavailable')}</div>

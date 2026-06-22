@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
-import { parseSlotRange, rangesOverlap } from '@/lib/booking';
+import { parseSlotRange, rangesOverlap, blockBlocksSlot } from '@/lib/booking';
 
 function toMinutes(t: string): number {
   const [h, m] = t.split(':').map(Number);
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     prisma.fieldBlockedDate.findFirst({ where: { fieldId, date: bookingDate } }),
   ]);
   if (!field) return NextResponse.json({ error: 'ไม่พบสนาม' }, { status: 404 });
-  if (blocked) return NextResponse.json({ error: `สนามปิดให้บริการในวันนี้${blocked.reason ? `: ${blocked.reason}` : ''}` }, { status: 409 });
+  if (blocked && blockBlocksSlot(blocked, timeSlot)) return NextResponse.json({ error: `สนามปิดให้บริการช่วงเวลานี้${blocked.reason ? `: ${blocked.reason}` : ''}` }, { status: 409 });
 
   const fieldOpen = toMinutes(field.openTime);
   let fieldClose = toMinutes(field.closeTime);

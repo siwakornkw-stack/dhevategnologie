@@ -3,7 +3,7 @@ import { Prisma, BookingStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { rateLimit, BOOKING_RATE_LIMIT } from '@/lib/rate-limit';
-import { hasSlotConflict } from '@/lib/booking';
+import { hasSlotConflict, blockBlocksSlot } from '@/lib/booking';
 import { stripe } from '@/lib/stripe';
 import { notifyWaitingList } from '@/lib/waiting-list-notify';
 
@@ -231,7 +231,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ gro
     prisma.fieldBlockedDate.findFirst({ where: { fieldId: group.fieldId, date } }),
   ]);
   if (!field) return NextResponse.json({ error: 'ไม่พบสนามหรือสนามปิด' }, { status: 404 });
-  if (blocked) return NextResponse.json({ error: 'สนามปิดในวันนี้' }, { status: 409 });
+  if (blocked && blockBlocksSlot(blocked, timeSlot)) return NextResponse.json({ error: 'สนามปิดในช่วงเวลานี้' }, { status: 409 });
 
   const [s0, e0] = timeSlot.split('-');
   const fieldOpen = toMin(field.openTime);

@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { stripe } from '@/lib/stripe';
 import { rateLimit, BOOKING_RATE_LIMIT, getClientIp } from '@/lib/rate-limit';
-import { hasSlotConflict, calculateCouponDiscount, isCouponUsable, calculatePriceWithRules } from '@/lib/booking';
+import { hasSlotConflict, calculateCouponDiscount, isCouponUsable, calculatePriceWithRules, blockBlocksSlot } from '@/lib/booking';
 import { isCouponSystemEnabled } from '@/lib/settings';
 import { sendBookingCreatedEmail } from '@/lib/email';
 import { sendPushToUser } from '@/lib/web-push';
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     prisma.fieldBlockedDate.findFirst({ where: { fieldId, date: bookingDate } }),
   ]);
   if (!field) return NextResponse.json({ error: 'ไม่พบสนามหรือสนามปิดให้บริการ' }, { status: 404 });
-  if (blocked) return NextResponse.json({ error: `สนามปิดให้บริการในวันนี้${blocked.reason ? `: ${blocked.reason}` : ''}` }, { status: 409 });
+  if (blocked && slotsArray.some((s) => blockBlocksSlot(blocked, s))) return NextResponse.json({ error: `สนามปิดให้บริการช่วงเวลานี้${blocked.reason ? `: ${blocked.reason}` : ''}` }, { status: 409 });
 
   // Validate coupon
   let appliedCoupon: { code: string; discountType: string; discountValue: number } | null = null;

@@ -265,6 +265,9 @@ model FieldBlockedDate {
   id        String   @id @default(cuid())
   fieldId   String
   date      DateTime
+  // Optional time window "HH:MM". Both null = whole day closed (default).
+  startTime String?
+  endTime   String?
   reason    String?
   createdAt DateTime @default(now())
 

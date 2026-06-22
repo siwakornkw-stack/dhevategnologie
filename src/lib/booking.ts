@@ -108,6 +108,20 @@ export function hasSlotConflict(existingTimeSlots: string[], incomingTimeSlots: 
 }
 
 /**
+ * Does a blocked-date entry close the given time slot?
+ * A block with no time window (start/end null) closes the whole day. With a
+ * window it closes only slots that overlap [startTime, endTime). Unparseable
+ * input is treated as blocking, to fail safe.
+ */
+export function blockBlocksSlot(block: { startTime: string | null; endTime: string | null }, timeSlot: string): boolean {
+  if (!block.startTime || !block.endTime) return true;
+  const req = parseSlotRange(timeSlot);
+  const blk = parseSlotRange(`${block.startTime}-${block.endTime}`);
+  if (!req || !blk) return true;
+  return rangesOverlap(req[0], req[1], blk[0], blk[1]);
+}
+
+/**
  * Expand a range like "08:00-10:00" into hourly slots ["08:00-09:00","09:00-10:00"].
  * A single-hour range is returned as-is.
  */

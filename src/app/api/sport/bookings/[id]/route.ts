@@ -6,7 +6,7 @@ import { sendBookingApprovedEmail, sendBookingCancelledEmail, sendBookingRejecte
 import { stripe } from '@/lib/stripe';
 import { notifyWaitingList } from '@/lib/waiting-list-notify';
 import { sendPushToUser } from '@/lib/web-push';
-import { calculatePriceWithRules, parseSlotRange, rangesOverlap } from '@/lib/booking';
+import { calculatePriceWithRules, parseSlotRange, rangesOverlap, blockBlocksSlot } from '@/lib/booking';
 import { rateLimit, BOOKING_RATE_LIMIT } from '@/lib/rate-limit';
 
 const REFERRAL_BONUS = 50;
@@ -102,9 +102,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (targetFieldId !== booking.fieldId && !field.isActive) {
       return NextResponse.json({ error: 'สนามปลายทางปิดใช้งานอยู่' }, { status: 409 });
     }
-    if (blocked) {
+    if (blocked && blockBlocksSlot(blocked, targetSlot)) {
       return NextResponse.json(
-        { error: `สนามปิดให้บริการในวันนี้${blocked.reason ? `: ${blocked.reason}` : ''}` },
+        { error: `สนามปิดให้บริการช่วงเวลานี้${blocked.reason ? `: ${blocked.reason}` : ''}` },
         { status: 409 }
       );
     }

@@ -25,16 +25,31 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { id } = await params;
-  const { date, reason } = await req.json();
+  const { date, reason, startTime, endTime } = await req.json();
   if (!date) return NextResponse.json({ error: 'Missing date' }, { status: 400 });
 
   const dateObj = new Date(date);
   if (isNaN(dateObj.getTime())) return NextResponse.json({ error: 'Invalid date' }, { status: 400 });
   dateObj.setUTCHours(0, 0, 0, 0);
 
+  // Optional time window: both must be provided together and well-formed; start < end.
+  const hm = /^([01]\d|2[0-3]):[0-5]\d$/;
+  let start: string | null = null;
+  let end: string | null = null;
+  if (startTime || endTime) {
+    if (!hm.test(startTime || '') || !hm.test(endTime || '')) {
+      return NextResponse.json({ error: 'รูปแบบเวลาไม่ถูกต้อง (HH:MM)' }, { status: 400 });
+    }
+    if (startTime >= endTime) {
+      return NextResponse.json({ error: 'เวลาเริ่มต้องน้อยกว่าเวลาสิ้นสุด' }, { status: 400 });
+    }
+    start = startTime;
+    end = endTime;
+  }
+
   try {
     const blocked = await prisma.fieldBlockedDate.create({
-      data: { fieldId: id, date: dateObj, reason: reason || null },
+      data: { fieldId: id, date: dateObj, reason: reason || null, startTime: start, endTime: end },
     });
     return NextResponse.json(blocked, { status: 201 });
   } catch {

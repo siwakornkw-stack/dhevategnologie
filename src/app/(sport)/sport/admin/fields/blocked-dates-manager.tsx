@@ -8,6 +8,8 @@ interface BlockedDate {
   id: string;
   date: string;
   reason: string | null;
+  startTime: string | null;
+  endTime: string | null;
 }
 
 function toISO(year: number, month: number, day: number): string {
@@ -103,6 +105,8 @@ export function BlockedDatesManager({ fieldId, fieldName }: { fieldId: string; f
   const [loading, setLoading] = useState(false);
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [reason, setReason] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
   const [adding, setAdding] = useState(false);
 
   const load = useCallback(async () => {
@@ -129,14 +133,17 @@ export function BlockedDatesManager({ fieldId, fieldName }: { fieldId: string; f
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     if (selectedDates.length === 0) return toast.error('เลือกวันที่อย่างน้อย 1 วัน');
+    if ((startTime || endTime) && !(startTime && endTime)) return toast.error('ใส่เวลาเริ่มและสิ้นสุดให้ครบ (หรือเว้นว่างทั้งคู่ = ปิดทั้งวัน)');
+    if (startTime && endTime && startTime >= endTime) return toast.error('เวลาเริ่มต้องน้อยกว่าเวลาสิ้นสุด');
     setAdding(true);
     try {
+      const timeFields = startTime && endTime ? { startTime, endTime } : {};
       const results = await Promise.all(
         selectedDates.map((date) =>
           fetch(`/api/sport/admin/fields/${fieldId}/blocked-dates`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ date, reason: reason.trim() || null }),
+            body: JSON.stringify({ date, reason: reason.trim() || null, ...timeFields }),
           }).then((r) => r.json().then((d) => ({ ok: r.ok, date, error: d.error })))
         )
       );
@@ -146,6 +153,8 @@ export function BlockedDatesManager({ fieldId, fieldName }: { fieldId: string; f
         toast.success(`บล็อก ${succeeded} วันแล้ว`);
         setSelectedDates([]);
         setReason('');
+        setStartTime('');
+        setEndTime('');
         load();
         router.refresh();
       }
@@ -236,6 +245,27 @@ export function BlockedDatesManager({ fieldId, fieldName }: { fieldId: string; f
                   />
                 </div>
 
+                <div>
+                  <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">
+                    เวลาปิด (ไม่บังคับ — เว้นว่าง = ปิดทั้งวัน)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="time"
+                      className="flex-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                    />
+                    <span className="text-gray-400 text-sm">ถึง</span>
+                    <input
+                      type="time"
+                      className="flex-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      value={endTime}
+                      onChange={(e) => setEndTime(e.target.value)}
+                    />
+                  </div>
+                </div>
+
                 <button
                   type="submit"
                   disabled={adding || selectedDates.length === 0}
@@ -258,6 +288,7 @@ export function BlockedDatesManager({ fieldId, fieldName }: { fieldId: string; f
                         <div>
                           <p className="text-sm font-medium text-gray-800 dark:text-white">
                             {new Date(d.date).toLocaleDateString('th-TH', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+                            <span className="ml-2 text-xs font-normal text-gray-400">{d.startTime && d.endTime ? `${d.startTime}-${d.endTime}` : 'ทั้งวัน'}</span>
                           </p>
                           {d.reason && <p className="text-xs text-gray-400">{d.reason}</p>}
                         </div>

@@ -30,11 +30,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     label: r.label,
   }));
 
-  // Check if the date is blocked by admin
+  // Check if the date is blocked by admin. A whole-day block (no time window) closes the
+  // day; a time-window block only marks its slots as unavailable.
   const blocked = await prisma.fieldBlockedDate.findFirst({
     where: { fieldId: decodedId, date: dateObj },
   });
-  if (blocked) {
+  if (blocked && (!blocked.startTime || !blocked.endTime)) {
     return NextResponse.json({
       bookedSlots: {},
       openTime: field.openTime,
@@ -58,6 +59,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   for (const b of bookings) {
     for (const slot of expandTimeSlot(b.timeSlot)) {
       bookedSlots[slot] = b.status;
+    }
+  }
+  // Time-window block: mark its slots unavailable (does not override real bookings above).
+  if (blocked && blocked.startTime && blocked.endTime) {
+    for (const slot of expandTimeSlot(`${blocked.startTime}-${blocked.endTime}`)) {
+      if (!bookedSlots[slot]) bookedSlots[slot] = 'BLOCKED';
     }
   }
 

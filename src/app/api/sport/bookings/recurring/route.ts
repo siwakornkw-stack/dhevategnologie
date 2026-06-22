@@ -4,7 +4,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { rateLimit, BOOKING_RATE_LIMIT } from '@/lib/rate-limit';
-import { hasSlotConflict } from '@/lib/booking';
+import { hasSlotConflict, blockBlocksSlot } from '@/lib/booking';
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -75,9 +75,9 @@ export async function POST(req: NextRequest) {
     const d = new Date(startDateObj);
     d.setUTCDate(d.getUTCDate() + i * 7);
 
-    // Skip blocked dates
+    // Skip dates closed for this time slot
     const blocked = await prisma.fieldBlockedDate.findFirst({ where: { fieldId, date: d } });
-    if (blocked) {
+    if (blocked && blockBlocksSlot(blocked, timeSlot)) {
       errors.push(`${d.toLocaleDateString('th-TH')} (สนามปิด)`);
       continue;
     }

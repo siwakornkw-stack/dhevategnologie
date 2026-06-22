@@ -32,11 +32,13 @@ export default async function AdminAvailabilityPage() {
     }),
     prisma.fieldBlockedDate.findMany({
       where: { fieldId: { in: fieldIds }, date: todayObj },
-      select: { fieldId: true },
+      select: { fieldId: true, startTime: true, endTime: true },
     }),
   ]);
 
-  const blockedSet = new Set(blockedDates.map((b) => b.fieldId));
+  // Only whole-day blocks (no time window) close the field for the day; partial blocks
+  // mark their own slots below.
+  const blockedSet = new Set(blockedDates.filter((b) => !b.startTime || !b.endTime).map((b) => b.fieldId));
   const initialAvailability: Record<string, Record<string, string>> = {};
   const initialPriceRules: Record<string, { startTime: string; endTime: string; pricePerHour: number; label: string | null }[]> = {};
   for (const f of fieldsRaw) {
@@ -50,6 +52,13 @@ export default async function AdminAvailabilityPage() {
       if (blockedSet.has(b.fieldId)) continue;
       for (const slot of expandTimeSlot(b.timeSlot)) {
         initialAvailability[b.fieldId][slot] = b.status;
+      }
+    }
+    // Partial-window blocks: mark only their slots (don't override real bookings).
+    for (const b of blockedDates) {
+      if (!b.startTime || !b.endTime || blockedSet.has(b.fieldId)) continue;
+      for (const slot of expandTimeSlot(`${b.startTime}-${b.endTime}`)) {
+        if (!initialAvailability[b.fieldId][slot]) initialAvailability[b.fieldId][slot] = 'BLOCKED';
       }
     }
   }
