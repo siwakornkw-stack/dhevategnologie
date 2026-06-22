@@ -40,8 +40,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!hm.test(startTime || '') || !hm.test(endTime || '')) {
       return NextResponse.json({ error: 'รูปแบบเวลาไม่ถูกต้อง (HH:MM)' }, { status: 400 });
     }
-    if (startTime >= endTime) {
-      return NextResponse.json({ error: 'เวลาเริ่มต้องน้อยกว่าเวลาสิ้นสุด' }, { status: 400 });
+    // start > end is allowed: an overnight window (e.g. 17:00-01:00) wraps past midnight.
+    if (startTime === endTime) {
+      return NextResponse.json({ error: 'เวลาเริ่มและสิ้นสุดต้องไม่เท่ากัน' }, { status: 400 });
     }
     start = startTime;
     end = endTime;

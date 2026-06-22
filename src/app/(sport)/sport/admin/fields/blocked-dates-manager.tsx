@@ -134,7 +134,7 @@ export function BlockedDatesManager({ fieldId, fieldName }: { fieldId: string; f
     e.preventDefault();
     if (selectedDates.length === 0) return toast.error('เลือกวันที่อย่างน้อย 1 วัน');
     if ((startTime || endTime) && !(startTime && endTime)) return toast.error('ใส่เวลาเริ่มและสิ้นสุดให้ครบ (หรือเว้นว่างทั้งคู่ = ปิดทั้งวัน)');
-    if (startTime && endTime && startTime >= endTime) return toast.error('เวลาเริ่มต้องน้อยกว่าเวลาสิ้นสุด');
+    if (startTime && endTime && startTime === endTime) return toast.error('เวลาเริ่มและสิ้นสุดต้องไม่เท่ากัน');
     setAdding(true);
     try {
       const timeFields = startTime && endTime ? { startTime, endTime } : {};
