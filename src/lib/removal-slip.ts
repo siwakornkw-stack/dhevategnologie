@@ -29,7 +29,7 @@ table { width: 100%; border-collapse: collapse; } td { padding: 1px 0; }
 <table><tbody><tr style="font-weight:bold;font-size:13px;"><td>รวมที่ลบ</td><td class="right">${total.toFixed(2)}</td></tr></tbody></table>
 <hr/>
 <div class="center" style="margin-top:6px;">บิลรายการที่ลบ (ไม่ใช่ใบเสร็จ)</div>
-</div><script>window.onload=function(){window.print();}</script></body></html>`;
+</div><script>window.onload=function(){window.print();};window.onafterprint=function(){if(window.opener)window.opener.focus();window.close();};</script></body></html>`;
 }
 
 // Open a print window and write the slip. Returns false if blocked (popup blocker).
