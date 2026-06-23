@@ -35,6 +35,7 @@ export default function PosReportPage() {
   const [from, setFrom] = useState(todayIso());
   const [to, setTo] = useState(todayIso());
   const [data, setData] = useState<Report | null>(null);
+  const [methodModal, setMethodModal] = useState<string | null>(null);
 
   async function load() {
     const { from: fromDt, to: toDt } = businessDayRange(from, to);
@@ -88,7 +89,14 @@ export default function PosReportPage() {
         {Object.keys(data.byMethod).length === 0 ? <div className="text-xs text-gray-400">ไม่มี</div> :
           <div className="space-y-1 text-sm">
             {Object.entries(data.byMethod).sort(([a], [b]) => methodRank(a) - methodRank(b)).map(([m, v]) => (
-              <div key={m} className="flex justify-between"><span>{REPORT_METHOD_LABEL[m] ?? methodLabel(m)}</span><span className="tabular-nums">฿{v.toFixed(2)}</span></div>
+              <button
+                key={m}
+                onClick={() => setMethodModal(m)}
+                className="w-full flex justify-between items-center px-2 py-1 -mx-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              >
+                <span>{REPORT_METHOD_LABEL[m] ?? methodLabel(m)} <span className="text-gray-400">›</span></span>
+                <span className="tabular-nums">฿{v.toFixed(2)}</span>
+              </button>
             ))}
           </div>
         }
@@ -139,6 +147,76 @@ export default function PosReportPage() {
             }
           </tbody>
         </table>
+      </div>
+
+      {methodModal && (
+        <MethodBillsModal
+          method={methodModal}
+          label={REPORT_METHOD_LABEL[methodModal] ?? methodLabel(methodModal)}
+          from={from}
+          to={to}
+          onClose={() => setMethodModal(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+type MethodBill = { invoiceId: string; invoiceNo: string; paidAt: string; total: number; customerName: string | null; amount: number };
+
+function MethodBillsModal({ method, label, from, to, onClose }: { method: string; label: string; from: string; to: string; onClose: () => void }) {
+  const [rows, setRows] = useState<MethodBill[] | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { from: f, to: t } = businessDayRange(from, to);
+      const r = await fetch(`/api/sport/pos/report/by-method?method=${encodeURIComponent(method)}&from=${f.toISOString()}&to=${t.toISOString()}`);
+      setRows(r.ok ? await r.json() : []);
+    })();
+  }, [method, from, to]);
+
+  const sum = rows ? rows.reduce((s, b) => s + b.amount, 0) : 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border dark:border-gray-700 w-full max-w-lg max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-3 border-b dark:border-gray-800">
+          <div className="font-semibold">บิลที่จ่ายด้วย {label}</div>
+          <button onClick={onClose} aria-label="ปิด" className="text-gray-400 hover:text-gray-600 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">✕</button>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {rows === null ? (
+            <div className="p-8 text-center text-gray-400 text-sm">กำลังโหลด...</div>
+          ) : rows.length === 0 ? (
+            <div className="p-8 text-center text-gray-400 text-sm">ไม่มีบิล</div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 sticky top-0">
+                <tr><th className="px-4 py-2 text-left">บิล / เวลา</th><th className="px-4 py-2 text-right">ยอดช่องนี้</th><th className="px-4 py-2"></th></tr>
+              </thead>
+              <tbody className="divide-y dark:divide-gray-800">
+                {rows.map((b) => (
+                  <tr key={b.invoiceId}>
+                    <td className="px-4 py-2">
+                      <div className="font-medium">{b.invoiceNo}</div>
+                      <div className="text-xs text-gray-400">{new Date(b.paidAt).toLocaleString('th-TH')}{b.customerName ? ` · ${b.customerName}` : ''}</div>
+                    </td>
+                    <td className="px-4 py-2 text-right tabular-nums">฿{b.amount.toFixed(2)}{b.amount !== b.total && <div className="text-xs text-gray-400">บิล ฿{b.total.toFixed(2)}</div>}</td>
+                    <td className="px-4 py-2 text-right">
+                      <a href={`/sport/pos/invoices/${b.invoiceId}/print`} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">พิมพ์</a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+        {rows && rows.length > 0 && (
+          <div className="px-5 py-3 border-t dark:border-gray-800 flex justify-between font-semibold text-sm">
+            <span>รวม {rows.length} บิล</span>
+            <span className="tabular-nums">฿{sum.toFixed(2)}</span>
+          </div>
+        )}
       </div>
     </div>
   );
