@@ -44,11 +44,15 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
   const qtyInFlight = useRef<Record<string, Promise<void>>>({});
 
   async function loadProducts() {
-    const p = await fetch('/api/sport/pos/products').then((r) => r.json());
+    // no-store: the products endpoint sends Cache-Control max-age=10, so a cached response
+    // would clobber the optimistic stock decrement after each add. The sale page needs live stock.
+    const p = await fetch('/api/sport/pos/products', { cache: 'no-store' }).then((r) => r.json());
     setProducts(Array.isArray(p) ? p : []);
   }
   async function loadTabs() {
-    const t = await fetch('/api/sport/pos/tabs?status=OPEN').then((r) => r.json());
+    // no-store: tabs endpoint is browser-cached (max-age=2); the cart must reflect the latest
+    // items/status right after hold/resume/remove, not a 2s-stale snapshot.
+    const t = await fetch('/api/sport/pos/tabs?status=OPEN', { cache: 'no-store' }).then((r) => r.json());
     setTabs(Array.isArray(t) ? t.filter((x: Tab) => x.status === 'OPEN' || x.status === 'HELD') : []);
   }
   async function load() {
@@ -100,6 +104,19 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
     setTabNameOpen(false);
   }
 
+  // Bump an existing cart line by +1. Coalesces rapid taps via the qty ref/debounce so a
+  // burst becomes ONE PATCH with the final qty (no read-modify-write race), then resyncs stock.
+  function bumpExisting(item: Item, productId: string, tabId: string) {
+    const pend = qtyPending.current[item.id];
+    const nextQty = (pend ? pend.qty : item.qty) + 1;
+    if (pend) pend.qty = nextQty;
+    else qtyPending.current[item.id] = { tabId, qty: nextQty, prevQty: item.qty };
+    setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: t.items.map((i) => i.id === item.id ? { ...i, qty: nextQty } : i) } : t));
+    setProducts((ps) => ps.map((p) => p.id === productId ? { ...p, stockQty: p.stockQty - 1 } : p));
+    if (qtyTimers.current[item.id]) clearTimeout(qtyTimers.current[item.id]);
+    qtyTimers.current[item.id] = setTimeout(() => { commitQty(item.id).then(() => loadProducts()); }, 400);
+  }
+
   async function addToTab(productId: string) {
     if (!currentTabId) { toast.error('เลือก Tab ก่อน หรือใช้ Quick Sale'); return; }
     const current = tabs.find((t) => t.id === currentTabId);
@@ -107,6 +124,11 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
     const tabId = currentTabId;
     const product = products.find((p) => p.id === productId);
     if (!product) return;
+    // Same product already in the cart -> bump its qty instead of adding another row.
+    // Match on name+price (items carry no productId); skip in-flight (tmp) and discounted lines.
+    const existing = current?.items.find((i) =>
+      !i.id.startsWith('tmp-') && i.discount === 0 && i.productName === product.name && i.unitPrice === product.price);
+    if (existing) { bumpExisting(existing, productId, tabId); return; }
     const tempId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const optimistic: Item = { id: tempId, productName: product.name, qty: 1, unitPrice: product.price, discount: 0 };
     setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: [...t.items, optimistic] } : t));
@@ -162,6 +184,7 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
       setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: [...t.items, removedItem] } : t));
       toast.error('ลบไม่สำเร็จ');
     }
+    loadProducts();
   }
 
   // Remove a quantity from a saved (consolidated) line: prompt for how many, reduce qty
@@ -173,6 +196,8 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
     if (raw == null) return;
     const n = Math.floor(Number(raw));
     if (!Number.isInteger(n) || n < 1 || n > max) { toast.error('จำนวนไม่ถูกต้อง'); return; }
+    // Flush any pending bump for this line so the server qty matches what we're removing from.
+    await commitQty(item.id);
     const tabId = currentTabId;
     const record = () => setRemoved((rs) => {
       const i = rs.findIndex((r) => r.productName === item.productName && r.unitPrice === item.unitPrice);
