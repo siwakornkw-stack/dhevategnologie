@@ -163,7 +163,12 @@ export async function POST(req: NextRequest) {
         await applyStock(tx, it.productId, it.qty, { type: 'IN', refType: 'REFUND', refId: inv.id, userId: session.user.id, note: reason, allowNegative: true });
       }
 
-      const activeShift = await getActiveShift(session.user.id, tx);
+      // Cash leaves the drawer that is open at refund time. Prefer the refunder's own open
+      // shift; otherwise (e.g. an admin refunding, who keeps no shift) fall back to the
+      // register's currently-open shift so the refund still hits a drawer's Z-report instead
+      // of vanishing with shiftId = null.
+      const activeShift = (await getActiveShift(session.user.id, tx))
+        ?? (await tx.posShift.findFirst({ where: { status: 'OPEN' }, orderBy: { openedAt: 'desc' } }));
 
       let refund;
       let attempts = 0;
