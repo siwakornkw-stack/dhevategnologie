@@ -1,10 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
+
+// Google OAuth rejects embedded in-app webviews (error 403 disallowed_useragent). LINE links
+// open in LINE's webview by default; FB/IG/etc. are similar. Detect so we can escape first.
+function detectInAppBrowser(): 'line' | 'other' | null {
+  if (typeof navigator === 'undefined') return null;
+  const ua = navigator.userAgent || '';
+  if (/\bLine\//i.test(ua)) return 'line';
+  if (/FBAN|FBAV|Instagram|Messenger|MicroMessenger|TikTok|; wv\)/i.test(ua)) return 'other';
+  return null;
+}
 
 export function SignInForm() {
   const router = useRouter();
@@ -21,6 +31,25 @@ export function SignInForm() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [needs2FA, setNeeds2FA] = useState(false);
+  const [inApp, setInApp] = useState<'line' | 'other' | null>(null);
+
+  useEffect(() => { setInApp(detectInAppBrowser()); }, []);
+
+  function handleGoogle() {
+    if (inApp === 'line') {
+      // LINE opens links carrying openExternalBrowser=1 in the device's default browser,
+      // where Google OAuth is allowed. Reload this same page there; user taps Google again.
+      const url = new URL(window.location.href);
+      url.searchParams.set('openExternalBrowser', '1');
+      window.location.href = url.toString();
+      return;
+    }
+    if (inApp === 'other') {
+      toast.error('เปิดลิงก์ในเบราว์เซอร์ (Chrome/Safari) ก่อนล็อกอิน Google — ในแอปนี้ Google บล็อก');
+      return;
+    }
+    signIn('google', { callbackUrl });
+  }
 
   const inputClass = "w-full h-12 rounded-full border border-gray-200 dark:border-gray-700 px-5 text-sm text-gray-800 dark:text-white placeholder:text-gray-400 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition";
 
@@ -139,9 +168,17 @@ export function SignInForm() {
             </div>
           </div>
 
+          {inApp && (
+            <div className="mb-3 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 px-4 py-3 text-xs text-amber-800 dark:text-amber-300">
+              {inApp === 'line'
+                ? 'อยู่ในแอป LINE — Google ล็อกอินในแอปไม่ได้ แตะปุ่มด้านล่างเพื่อเปิดในเบราว์เซอร์ แล้วล็อกอินอีกครั้ง'
+                : 'เปิดลิงก์ในเบราว์เซอร์ (Chrome/Safari) ก่อน จึงจะล็อกอิน Google ได้'}
+            </div>
+          )}
+
           <button
             type="button"
-            onClick={() => signIn('google', { callbackUrl })}
+            onClick={handleGoogle}
             className="w-full flex items-center justify-center gap-2 h-11 rounded-full border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
