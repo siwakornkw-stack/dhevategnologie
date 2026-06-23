@@ -69,7 +69,9 @@ export async function GET(req: Request) {
         } catch {
           cleanup();
         }
-      }, 10000);
+        // 30s poll: the bell badge is background info, so a slightly slower refresh
+        // cuts the per-connection DB count queries ~3x (active CPU + DB load) vs 10s.
+      }, 30000);
 
       lifetimeTimer = setTimeout(cleanup, MAX_LIFETIME_MS);
 
