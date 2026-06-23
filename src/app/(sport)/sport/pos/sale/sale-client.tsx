@@ -26,7 +26,7 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
   const [cat, setCat] = useState('');
   const [sortBy, setSortBy] = useState<'' | 'price-asc' | 'price-desc'>('');
   const [quickOpen, setQuickOpen] = useState(false);
-  const [quickCart, setQuickCart] = useState<{ productId: string; name: string; qty: number; price: number }[]>([]);
+  const [quickCart, setQuickCart] = useState<{ productId: string; name: string; qty: number; price: number; stock: number }[]>([]);
   const [tabNameOpen, setTabNameOpen] = useState(false);
   const [tabNameInput, setTabNameInput] = useState('');
   const [tabBusy, setTabBusy] = useState(false);
@@ -298,12 +298,20 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
   }
 
   function addQuick(p: Product) {
+    const ex = quickCart.find((x) => x.productId === p.id);
+    if ((ex ? ex.qty : 0) + 1 > p.stockQty) { toast.error(`สต๊อกไม่พอ (เหลือ ${p.stockQty})`); return; }
     setQuickCart((c) => {
-      const ex = c.find((x) => x.productId === p.id);
-      if (ex) return c.map((x) => x.productId === p.id ? { ...x, qty: x.qty + 1 } : x);
-      return [...c, { productId: p.id, name: p.name, qty: 1, price: p.price }];
+      const e = c.find((x) => x.productId === p.id);
+      const inCart = e ? e.qty : 0;
+      if (inCart + 1 > p.stockQty) return c; // hard cap (race-safe), no double toast
+      if (e) return c.map((x) => x.productId === p.id ? { ...x, qty: x.qty + 1 } : x);
+      return [...c, { productId: p.id, name: p.name, qty: 1, price: p.price, stock: p.stockQty }];
     });
   }
+
+  // Quick Sale qty per product, so product cards can show stock minus what's in the quick cart.
+  const quickQtyById: Record<string, number> = {};
+  for (const x of quickCart) quickQtyById[x.productId] = x.qty;
 
   const allCurrentItems = currentTab ? [...currentTab.items, ...(currentTab.children || []).flatMap((c) => c.items.map((i) => ({ ...i, _team: c.teamLabel || c.name })))] : [];
   const tabSubtotal = allCurrentItems.reduce((s, i) => s + (i.unitPrice * i.qty - i.discount), 0);
@@ -415,11 +423,14 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
             </select>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {filtered.map((p) => (
+            {filtered.map((p) => {
+              // In Quick Sale, available = stock minus what's already in the quick cart (live).
+              const remain = p.stockQty - (quickOpen ? (quickQtyById[p.id] || 0) : 0);
+              return (
               <button
                 key={p.id}
                 onClick={() => (quickOpen ? addQuick(p) : addToTab(p.id))}
-                disabled={p.stockQty <= 0}
+                disabled={remain <= 0}
                 aria-label={`เพิ่ม ${p.name} ฿${p.price}`}
                 className="rounded-lg border bg-white dark:bg-gray-900 dark:border-gray-700 hover:border-primary-500 text-left disabled:opacity-40 disabled:cursor-not-allowed overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               >
@@ -432,12 +443,13 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
                 <div className="p-3">
                   <div className="font-medium text-sm text-gray-900 dark:text-white truncate">{p.name}</div>
                   <div className="text-primary-600 font-bold mt-1">฿{p.price}</div>
-                  {p.stockQty <= 0
+                  {remain <= 0
                     ? <div className="text-xs font-medium text-error-600">หมดสต๊อก</div>
-                    : <div className="text-xs text-gray-500">คงเหลือ {p.stockQty} {p.stockUnit}</div>}
+                    : <div className="text-xs text-gray-500">คงเหลือ {remain} {p.stockUnit}</div>}
                 </div>
               </button>
-            ))}
+              );
+            })}
             {filtered.length === 0 && <div className="col-span-full p-8 text-center text-gray-500 dark:text-gray-400 text-sm">ไม่พบสินค้า</div>}
           </div>
         </div>
@@ -523,8 +535,8 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
 type QuickCustomer = { id: string; name: string | null; phone: string | null; email: string | null; points: number };
 
 function QuickSaleModal({ cart, setCart, onClose, onPaid }: {
-  cart: { productId: string; name: string; qty: number; price: number }[];
-  setCart: (c: { productId: string; name: string; qty: number; price: number }[]) => void;
+  cart: { productId: string; name: string; qty: number; price: number; stock: number }[];
+  setCart: (c: { productId: string; name: string; qty: number; price: number; stock: number }[]) => void;
   onClose: () => void;
   onPaid: (invoiceId: string) => void;
 }) {
@@ -679,7 +691,7 @@ function QuickSaleModal({ cart, setCart, onClose, onPaid }: {
             cart.map((it) => (
               <div key={it.productId} className="flex items-center gap-2 text-sm">
                 <div className="flex-1">{it.name}</div>
-                <input type="number" min={1} value={it.qty} onChange={(e) => setCart(cart.map((x) => x.productId === it.productId ? { ...x, qty: Math.max(1, Number(e.target.value)) } : x))}
+                <input type="number" min={1} max={it.stock} value={it.qty} onChange={(e) => setCart(cart.map((x) => x.productId === it.productId ? { ...x, qty: Math.min(x.stock, Math.max(1, Number(e.target.value))) } : x))}
                   className="w-16 px-2 py-1 border rounded dark:bg-gray-800 dark:border-gray-700" />
                 <div className="w-20 text-right tabular-nums">{(it.price * it.qty).toFixed(2)}</div>
                 <button onClick={() => setCart(cart.filter((x) => x.productId !== it.productId))} aria-label={`เอา ${it.name} ออก`} className="text-red-500 text-xs rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">✕</button>
