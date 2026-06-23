@@ -220,9 +220,6 @@ export async function POST(req: NextRequest) {
         tx.posPayment.create({ data: { invoiceId, method, amount: +amount.toFixed(2), cashReceived, changeAmount, refNo: clean(refNo) } });
       const splitRow = (invoiceId: string, label: string, amount: number, method: Method, refNo: string | null) =>
         tx.posInvoiceSplit.create({ data: { invoiceId, label: String(label).slice(0, 100), amount: +amount.toFixed(2), method, refNo: clean(refNo) } });
-      // A field (ค่าสนาม) charge paid by QR is recorded as QR_FIELD ("QR สนาม") so reports separate it from product QR.
-      const bookMethod = (m: Method): Method => (m === 'QR' ? 'QR_FIELD' : m);
-
       if (Array.isArray(splits) && splits.length > 0) {
         const splitList = splits as SplitInput[];
         const useTargets = !!bookId && !!posId && splitList.some((s) => s.target === 'BOOKING' || s.target === 'PRODUCT');
@@ -237,9 +234,8 @@ export async function POST(req: NextRequest) {
             if (amt <= 0.0001) continue;
             const toBooking = sp.target === 'BOOKING';
             const target = toBooking ? bookId! : posId!;
-            const m2 = toBooking ? bookMethod(method) : method;
-            await splitRow(target, sp.label, amt, m2, sp.refNo || null);
-            await pay(target, m2, amt, null, null, null);
+            await splitRow(target, sp.label, amt, method, sp.refNo || null);
+            await pay(target, method, amt, null, null, null);
             if (toBooking) bookSum = +(bookSum + amt).toFixed(2); else prodSum = +(prodSum + amt).toFixed(2);
           }
           if (Math.abs(bookSum - bookingTotal) > 0.01) throw new Error('SPLIT_BOOKING_MISMATCH');
@@ -254,8 +250,8 @@ export async function POST(req: NextRequest) {
             if (!Number.isFinite(amt) || amt < 0) throw new Error('SPLIT_AMOUNT_INVALID');
             if (remBooking > 0.0001 && bookId) {
               const toBook = Math.min(amt, remBooking);
-              await splitRow(bookId, sp.label, toBook, bookMethod(method), sp.refNo || null);
-              await pay(bookId, bookMethod(method), toBook, null, null, null);
+              await splitRow(bookId, sp.label, toBook, method, sp.refNo || null);
+              await pay(bookId, method, toBook, null, null, null);
               remBooking = +(remBooking - toBook).toFixed(2);
               amt = +(amt - toBook).toFixed(2);
             }
@@ -272,18 +268,15 @@ export async function POST(req: NextRequest) {
         const cashReceived = method === 'CASH' && p.cashReceived !== undefined ? Number(p.cashReceived) : null;
         const changeAmount = cashReceived !== null ? +(cashReceived - grandTotal).toFixed(2) : null;
         if (posId && bookId) {
-          // One combined payment for a tab that includes a field booking lands in a single
-          // account. When the method is QR it is the field (QR สนาม) account, so the product
-          // portion is recorded as QR_FIELD too instead of being split to the shop QR account.
-          // Cash/transfer/card pass through unchanged. To route products to the shop QR account
-          // separately, use the cash+QR or manual-split payment modes.
-          const combinedMethod = bookMethod(method);
-          await pay(bookId, combinedMethod, bookingTotal, null, null, null);
-          await pay(posId, combinedMethod, posFinalTotal, cashReceived, changeAmount, p.refNo || null);
+          // Record both the field charge and the products under the exact method the cashier
+          // selected — no auto QR -> QR_FIELD. To send the field charge to the company QR
+          // account, pick "QR สนาม" (or split per line).
+          await pay(bookId, method, bookingTotal, null, null, null);
+          await pay(posId, method, posFinalTotal, cashReceived, changeAmount, p.refNo || null);
         } else if (posId) {
           await pay(posId, method, posFinalTotal, cashReceived, changeAmount, p.refNo || null);
         } else {
-          await pay(bookId!, bookMethod(method), bookingTotal, cashReceived, changeAmount, p.refNo || null);
+          await pay(bookId!, method, bookingTotal, cashReceived, changeAmount, p.refNo || null);
         }
       }
 

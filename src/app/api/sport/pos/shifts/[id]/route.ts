@@ -18,29 +18,15 @@ async function buildSummary(shiftId: string) {
   const voidTotal = invoices.filter((i) => i.status === 'VOID').reduce((s, i) => s + i.total, 0);
   const refundTotal = refunds.reduce((s, r) => s + r.amount, 0);
 
-  // Bills where the field charge was paid by QR สนาม (QR_FIELD): the customer scanned the
-  // field QR account for the whole bill, so the linked product invoice's QR portion landed in
-  // that same field account. Reclassify the product-QR amount as QR_FIELD so "ตามวิธีจ่าย"
-  // shows the full amount received via QR สนาม, not just the field charge. Only QR is folded
-  // (cash/transfer/card go to their own accounts); CASH and drawer math are unaffected.
-  const qrFieldPosIds = new Set<string>();
-  for (const inv of invoices) {
-    if (inv.status !== 'PAID' || inv.type !== 'BOOKING' || !inv.relatedInvoiceId) continue;
-    const hasQrField = inv.splits.length
-      ? inv.splits.some((l) => l.method === 'QR_FIELD')
-      : inv.payments.some((l) => l.method === 'QR_FIELD');
-    if (hasQrField) qrFieldPosIds.add(inv.relatedInvoiceId);
-  }
-  const reportMethod = (invId: string, method: string) =>
-    method === 'QR' && qrFieldPosIds.has(invId) ? 'QR_FIELD' : method;
-
+  // Methods are reported exactly as recorded at checkout (the cashier's selected method) —
+  // no QR -> QR_FIELD reclassification. Field charges go to "QR สนาม" only when paid as such.
   const methodTotals: Record<string, number> = { CASH: 0, TRANSFER: 0, QR: 0, QR_FIELD: 0, CARD: 0, OTHER: 0 };
   for (const inv of invoices) {
     if (inv.status !== 'PAID') continue;
     if (inv.splits.length) {
-      for (const sp of inv.splits) { const m = reportMethod(inv.id, sp.method); methodTotals[m] = (methodTotals[m] || 0) + sp.amount; }
+      for (const sp of inv.splits) { methodTotals[sp.method] = (methodTotals[sp.method] || 0) + sp.amount; }
     } else {
-      for (const p of inv.payments) { const m = reportMethod(inv.id, p.method); methodTotals[m] = (methodTotals[m] || 0) + p.amount; }
+      for (const p of inv.payments) { methodTotals[p.method] = (methodTotals[p.method] || 0) + p.amount; }
     }
   }
   for (const r of refunds) methodTotals[r.method] = (methodTotals[r.method] || 0) - r.amount;
