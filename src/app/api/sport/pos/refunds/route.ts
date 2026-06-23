@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await requirePosRole(['ADMIN']);
+  const session = await requirePosRole(['ADMIN', 'CASHIER']);
   if (!session) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const body = await req.json().catch(() => ({}));

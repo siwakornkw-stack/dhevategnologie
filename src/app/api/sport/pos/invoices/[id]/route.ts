@@ -26,7 +26,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
 }
 
 export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
-  const session = await requirePosRole(['ADMIN']);
+  const session = await requirePosRole(['ADMIN', 'CASHIER']);
   if (!session) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const { id } = await ctx.params;
   const body = await req.json().catch(() => ({}));

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 
 type Invoice = {
@@ -13,8 +12,6 @@ type Invoice = {
 };
 
 export default function InvoicesPage() {
-  const { data: session } = useSession();
-  const isAdmin = session?.user?.role === 'ADMIN';
   const [list, setList] = useState<Invoice[]>([]);
   const [status, setStatus] = useState('');
   const [type, setType] = useState('');
@@ -109,10 +106,10 @@ export default function InvoicesPage() {
                   </td>
                   <td className="px-4 py-2 text-right space-x-2 whitespace-nowrap">
                     <a href={`/sport/pos/invoices/${inv.id}/print`} target="_blank" className="text-indigo-600 dark:text-indigo-400 text-xs hover:underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">พิมพ์</a>
-                    {inv.status === 'PAID' && isAdmin && (inv.total - (inv.refundedAmount || 0) > 0.01) && (
+                    {inv.status === 'PAID' && (inv.total - (inv.refundedAmount || 0) > 0.01) && (
                       <Link href={`/sport/pos/invoices/${inv.id}/refund`} className="text-gray-600 dark:text-gray-300 text-xs hover:underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">refund</Link>
                     )}
-                    {inv.status === 'PAID' && isAdmin && (
+                    {inv.status === 'PAID' && (
                       <button onClick={() => { setVoidId(inv.id); setVoidReason(''); }} className="text-red-600 text-xs hover:underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">void</button>
                     )}
                   </td>
