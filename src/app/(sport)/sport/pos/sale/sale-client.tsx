@@ -29,6 +29,10 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
   const [tabNameOpen, setTabNameOpen] = useState(false);
   const [tabNameInput, setTabNameInput] = useState('');
   const [tabBusy, setTabBusy] = useState(false);
+  // "เซฟรายการ" snapshots which items are already consolidated. Saved items render in the
+  // top block; anything added afterward (id not in the set) shows under a "เพิ่มใหม่" divider.
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [saveBusy, setSaveBusy] = useState(false);
   // Debounce qty +/- so rapid clicks send ONE PATCH (final qty) instead of one per click.
   // Prevents transaction pile-up / pool exhaustion and excess ITEM_QTY stock movements.
   const qtyTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -60,6 +64,9 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Switching tabs clears the saved snapshot — each tab tracks its own saved/new split per session.
+  useEffect(() => { setSavedIds(new Set()); }, [currentTabId]);
 
   const categories = useMemo(() => Array.from(new Set(products.map((p) => p.category).filter(Boolean))) as string[], [products]);
   const filtered = useMemo(() => {
@@ -153,19 +160,18 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
     }
   }
 
-  function changeQty(itemId: string, nextQty: number) {
-    if (!currentTabId || nextQty < 1) return;
-    const tabId = currentTabId;
-    const tab = tabs.find((t) => t.id === tabId);
-    const item = tab?.items.find((i) => i.id === itemId);
-    if (!item || item.qty === nextQty) return;
-    // Keep the original (pre-edit) qty for revert; carry it across rapid clicks.
-    if (qtyPending.current[itemId]) qtyPending.current[itemId].qty = nextQty;
-    else qtyPending.current[itemId] = { tabId, qty: nextQty, prevQty: item.qty };
-    // Optimistic UI right away (snappy), but debounce the network write.
-    setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: t.items.map((i) => i.id === itemId ? { ...i, qty: nextQty } : i) } : t));
-    if (qtyTimers.current[itemId]) clearTimeout(qtyTimers.current[itemId]);
-    qtyTimers.current[itemId] = setTimeout(() => { commitQty(itemId); }, 400);
+  async function saveList() {
+    if (!currentTabId) return;
+    const cur = tabs.find((t) => t.id === currentTabId);
+    if (!cur || cur.status !== 'OPEN') return;
+    setSaveBusy(true);
+    const r = await fetch(`/api/sport/pos/tabs/${currentTabId}/consolidate`, { method: 'POST' });
+    setSaveBusy(false);
+    if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.error || 'เซฟไม่สำเร็จ'); return; }
+    const { items } = (await r.json()) as { items: Item[] };
+    setTabs((ts) => ts.map((t) => t.id === currentTabId ? { ...t, items } : t));
+    setSavedIds(new Set(items.map((i) => i.id)));
+    toast.success('เซฟรายการแล้ว');
   }
 
   function commitQty(itemId: string): Promise<void> {
@@ -221,6 +227,24 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
 
   const allCurrentItems = currentTab ? [...currentTab.items, ...(currentTab.children || []).flatMap((c) => c.items.map((i) => ({ ...i, _team: c.teamLabel || c.name })))] : [];
   const tabSubtotal = allCurrentItems.reduce((s, i) => s + (i.unitPrice * i.qty - i.discount), 0);
+  const savedItems = currentTab ? currentTab.items.filter((i) => savedIds.has(i.id)) : [];
+  const newItems = currentTab ? currentTab.items.filter((i) => !savedIds.has(i.id)) : [];
+
+  function cartRow(it: Item) {
+    const locked = it.id.startsWith('tmp-') || currentTab?.status === 'HELD';
+    return (
+      <div key={it.id} className="flex items-center justify-between text-sm border-b dark:border-gray-800 pb-1">
+        <div className="flex-1 min-w-0">
+          <div className="truncate">{it.productName}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">x{it.qty} @ {it.unitPrice}</div>
+        </div>
+        <div className="text-right">
+          <div className="tabular-nums">{(it.unitPrice * it.qty - it.discount).toFixed(2)}</div>
+          <button onClick={() => voidItem(it.id)} disabled={locked} aria-label={`ลบ ${it.productName}`} className="text-xs text-red-500 hover:underline rounded disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">ลบ</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="wrapper py-6 max-w-7xl">
@@ -361,33 +385,11 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
                   <div className="text-center text-gray-500 dark:text-gray-400 py-6 text-xs">ยังไม่มีรายการ</div>
                 ) : (
                   <>
-                    {currentTab.items.map((it) => (
-                      <div key={it.id} className="flex items-center justify-between text-sm border-b dark:border-gray-800 pb-1">
-                        <div className="flex-1 min-w-0">
-                          <div className="truncate">{it.productName}</div>
-                          <div className="flex items-center gap-1 mt-0.5">
-                            <button
-                              onClick={() => (it.qty <= 1 ? voidItem(it.id) : changeQty(it.id, it.qty - 1))}
-                              disabled={it.id.startsWith('tmp-') || currentTab.status === 'HELD'}
-                              aria-label={`ลดจำนวน ${it.productName}`}
-                              className="w-6 h-6 rounded-lg border dark:border-gray-700 text-gray-600 dark:text-gray-300 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                            >−</button>
-                            <span className="w-7 text-center text-xs tabular-nums" aria-live="polite">{it.qty}</span>
-                            <button
-                              onClick={() => changeQty(it.id, it.qty + 1)}
-                              disabled={it.id.startsWith('tmp-') || currentTab.status === 'HELD'}
-                              aria-label={`เพิ่มจำนวน ${it.productName}`}
-                              className="w-6 h-6 rounded-lg border dark:border-gray-700 text-gray-600 dark:text-gray-300 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                            >+</button>
-                            <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">@ {it.unitPrice}</span>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="tabular-nums">{(it.unitPrice * it.qty - it.discount).toFixed(2)}</div>
-                          <button onClick={() => voidItem(it.id)} aria-label={`ลบ ${it.productName}`} className="text-xs text-red-500 hover:underline rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">ลบ</button>
-                        </div>
-                      </div>
-                    ))}
+                    {savedItems.map(cartRow)}
+                    {newItems.length > 0 && savedItems.length > 0 && (
+                      <div className="text-[11px] text-gray-400 dark:text-gray-500 text-center py-0.5">— เพิ่มใหม่ —</div>
+                    )}
+                    {newItems.map(cartRow)}
                     {(currentTab.children || []).map((c) => c.items.length > 0 && (
                       <div key={c.id} className="border-t dark:border-gray-800 pt-2">
                         <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">↳ {c.teamLabel || c.name} (merged)</div>
@@ -405,6 +407,15 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
                   </>
                 )}
               </div>
+              {currentTab.status === 'OPEN' && (
+                <button
+                  onClick={saveList}
+                  disabled={saveBusy || newItems.length === 0 || newItems.some((i) => i.id.startsWith('tmp-'))}
+                  className="w-full mt-3 py-2 rounded-lg border border-emerald-500 text-emerald-600 dark:text-emerald-400 text-sm font-medium hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                >
+                  {saveBusy ? 'กำลังเซฟ...' : '💾 เซฟรายการ'}
+                </button>
+              )}
               <div className="mt-3 pt-3 border-t dark:border-gray-800 flex justify-between font-semibold">
                 <span>Subtotal</span>
                 <span className="tabular-nums">{tabSubtotal.toFixed(2)}</span>
