@@ -9,6 +9,39 @@ import { POS_PAY_METHODS, methodLabel, type PosPayMethod } from '@/lib/payment-m
 
 type Product = { id: string; name: string; sku: string | null; category: string | null; price: number; stockQty: number; stockUnit: string; imageUrl: string | null; isActive: boolean };
 type Item = { id: string; productName: string; qty: number; unitPrice: number; discount: number };
+type RemovedRow = { productName: string; unitPrice: number; qty: number };
+
+function escapeHtml(s: string) {
+  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
+}
+
+// Build an 80/58mm thermal slip listing the items removed from saved lines. Not a tax receipt.
+function buildRemovedHtml(rows: RemovedRow[], opts: { shopName: string; width: string; tabName: string; when: string }) {
+  const body = rows
+    .map((r) => `<tr><td>${escapeHtml(r.productName)}</td><td class="right">x${r.qty}</td><td class="right">${(r.unitPrice * r.qty).toFixed(2)}</td></tr>`)
+    .join('');
+  const total = rows.reduce((a, r) => a + r.unitPrice * r.qty, 0);
+  return `<!doctype html><html><head><meta charset="utf-8"><title>รายการที่ลบ</title><style>
+@page { size: ${opts.width} auto; margin: 0; }
+body { margin: 0; }
+.receipt { width: ${opts.width}; margin: 0 auto; padding: 8px; font-family: 'Tahoma', monospace; font-size: 11px; color: #000; }
+.center { text-align: center; } .right { text-align: right; }
+hr { border: none; border-top: 1px dashed #000; margin: 4px 0; }
+table { width: 100%; border-collapse: collapse; } td { padding: 1px 0; }
+</style></head><body><div class="receipt">
+<div class="center" style="font-weight:bold;font-size:13px;">${escapeHtml(opts.shopName)}</div>
+<div class="center" style="font-weight:bold;margin-top:4px;">*** รายการที่ลบ ***</div>
+<hr/>
+<div>${escapeHtml(opts.when)}</div>
+<div>Tab: ${escapeHtml(opts.tabName)}</div>
+<hr/>
+<table><tbody>${body}</tbody></table>
+<hr/>
+<table><tbody><tr style="font-weight:bold;font-size:13px;"><td>รวมที่ลบ</td><td class="right">${total.toFixed(2)}</td></tr></tbody></table>
+<hr/>
+<div class="center" style="margin-top:6px;">บิลรายการที่ลบ (ไม่ใช่ใบเสร็จ)</div>
+</div><script>window.onload=function(){window.print();}</script></body></html>`;
+}
 type Tab = { id: string; name: string; teamLabel: string | null; bookingId: string | null; status: string; parentTabId: string | null; items: Item[]; children?: { id: string; name: string; teamLabel: string | null; items: Item[] }[] };
 
 type SaleClientProps = {
@@ -33,6 +66,9 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
   // top block; anything added afterward (id not in the set) shows under a "เพิ่มใหม่" divider.
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [saveBusy, setSaveBusy] = useState(false);
+  // Quantities removed from saved lines since the last save — printed as a "รายการที่ลบ"
+  // slip when the cashier next presses เซฟรายการ, then cleared.
+  const [removed, setRemoved] = useState<RemovedRow[]>([]);
   // Debounce qty +/- so rapid clicks send ONE PATCH (final qty) instead of one per click.
   // Prevents transaction pile-up / pool exhaustion and excess ITEM_QTY stock movements.
   const qtyTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -66,7 +102,7 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
   }, []);
 
   // Switching tabs clears the saved snapshot — each tab tracks its own saved/new split per session.
-  useEffect(() => { setSavedIds(new Set()); }, [currentTabId]);
+  useEffect(() => { setSavedIds(new Set()); setRemoved([]); }, [currentTabId]);
 
   const categories = useMemo(() => Array.from(new Set(products.map((p) => p.category).filter(Boolean))) as string[], [products]);
   const filtered = useMemo(() => {
@@ -151,26 +187,71 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
     if (qtyTimers.current[itemId]) { clearTimeout(qtyTimers.current[itemId]); delete qtyTimers.current[itemId]; }
     delete qtyPending.current[itemId];
     const tab = tabs.find((t) => t.id === tabId);
-    const removed = tab?.items.find((i) => i.id === itemId);
+    const removedItem = tab?.items.find((i) => i.id === itemId);
     setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: t.items.filter((i) => i.id !== itemId) } : t));
     const r = await fetch(`/api/sport/pos/tabs/${tabId}/items/${itemId}`, { method: 'DELETE' });
-    if (!r.ok && removed) {
-      setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: [...t.items, removed] } : t));
+    if (!r.ok && removedItem) {
+      setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: [...t.items, removedItem] } : t));
       toast.error('ลบไม่สำเร็จ');
     }
+  }
+
+  // Remove a quantity from a saved (consolidated) line: prompt for how many, reduce qty
+  // (or void the whole line), and record the removed amount for the slip printed on next save.
+  async function removeSavedQty(item: Item) {
+    if (!currentTabId) return;
+    const max = item.qty;
+    const raw = window.prompt(`ลบ "${item.productName}" — ใส่จำนวนที่ลบ (1-${max})`, String(max));
+    if (raw == null) return;
+    const n = Math.floor(Number(raw));
+    if (!Number.isInteger(n) || n < 1 || n > max) { toast.error('จำนวนไม่ถูกต้อง'); return; }
+    const tabId = currentTabId;
+    const record = () => setRemoved((rs) => {
+      const i = rs.findIndex((r) => r.productName === item.productName && r.unitPrice === item.unitPrice);
+      if (i >= 0) return rs.map((r, idx) => idx === i ? { ...r, qty: r.qty + n } : r);
+      return [...rs, { productName: item.productName, unitPrice: item.unitPrice, qty: n }];
+    });
+    if (n >= max) {
+      setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: t.items.filter((i) => i.id !== item.id) } : t));
+      const r = await fetch(`/api/sport/pos/tabs/${tabId}/items/${item.id}`, { method: 'DELETE' });
+      if (!r.ok) { toast.error('ลบไม่สำเร็จ'); loadTabs(); return; }
+    } else {
+      const nextQty = max - n;
+      setTabs((ts) => ts.map((t) => t.id === tabId ? { ...t, items: t.items.map((i) => i.id === item.id ? { ...i, qty: nextQty } : i) } : t));
+      const r = await fetch(`/api/sport/pos/tabs/${tabId}/items/${item.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ qty: nextQty }),
+      });
+      if (!r.ok) { toast.error('ปรับจำนวนไม่สำเร็จ'); loadTabs(); return; }
+    }
+    record();
+    loadProducts();
   }
 
   async function saveList() {
     if (!currentTabId) return;
     const cur = tabs.find((t) => t.id === currentTabId);
     if (!cur || cur.status !== 'OPEN') return;
+    // Open the print window synchronously (inside the click gesture) to dodge popup blockers.
+    const printWin = removed.length > 0 ? window.open('', '_blank') : null;
     setSaveBusy(true);
     const r = await fetch(`/api/sport/pos/tabs/${currentTabId}/consolidate`, { method: 'POST' });
     setSaveBusy(false);
-    if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.error || 'เซฟไม่สำเร็จ'); return; }
+    if (!r.ok) { const e = await r.json().catch(() => ({})); toast.error(e.error || 'เซฟไม่สำเร็จ'); printWin?.close(); return; }
     const { items } = (await r.json()) as { items: Item[] };
     setTabs((ts) => ts.map((t) => t.id === currentTabId ? { ...t, items } : t));
     setSavedIds(new Set(items.map((i) => i.id)));
+    if (removed.length > 0) {
+      const s = await fetch('/api/sport/pos/settings').then((x) => x.ok ? x.json() : null).catch(() => null);
+      const html = buildRemovedHtml(removed, {
+        shopName: s?.shopName || '',
+        width: s?.paperSize === '58mm' ? '58mm' : '80mm',
+        tabName: cur.name,
+        when: new Date().toLocaleString('th-TH'),
+      });
+      if (printWin) { printWin.document.write(html); printWin.document.close(); }
+      else toast.error('เปิดหน้าพิมพ์ไม่ได้ — ตรวจ popup blocker');
+      setRemoved([]);
+    }
     toast.success('เซฟรายการแล้ว');
   }
 
@@ -232,15 +313,16 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
 
   function cartRow(it: Item) {
     const locked = it.id.startsWith('tmp-') || currentTab?.status === 'HELD';
+    const isSaved = savedIds.has(it.id);
     return (
-      <div key={it.id} className="flex items-center justify-between text-sm border-b dark:border-gray-800 pb-1">
+      <div key={it.id} className="flex items-center justify-between text-base border-b dark:border-gray-800 py-1.5">
         <div className="flex-1 min-w-0">
-          <div className="truncate">{it.productName}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">x{it.qty} @ {it.unitPrice}</div>
+          <div className="truncate font-medium">{it.productName}</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">x{it.qty} @ {it.unitPrice}</div>
         </div>
-        <div className="text-right">
-          <div className="tabular-nums">{(it.unitPrice * it.qty - it.discount).toFixed(2)}</div>
-          <button onClick={() => voidItem(it.id)} disabled={locked} aria-label={`ลบ ${it.productName}`} className="text-xs text-red-500 hover:underline rounded disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">ลบ</button>
+        <div className="text-right ml-2">
+          <div className="tabular-nums font-semibold">{(it.unitPrice * it.qty - it.discount).toFixed(2)}</div>
+          <button onClick={() => (isSaved ? removeSavedQty(it) : voidItem(it.id))} disabled={locked} aria-label={`ลบ ${it.productName}`} className="text-sm text-red-500 hover:underline rounded disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">ลบ</button>
         </div>
       </div>
     );
@@ -380,14 +462,14 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
               </div>
               {currentTab.teamLabel && <div className="text-xs text-gray-500">ทีม: {currentTab.teamLabel}</div>}
               {currentTab.bookingId && <div className="text-xs text-emerald-600 mt-1">🔗 ผูก booking</div>}
-              <div className="mt-3 space-y-2 max-h-[40vh] overflow-y-auto">
+              <div className="mt-3 space-y-1 max-h-[50vh] overflow-y-auto">
                 {allCurrentItems.length === 0 ? (
                   <div className="text-center text-gray-500 dark:text-gray-400 py-6 text-xs">ยังไม่มีรายการ</div>
                 ) : (
                   <>
                     {savedItems.map(cartRow)}
                     {newItems.length > 0 && savedItems.length > 0 && (
-                      <div className="text-[11px] text-gray-400 dark:text-gray-500 text-center py-0.5">— เพิ่มใหม่ —</div>
+                      <div className="text-sm text-gray-400 dark:text-gray-500 text-center py-1">— เพิ่มใหม่ —</div>
                     )}
                     {newItems.map(cartRow)}
                     {(currentTab.children || []).map((c) => c.items.length > 0 && (
@@ -410,13 +492,13 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
               {currentTab.status === 'OPEN' && (
                 <button
                   onClick={saveList}
-                  disabled={saveBusy || newItems.length === 0 || newItems.some((i) => i.id.startsWith('tmp-'))}
-                  className="w-full mt-3 py-2 rounded-lg border border-emerald-500 text-emerald-600 dark:text-emerald-400 text-sm font-medium hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                  disabled={saveBusy || (newItems.length === 0 && removed.length === 0) || newItems.some((i) => i.id.startsWith('tmp-'))}
+                  className="w-full mt-3 py-2.5 rounded-lg border border-emerald-500 text-emerald-600 dark:text-emerald-400 text-base font-medium hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                 >
-                  {saveBusy ? 'กำลังเซฟ...' : '💾 เซฟรายการ'}
+                  {saveBusy ? 'กำลังเซฟ...' : removed.length > 0 ? `💾 เซฟ + พิมพ์ที่ลบ (${removed.reduce((a, r) => a + r.qty, 0)})` : '💾 เซฟรายการ'}
                 </button>
               )}
-              <div className="mt-3 pt-3 border-t dark:border-gray-800 flex justify-between font-semibold">
+              <div className="mt-3 pt-3 border-t dark:border-gray-800 flex justify-between font-semibold text-lg">
                 <span>Subtotal</span>
                 <span className="tabular-nums">{tabSubtotal.toFixed(2)}</span>
               </div>
