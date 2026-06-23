@@ -42,6 +42,11 @@ export default async function AdminCalendarPage({ searchParams }: PageProps) {
 
   const fields = await prisma.field.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } });
 
+  const blockedDates = await prisma.fieldBlockedDate.findMany({
+    where: { date: { gte: weekStart, lte: weekEnd } },
+    orderBy: { date: 'asc' },
+  });
+
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart);
     d.setDate(weekStart.getDate() + i);
@@ -59,6 +64,12 @@ export default async function AdminCalendarPage({ searchParams }: PageProps) {
   function bookingsForDayAndField(day: Date, fieldId: string) {
     return bookings.filter(
       (b) => isoDate(new Date(b.date)) === isoDate(day) && b.fieldId === fieldId,
+    );
+  }
+
+  function blockedForDayAndField(day: Date, fieldId: string) {
+    return blockedDates.filter(
+      (bd) => isoDate(new Date(bd.date)) === isoDate(day) && bd.fieldId === fieldId,
     );
   }
 
@@ -119,13 +130,21 @@ export default async function AdminCalendarPage({ searchParams }: PageProps) {
                 </td>
                 {days.map((day) => {
                   const dayBookings = bookingsForDayAndField(day, field.id);
+                  const dayBlocked = blockedForDayAndField(day, field.id);
                   const isToday = isoDate(day) === isoDate(today);
                   return (
                     <td key={isoDate(day)} className={`px-2 py-2 align-top min-w-[110px] ${isToday ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : ''}`}>
-                      {dayBookings.length === 0 ? (
+                      {dayBookings.length === 0 && dayBlocked.length === 0 ? (
                         <span className="text-xs text-gray-300 dark:text-gray-700">-</span>
                       ) : (
                         <div className="space-y-1">
+                          {dayBlocked.map((bd) => (
+                            <div key={bd.id} className="px-2 py-1 rounded-lg text-xs bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50">
+                              <div className="font-semibold truncate tabular-nums">{bd.startTime && bd.endTime ? `${bd.startTime}-${bd.endTime}` : 'ทั้งวัน'}</div>
+                              <div className="truncate">🚫 ปิดสนาม</div>
+                              {bd.reason && <div className="text-xs italic opacity-80 break-words whitespace-pre-wrap mt-0.5">{bd.reason}</div>}
+                            </div>
+                          ))}
                           {dayBookings.map((b) => {
                             const chip = (
                               <>
