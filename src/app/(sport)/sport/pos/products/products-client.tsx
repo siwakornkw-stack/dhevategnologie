@@ -35,7 +35,9 @@ export function ProductsClient({ initialList = [] }: ProductsClientProps = {}) {
 
   async function load() {
     setLoading(true);
-    const r = await fetch(`/api/sport/pos/products?active=0${q ? `&q=${encodeURIComponent(q)}` : ''}`);
+    // no-store: products endpoint is browser-cached (max-age=10); this list reloads after
+    // create/edit/delete, and a cached response would show stale rows for up to 10s.
+    const r = await fetch(`/api/sport/pos/products?active=0${q ? `&q=${encodeURIComponent(q)}` : ''}`, { cache: 'no-store' });
     const data = await r.json();
     setList(Array.isArray(data) ? data : []);
     setLoading(false);

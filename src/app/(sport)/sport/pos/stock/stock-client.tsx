@@ -60,7 +60,9 @@ export function StockClient({ initialProducts = [], initialMovements = [] }: Sto
 
   async function load() {
     const [p, m] = await Promise.all([
-      fetch('/api/sport/pos/products?active=0').then((r) => r.json()),
+      // no-store: products endpoint is browser-cached (max-age=10); after a stock adjust we
+      // reload here, and a cached response would show the old stock for up to 10s.
+      fetch('/api/sport/pos/products?active=0', { cache: 'no-store' }).then((r) => r.json()),
       fetchMovements(filterProductId),
     ]);
     setProducts(Array.isArray(p) ? p : []);
