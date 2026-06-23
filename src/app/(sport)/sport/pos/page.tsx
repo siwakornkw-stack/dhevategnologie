@@ -29,6 +29,7 @@ export default async function PosHubPage() {
     { href: '/sport/admin/bookings', title: 'รายการจอง', desc: 'ดูบิลจอง + แก้เวลา' },
     { href: '/sport/pos/shift', title: 'กะ (Shift)', desc: 'เปิด-ปิดกะ + X/Z report' },
     { href: '/sport/pos/invoices', title: 'บิลย้อนหลัง', desc: 'ดู / พิมพ์ซ้ำ / refund / void' },
+    { href: '/sport/pos/removal-slips', title: 'รายการที่ลบ', desc: 'slip รายการที่ลบย้อนหลัง + พิมพ์ซ้ำ' },
     { href: '/sport/pos/customers', title: 'ลูกค้า', desc: 'ค้นลูกค้า + แต้ม + ประวัติซื้อ' },
     { href: '/sport/pos/products', title: 'สินค้า', desc: 'เพิ่ม/แก้สินค้า + ราคา', admin: true },
     { href: '/sport/pos/stock', title: 'Stock', desc: 'รับเข้า/ปรับ + log', admin: true },

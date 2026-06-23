@@ -478,6 +478,21 @@ model PosOrderItem {
   @@index([productId])
 }
 
+// A printed "รายการที่ลบ" slip: quantities removed from saved cart lines, captured when
+// the cashier pressed เซฟรายการ. Kept for the history page; not part of any invoice.
+model PosRemovalSlip {
+  id          String   @id @default(cuid())
+  tabId       String?
+  tabName     String
+  items       Json // [{ productName, unitPrice, qty }]
+  total       Float
+  cashierId   String?
+  cashierName String?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 model PosInvoice {
   id              String        @id @default(cuid())
   invoiceNo       String        @unique
