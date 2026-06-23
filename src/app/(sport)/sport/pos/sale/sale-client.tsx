@@ -124,10 +124,11 @@ export function SaleClient({ initialProducts = [], initialTabs = [] }: SaleClien
     const tabId = currentTabId;
     const product = products.find((p) => p.id === productId);
     if (!product) return;
-    // Same product already in the cart -> bump its qty instead of adding another row.
-    // Match on name+price (items carry no productId); skip in-flight (tmp) and discounted lines.
+    // Same product already among the UNSAVED lines -> bump it. Saved lines are excluded so that
+    // after เซฟ a repeat add lands in the "เพิ่มใหม่" block first and only folds into the saved
+    // line on the next เซฟ. Match on name+price (items carry no productId); skip in-flight (tmp).
     const existing = current?.items.find((i) =>
-      !i.id.startsWith('tmp-') && i.discount === 0 && i.productName === product.name && i.unitPrice === product.price);
+      !i.id.startsWith('tmp-') && !savedIds.has(i.id) && i.discount === 0 && i.productName === product.name && i.unitPrice === product.price);
     if (existing) { bumpExisting(existing, productId, tabId); return; }
     const tempId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const optimistic: Item = { id: tempId, productName: product.name, qty: 1, unitPrice: product.price, discount: 0 };
