@@ -10,6 +10,13 @@ export async function GET(req: NextRequest) {
   const status = searchParams.get('status') || 'OPEN';
   const bookingId = searchParams.get('bookingId') || undefined;
 
+  // Validate before the enum cast below: an unrecognized value (e.g. ?status=FOO) cast straight
+  // into the TabStatus where-filter makes Prisma throw PrismaClientValidationError -> 500.
+  const VALID_STATUS = ['ALL', 'OPEN', 'HELD', 'MERGED', 'CLOSED', 'PAID', 'VOID'];
+  if (!VALID_STATUS.includes(status)) {
+    return NextResponse.json({ error: 'status ไม่ถูกต้อง' }, { status: 400 });
+  }
+
   const tabs = await prisma.posTab.findMany({
     where: {
       ...(status === 'ALL'

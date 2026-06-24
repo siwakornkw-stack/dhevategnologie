@@ -33,6 +33,7 @@ const TABLES = [
   'PosInvoiceSplit',
   'PosRefund',
   'PosCashMovement',
+  'PosRemovalSlip',
   'ProcessedStripeEvent',
 ] as const;
 

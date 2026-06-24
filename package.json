@@ -17,6 +17,7 @@
     "db:migrate": "npx prisma migrate dev",
     "db:seed": "npx ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts",
     "db:studio": "npx prisma studio",
+    "db:smoke": "node scripts/db-smoke.mjs",
     "stripe:listen": "stripe listen --forward-to localhost:3000/api/webhooks/stripe"
   },
   "prisma": {
