@@ -33,6 +33,18 @@ export async function POST(req: NextRequest) {
   // and slot-conflict date matching work regardless of any time component the client sent.
   startDateObj.setUTCHours(0, 0, 0, 0);
 
+  // Reject past dates and dates beyond the 1-year advance limit (compared in Asia/Bangkok —
+  // server runs UTC on Vercel), matching checkout/admin-book. Without this the week loop would
+  // happily create bookings dated in the past.
+  const BANGKOK_OFFSET_MS = 7 * 60 * 60 * 1000;
+  const bangkokNow = Date.now() + BANGKOK_OFFSET_MS;
+  const today = new Date(Math.floor(bangkokNow / 86_400_000) * 86_400_000 - BANGKOK_OFFSET_MS);
+  const maxDate = new Date(today);
+  maxDate.setUTCFullYear(today.getUTCFullYear() + 1);
+  if (startDateObj < today || startDateObj > maxDate) {
+    return NextResponse.json({ error: 'สามารถจองได้ล่วงหน้าสูงสุด 1 ปี' }, { status: 400 });
+  }
+
   // Validate timeSlot format and field operating hours
   const slotFmt = /^\d{2}:\d{2}-\d{2}:\d{2}$/;
   if (!slotFmt.test(timeSlot)) {
@@ -92,8 +104,9 @@ export async function POST(req: NextRequest) {
           if (hasSlotConflict(existing.map((b) => b.timeSlot), [timeSlot])) {
             throw Object.assign(new Error('conflict'), { isConflict: true });
           }
-          // Auto-approve inside the same tx: avoids a race where another writer
-          // cancels the PENDING row before the post-loop updateMany flips it back to APPROVED.
+          // Created PENDING (schema default) like every other customer booking — awaits admin
+          // approval. Must NOT auto-approve: this route has no payment step, so APPROVED would
+          // hand out confirmed bookings for free (payment + approval bypass).
           return tx.booking.create({
             data: {
               userId: session.user.id,
@@ -103,7 +116,6 @@ export async function POST(req: NextRequest) {
               note,
               isRecurring: true,
               recurringGroupId: groupId,
-              status: 'APPROVED',
             },
           });
         },

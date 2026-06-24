@@ -46,6 +46,11 @@ export async function POST(req: NextRequest) {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
+      // Lock the invoice row so concurrent refunds on the same invoice serialize. Both the
+      // per-line qty check and the refundedAmount guard below read prior refunds; without the
+      // lock two refunds at Read Committed each miss the other's uncommitted row and can pass
+      // the per-line qty cap for the same unit, over-returning stock.
+      await tx.$queryRaw`SELECT id FROM "PosInvoice" WHERE id = ${invoiceId} FOR UPDATE`;
       const inv = await tx.posInvoice.findUnique({ where: { id: invoiceId } });
       if (!inv) throw new Error('INVOICE_NOT_FOUND');
       if (inv.status !== 'PAID') throw new Error('INVOICE_NOT_PAID');
@@ -73,11 +78,13 @@ export async function POST(req: NextRequest) {
         }
 
         // Block per-line over-refund: prior refunded qty + new qty must not exceed original qty
-        const origSnap = (inv.itemsSnapshot as Array<{ productId?: string; qty: number }> | null) || [];
+        const origSnap = (inv.itemsSnapshot as Array<{ productId?: string; qty: number; unitPrice?: number }> | null) || [];
         const origQty = new Map<string, number>();
+        const origPrice = new Map<string, number>();
         for (const o of origSnap) {
           if (!o.productId) continue;
           origQty.set(o.productId, (origQty.get(o.productId) || 0) + (Number(o.qty) || 0));
+          origPrice.set(o.productId, Number(o.unitPrice) || 0);
         }
         const priorRefunds = await tx.posRefund.findMany({
           where: { invoiceId: inv.id },
@@ -102,6 +109,12 @@ export async function POST(req: NextRequest) {
         }
 
         // Item-level refund: cash refunded must not exceed the value of the returned items.
+        // Price each returned unit from the invoice's own snapshot, never the client-supplied
+        // unitPrice (which a cashier could inflate to refund more cash than the items are worth).
+        // Also overwrite the stored refund snapshot price with the trusted value.
+        for (const it of cleanItems) {
+          it.unitPrice = origPrice.get(it.productId) ?? 0;
+        }
         const itemsValue = cleanItems.reduce((sum, it) => sum + it.unitPrice * it.qty, 0);
         if (amount > itemsValue + 0.01) throw new Error('REFUND_AMOUNT_EXCEEDS_ITEMS');
       }
@@ -170,29 +183,21 @@ export async function POST(req: NextRequest) {
       const activeShift = (await getActiveShift(session.user.id, tx))
         ?? (await tx.posShift.findFirst({ where: { status: 'OPEN' }, orderBy: { openedAt: 'desc' } }));
 
-      let refund;
-      let attempts = 0;
-      while (true) {
-        const refundNo = await nextRefundNo(tx);
-        try {
-          refund = await tx.posRefund.create({
-            data: {
-              refundNo,
-              invoiceId: inv.id,
-              shiftId: activeShift?.id || null,
-              cashierId: session.user.id,
-              method: method as 'CASH' | 'TRANSFER' | 'QR' | 'QR_FIELD' | 'CARD' | 'OTHER',
-              amount,
-              reason,
-              itemsSnapshot: cleanItems.length ? cleanItems : undefined,
-            },
-          });
-          break;
-        } catch (e) {
-          attempts++;
-          if (attempts > 5) throw e;
-        }
-      }
+      // nextRefundNo serializes numbering via a per-day advisory lock, so the number is
+      // unique by the time we insert — no collision-retry loop needed.
+      const refundNo = await nextRefundNo(tx);
+      const refund = await tx.posRefund.create({
+        data: {
+          refundNo,
+          invoiceId: inv.id,
+          shiftId: activeShift?.id || null,
+          cashierId: session.user.id,
+          method: method as 'CASH' | 'TRANSFER' | 'QR' | 'QR_FIELD' | 'CARD' | 'OTHER',
+          amount,
+          reason,
+          itemsSnapshot: cleanItems.length ? cleanItems : undefined,
+        },
+      });
 
       // Audit inside tx so refund + audit row are atomic
       await audit(session.user.id, 'POS_REFUND', refund.id, { invoiceId, amount, method, reason }, tx);

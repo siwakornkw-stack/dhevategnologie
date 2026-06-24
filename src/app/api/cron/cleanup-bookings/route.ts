@@ -18,6 +18,10 @@ export async function GET(req: NextRequest) {
   const toCancel = await prisma.booking.findMany({
     where: {
       status: 'PENDING',
+      // Never reap a booking that was actually paid (PromptPay settles async, leaving the
+      // booking PENDING with paidAt set until an admin approves it). Cancelling it here would
+      // strand a paid customer with no slot and no refund.
+      paidAt: null,
       OR: [
         // Stripe checkout sessions older than 2 hours
         { stripeSessionId: { not: null }, createdAt: { lt: stripeCutoff } },
@@ -30,45 +34,36 @@ export async function GET(req: NextRequest) {
 
   if (toCancel.length === 0) return NextResponse.json({ cancelled: 0 });
 
-  // Aggregate reversal work
-  const couponDecrements: Record<string, number> = {};
-  for (const b of toCancel) {
-    if (b.couponCode) couponDecrements[b.couponCode] = (couponDecrements[b.couponCode] ?? 0) + 1;
-  }
-  const pointRestores: Record<string, number> = {};
-  const pointBookings: { userId: string; points: number; bookingId: string }[] = [];
-  for (const b of toCancel) {
-    if (b.pointsRedeemed && b.pointsRedeemed > 0) {
-      pointRestores[b.userId] = (pointRestores[b.userId] ?? 0) + b.pointsRedeemed;
-      pointBookings.push({ userId: b.userId, points: b.pointsRedeemed, bookingId: b.id });
-    }
-  }
-
-  // Single tx: cancel + coupon decrements + point restores must all-or-nothing,
-  // otherwise a partial failure leaves users with stuck coupon usage / lost points.
-  // Guard the update with status: 'PENDING' so a concurrent webhook flip is preserved.
+  // Cancel each booking with a guarded update, and reverse its coupon/points ONLY when this
+  // run actually transitioned the row (res.count === 1). Between the findMany above and this tx
+  // a concurrent webhook (sets paidAt) or admin approval can flip a row out of PENDING; reversing
+  // from the stale pre-read would wrongly free coupon usage / restore points for a booking we
+  // never cancelled. Tying every reversal to the guarded update keeps them in lockstep.
+  const cancelled: typeof toCancel = [];
   await prisma.$transaction(async (tx) => {
-    await tx.booking.updateMany({
-      where: { id: { in: toCancel.map((b) => b.id) }, status: 'PENDING' },
-      data: { status: 'CANCELLED' },
-    });
-    for (const [code, n] of Object.entries(couponDecrements)) {
-      await tx.coupon.updateMany({ where: { code, usedCount: { gte: n } }, data: { usedCount: { decrement: n } } });
-    }
-    for (const [userId, points] of Object.entries(pointRestores)) {
-      await tx.user.update({ where: { id: userId }, data: { points: { increment: points } } });
-    }
-    for (const { userId, points, bookingId } of pointBookings) {
-      await tx.pointTransaction.create({
-        data: { userId, points, type: 'EARN', bookingId, note: 'คืนแต้มเนื่องจาก Stripe session หมดอายุ' },
+    for (const b of toCancel) {
+      const res = await tx.booking.updateMany({
+        where: { id: b.id, status: 'PENDING', paidAt: null },
+        data: { status: 'CANCELLED' },
       });
+      if (res.count === 0) continue; // concurrently paid/approved/cancelled — leave it alone
+      cancelled.push(b);
+      if (b.couponCode) {
+        await tx.coupon.updateMany({ where: { code: b.couponCode, usedCount: { gte: 1 } }, data: { usedCount: { decrement: 1 } } });
+      }
+      if (b.pointsRedeemed && b.pointsRedeemed > 0) {
+        await tx.user.update({ where: { id: b.userId }, data: { points: { increment: b.pointsRedeemed } } });
+        await tx.pointTransaction.create({
+          data: { userId: b.userId, points: b.pointsRedeemed, type: 'EARN', bookingId: b.id, note: 'คืนแต้มเนื่องจาก Stripe session หมดอายุ' },
+        });
+      }
     }
   });
 
-  // Notify waiting list for each freed slot
+  // Notify waiting list for each freed slot (only the rows we actually cancelled)
   const seen = new Set<string>();
   await Promise.allSettled(
-    toCancel.map((b) => {
+    cancelled.map((b) => {
       const key = `${b.fieldId}:${b.date.toISOString()}:${b.timeSlot}`;
       if (seen.has(key)) return Promise.resolve();
       seen.add(key);
@@ -76,5 +71,5 @@ export async function GET(req: NextRequest) {
     }),
   );
 
-  return NextResponse.json({ cancelled: toCancel.length });
+  return NextResponse.json({ cancelled: cancelled.length });
 }

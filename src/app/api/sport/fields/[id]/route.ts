@@ -22,6 +22,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const body = await req.json();
 
+  // Validate HH:MM before storing — a malformed time feeds NaN into toMinutes()/generateTimeSlots
+  // and breaks slot generation + operating-hours checks for the field.
+  const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+  if (body.openTime !== undefined && !TIME_RE.test(body.openTime)) {
+    return NextResponse.json({ error: 'รูปแบบเวลาเปิดไม่ถูกต้อง (HH:MM)' }, { status: 400 });
+  }
+  if (body.closeTime !== undefined && !TIME_RE.test(body.closeTime)) {
+    return NextResponse.json({ error: 'รูปแบบเวลาปิดไม่ถูกต้อง (HH:MM)' }, { status: 400 });
+  }
+
   if (body.openTime && body.closeTime && body.openTime === body.closeTime) {
     return NextResponse.json({ error: 'เวลาเปิดต้องไม่เท่ากับเวลาปิด' }, { status: 400 });
   }

@@ -59,22 +59,31 @@ export async function POST(req: NextRequest) {
         0,
       );
 
+      // Charge the field booking of EVERY tab in the group (master + merged children), not just
+      // the master. A merged child can carry its own bookingId; billing only the master would
+      // close the child tab PAID while its field charge was never collected.
       let subtotalBooking = 0;
-      let bookingForUpdate: { id: string } | null = null;
-      let bookingSnap: { bookingId: string; fieldId: string; fieldName: string; date: string; timeSlot: string; amount: number } | null = null;
+      const bookingsToCharge: { id: string }[] = [];
+      const bookingSnaps: { bookingId: string; fieldId: string; fieldName: string; date: string; timeSlot: string; amount: number }[] = [];
 
-      if (includeBooking && master.bookingId) {
-        const booking = await tx.booking.findUnique({
-          where: { id: master.bookingId },
-          include: { field: { include: { priceRules: true } } },
-        });
-        if (booking && !booking.paidAt) {
-          const [start, end] = booking.timeSlot.split('-');
-          subtotalBooking = calculatePriceWithRules(start, end, booking.field.pricePerHour, booking.field.priceRules);
-          if (booking.discountAmount) subtotalBooking = Math.max(subtotalBooking - booking.discountAmount, 0);
-          subtotalBooking = +subtotalBooking.toFixed(2);
-          bookingForUpdate = { id: booking.id };
-          bookingSnap = { bookingId: booking.id, fieldId: booking.fieldId, fieldName: booking.field.name, date: booking.date.toISOString(), timeSlot: booking.timeSlot, amount: subtotalBooking };
+      if (includeBooking) {
+        const seenBooking = new Set<string>();
+        for (const t of allTabs) {
+          if (!t.bookingId || seenBooking.has(t.bookingId)) continue;
+          seenBooking.add(t.bookingId);
+          const booking = await tx.booking.findUnique({
+            where: { id: t.bookingId },
+            include: { field: { include: { priceRules: true } } },
+          });
+          if (booking && !booking.paidAt) {
+            const [start, end] = booking.timeSlot.split('-');
+            let amt = calculatePriceWithRules(start, end, booking.field.pricePerHour, booking.field.priceRules);
+            if (booking.discountAmount) amt = Math.max(amt - booking.discountAmount, 0);
+            amt = +amt.toFixed(2);
+            subtotalBooking = +(subtotalBooking + amt).toFixed(2);
+            bookingsToCharge.push({ id: booking.id });
+            bookingSnaps.push({ bookingId: booking.id, fieldId: booking.fieldId, fieldName: booking.field.name, date: booking.date.toISOString(), timeSlot: booking.timeSlot, amount: amt });
+          }
         }
       }
 
@@ -160,20 +169,15 @@ export async function POST(req: NextRequest) {
       const tabIdList = allTabs.map((t) => t.id);
 
       async function createInvoice(data: Record<string, unknown>) {
-        let attempts = 0;
-        while (true) {
-          const invoiceNo = await nextInvoiceNo(tx);
-          try {
-            return await tx.posInvoice.create({ data: { invoiceNo, status: 'PAID', refundedAmount: 0, ...custFields, ...data } as never });
-          } catch (e) {
-            attempts++;
-            if (attempts > 5) throw e;
-          }
-        }
+        // nextInvoiceNo serializes numbering via a per-day advisory lock, so the number is
+        // unique by the time we insert — no collision-retry loop needed (the old loop could
+        // not recover anyway: a unique violation aborts the whole Postgres tx).
+        const invoiceNo = await nextInvoiceNo(tx);
+        return tx.posInvoice.create({ data: { invoiceNo, status: 'PAID', refundedAmount: 0, ...custFields, ...data } as never });
       }
 
       const hasProducts = allItems.length > 0;
-      const hasBooking = !!bookingForUpdate && bookingTotal > 0;
+      const hasBooking = bookingsToCharge.length > 0 && bookingTotal > 0;
 
       // POS invoice carries products + all derived charges. Created unless this is a booking-only sale.
       let posInvoice: { id: string; invoiceNo: string } | null = null;
@@ -206,8 +210,8 @@ export async function POST(req: NextRequest) {
           serviceCharge: 0, totalCost: 0,
           pointsEarned: 0, pointsRedeemed: 0, pointsRedeemValue: 0,
           tabIds: tabIdList,
-          bookingIds: [bookingSnap!.bookingId],
-          itemsSnapshot: [bookingSnap],
+          bookingIds: bookingSnaps.map((s) => s.bookingId),
+          itemsSnapshot: bookingSnaps,
           relatedInvoiceId: posInvoice?.id ?? null,
         });
       }
@@ -294,13 +298,15 @@ export async function POST(req: NextRequest) {
       });
       if (closed.count !== allTabs.length) throw new Error('TAB_RACE');
 
-      // Mark booking as paid (atomic guard: only if not yet paid)
-      if (bookingForUpdate) {
+      // Mark every charged booking paid (atomic guard: only those not yet paid). If any was
+      // paid concurrently the count won't match and the whole checkout rolls back.
+      if (bookingsToCharge.length > 0) {
+        const chargeIds = bookingsToCharge.map((b) => b.id);
         const bUpd = await tx.booking.updateMany({
-          where: { id: bookingForUpdate.id, paidAt: null },
+          where: { id: { in: chargeIds }, paidAt: null },
           data: { status: 'APPROVED', paidAt: new Date() },
         });
-        if (bUpd.count !== 1) throw new Error('BOOKING_RACE');
+        if (bUpd.count !== chargeIds.length) throw new Error('BOOKING_RACE');
       }
 
       const primary = posInvoice ?? bookingInvoice!;

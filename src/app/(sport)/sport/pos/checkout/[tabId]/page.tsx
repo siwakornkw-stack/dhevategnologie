@@ -7,11 +7,18 @@ import { toast } from 'sonner';
 import { POS_PAY_METHODS, methodLabel, type PosPayMethod } from '@/lib/payment-methods';
 
 type Item = { id: string; productName: string; qty: number; unitPrice: number; discount: number };
+type BookingLine = {
+  tabId: string; tabName: string; teamLabel: string | null;
+  booking: { id: string; timeSlot: string; field: { name: string }; paidAt: string | null };
+  subtotal: number;
+};
 type Tab = {
   id: string; name: string; teamLabel: string | null; bookingId: string | null; status: string;
   items: Item[];
   children: { id: string; name: string; teamLabel: string | null; items: Item[] }[];
   booking: { id: string; timeSlot: string; field: { name: string; pricePerHour: number }; user: { name: string | null }; paidAt: string | null; discountAmount: number | null } | null;
+  bookings: BookingLine[];
+  // Sum of the UNPAID field bookings across the whole tab group (master + merged children).
   bookingSubtotal: number;
 };
 type Settings = { vatMode: 'NONE' | 'INCLUDED' | 'EXCLUDED'; vatRate: number; pointsEarnPerBaht: number; pointsValueBaht: number; serviceChargeRate: number };
@@ -77,7 +84,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
       perTeam.push({ label: x.teamLabel || x.name, sub });
     }
     const productSum = perTeam.reduce((s, x) => s + x.sub, 0);
-    const grossBook = includeBooking && tab.booking && !tab.booking.paidAt ? tab.bookingSubtotal : 0;
+    const grossBook = includeBooking ? (tab.bookingSubtotal || 0) : 0;
     const book = +Math.max(grossBook - Math.min(Math.max(Number(bookingDiscount) || 0, 0), grossBook), 0).toFixed(2);
     // Mirror the totals math: discount/coupon/VAT/points on products only, field charge raw.
     const discN = Number(discount) || 0;
@@ -116,7 +123,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
   const allItems = [tab, ...tab.children].flatMap((t) => t.items.map((i) => ({ ...i, tabName: t.name, teamLabel: t.teamLabel })));
   const subtotalProduct = allItems.reduce((s, i) => s + (i.unitPrice * i.qty - i.discount), 0);
 
-  const subtotalBooking = includeBooking && tab.booking && !tab.booking.paidAt ? tab.bookingSubtotal : 0;
+  const subtotalBooking = includeBooking ? (tab.bookingSubtotal || 0) : 0;
   const bookDiscNum = Math.min(Math.max(Number(bookingDiscount) || 0, 0), subtotalBooking);
   const bookingTotal = +(subtotalBooking - bookDiscNum).toFixed(2);
 
@@ -241,13 +248,20 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
           </table>
         )}
 
-        {tab.booking && (
-          <div className="border-t dark:border-gray-800 pt-3">
+        {tab.bookings.length > 0 && (
+          <div className="border-t dark:border-gray-800 pt-3 space-y-1">
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={includeBooking} onChange={(e) => setIncludeBooking(e.target.checked)} disabled={!!tab.booking.paidAt} />
-              รวมค่าสนาม: {tab.booking.field.name} {tab.booking.timeSlot}
-              {tab.booking.paidAt ? <span className="text-xs text-emerald-600">(จ่ายแล้ว)</span> : <span className="ml-2 font-semibold tabular-nums">฿{subtotalBooking.toFixed(2)}</span>}
+              <input type="checkbox" checked={includeBooking} onChange={(e) => { setIncludeBooking(e.target.checked); if (!e.target.checked) setSplits((prev) => prev.filter((x) => x.target !== 'BOOKING')); }} disabled={tab.bookingSubtotal <= 0} />
+              รวมค่าสนาม{tab.bookings.length > 1 ? ` (${tab.bookings.length} รายการ)` : ''}
             </label>
+            {tab.bookings.map((bl) => (
+              <div key={bl.booking.id} className="flex justify-between text-xs text-gray-500 pl-6">
+                <span>[{bl.teamLabel || bl.tabName}] {bl.booking.field.name} {bl.booking.timeSlot}</span>
+                {bl.booking.paidAt
+                  ? <span className="text-emerald-600">จ่ายแล้ว</span>
+                  : <span className="tabular-nums">฿{bl.subtotal.toFixed(2)}</span>}
+              </div>
+            ))}
           </div>
         )}
 
@@ -445,8 +459,8 @@ export default function CheckoutPage({ params }: { params: Promise<{ tabId: stri
                 <div className={Math.abs(splitProductSum - posFinal) < 0.01 ? 'text-emerald-600' : 'text-red-500'}>
                   split สินค้า: {splitProductSum.toFixed(2)} / {posFinal.toFixed(2)}
                 </div>
-                <div className={Math.abs(splitBookingSum - subtotalBooking) < 0.01 ? 'text-emerald-600' : 'text-red-500'}>
-                  split ค่าสนาม: {splitBookingSum.toFixed(2)} / {subtotalBooking.toFixed(2)}
+                <div className={Math.abs(splitBookingSum - bookingTotal) < 0.01 ? 'text-emerald-600' : 'text-red-500'}>
+                  split ค่าสนาม: {splitBookingSum.toFixed(2)} / {bookingTotal.toFixed(2)}
                 </div>
               </div>
             ) : (

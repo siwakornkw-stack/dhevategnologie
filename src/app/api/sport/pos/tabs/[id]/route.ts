@@ -19,21 +19,31 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
   });
   if (!tab) return NextResponse.json({ error: 'not found' }, { status: 404 });
 
+  // Collect the booking of every tab in the group (master + merged children). bookingSubtotal
+  // is the sum of the UNPAID bookings — that is what checkout will actually charge. `booking`
+  // is kept for the master only (back-compat for any single-booking consumer).
+  const groupTabs = [tab, ...tab.children];
+  const bookings: Array<{ tabId: string; tabName: string; teamLabel: string | null; booking: unknown; subtotal: number }> = [];
   let booking = null;
   let bookingSubtotal = 0;
-  if (tab.bookingId) {
+  const seen = new Set<string>();
+  for (const t of groupTabs) {
+    if (!t.bookingId || seen.has(t.bookingId)) continue;
+    seen.add(t.bookingId);
     const b = await prisma.booking.findUnique({
-      where: { id: tab.bookingId },
+      where: { id: t.bookingId },
       include: { field: { select: { name: true, pricePerHour: true, priceRules: true } }, user: { select: { name: true, phone: true } } },
     });
-    if (b) {
-      const [start, end] = b.timeSlot.split('-');
-      bookingSubtotal = calculatePriceWithRules(start, end, b.field.pricePerHour, b.field.priceRules);
-      if (b.discountAmount) bookingSubtotal = Math.max(bookingSubtotal - b.discountAmount, 0);
-      booking = b;
-    }
+    if (!b) continue;
+    const [start, end] = b.timeSlot.split('-');
+    let sub = calculatePriceWithRules(start, end, b.field.pricePerHour, b.field.priceRules);
+    if (b.discountAmount) sub = Math.max(sub - b.discountAmount, 0);
+    sub = +sub.toFixed(2);
+    bookings.push({ tabId: t.id, tabName: t.name, teamLabel: t.teamLabel, booking: b, subtotal: sub });
+    if (!b.paidAt) bookingSubtotal = +(bookingSubtotal + sub).toFixed(2);
+    if (t.id === tab.id) booking = b;
   }
-  return NextResponse.json({ ...tab, booking, bookingSubtotal });
+  return NextResponse.json({ ...tab, booking, bookings, bookingSubtotal });
 }
 
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {

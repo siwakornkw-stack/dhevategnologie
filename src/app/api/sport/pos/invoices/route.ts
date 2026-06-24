@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requirePosRole } from '@/lib/pos';
+import { BUSINESS_DAY_CUTOFF_HOUR } from '@/lib/business-day';
 
 export async function GET(req: NextRequest) {
   const session = await requirePosRole(['ADMIN', 'CASHIER']);
@@ -20,12 +21,27 @@ export async function GET(req: NextRequest) {
   if (type === 'POS') where.type = { in: ['POS_QUICK', 'POS_TAB', 'MIXED'] };
   else if (type && ['POS_QUICK', 'POS_TAB', 'BOOKING', 'MIXED'].includes(type)) where.type = type;
   const isCashier = session.user.role === 'CASHIER';
-  const todayMin = new Date();
-  todayMin.setHours(0, 0, 0, 0);
   const range: Record<string, Date> = {};
-  if (from) range.gte = new Date(from);
-  if (to) range.lte = new Date(to);
+  if (from) {
+    const f = new Date(from);
+    if (isNaN(f.getTime())) return NextResponse.json({ error: 'ช่วงวันที่ไม่ถูกต้อง' }, { status: 400 });
+    range.gte = f;
+  }
+  if (to) {
+    const t = new Date(to);
+    if (isNaN(t.getTime())) return NextResponse.json({ error: 'ช่วงวันที่ไม่ถูกต้อง' }, { status: 400 });
+    range.lte = t;
+  }
   if (isCashier) {
+    // Floor to the start of the CURRENT Asia/Bangkok business day. The shop runs overnight, so
+    // a sale before 07:00 Bangkok belongs to the previous business day. Server runs UTC on
+    // Vercel, so the old server-local setHours(0,0,0,0) was 07:00 Bangkok and hid a night-shift
+    // cashier's own 00:00–06:59 invoices from their history (no reprint/refund/void).
+    const BANGKOK_OFFSET_MS = 7 * 60 * 60 * 1000;
+    const CUTOFF_MS = BUSINESS_DAY_CUTOFF_HOUR * 60 * 60 * 1000;
+    const bkkNow = Date.now() + BANGKOK_OFFSET_MS;
+    const businessDayStartBkk = Math.floor((bkkNow - CUTOFF_MS) / 86_400_000) * 86_400_000 + CUTOFF_MS;
+    const todayMin = new Date(businessDayStartBkk - BANGKOK_OFFSET_MS);
     if (!range.gte || range.gte < todayMin) range.gte = todayMin;
     // Scope to own cashier's invoices to prevent cross-cashier visibility
     where.cashierId = session.user.id;

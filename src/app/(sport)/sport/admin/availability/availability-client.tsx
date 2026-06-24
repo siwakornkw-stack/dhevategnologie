@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { generateTimeSlots, formatDateISO, SPORT_TYPE_EMOJI, calculatePriceWithRules, type PriceRule } from '@/lib/booking';
 import { cn } from '@/lib/utils';
@@ -155,8 +155,10 @@ export function AvailabilityClient({
   }, [initialFields.length]);
 
   // Fetch availability for all fields when date or fields change
+  const availSeqRef = useRef(0);
   const fetchAvailability = useCallback(async (date: string, fieldList: Field[]) => {
     if (!fieldList.length) return;
+    const seq = ++availSeqRef.current;
     setLoadingAvail(true);
     const results = await Promise.all(
       fieldList.map((f) =>
@@ -166,6 +168,9 @@ export function AvailabilityClient({
           .catch(() => ({ id: f.id, bookedSlots: {}, priceRules: [] }))
       )
     );
+    // A faster date switch may have started a newer fetch; drop this stale batch so the grid
+    // never shows the wrong day's slots (last-response-wins otherwise).
+    if (seq !== availSeqRef.current) return;
     const map: Record<string, Record<string, string>> = {};
     const ruleMap: Record<string, PriceRule[]> = {};
     results.forEach(({ id, bookedSlots, priceRules }) => {

@@ -136,43 +136,35 @@ export async function POST(req: NextRequest) {
       const earnRate = settings.pointsEarnPerBaht || 0;
       const pointsEarned = customerId && earnRate > 0 ? Math.floor(finalTotal * earnRate) : 0;
 
-      let invoice;
-      let attempts = 0;
-      while (true) {
-        const invoiceNo = await nextInvoiceNo(tx);
-        try {
-          invoice = await tx.posInvoice.create({
-            data: {
-              invoiceNo,
-              type: 'POS_QUICK',
-              status: 'PAID',
-              subtotalProduct: itemsTotal,
-              subtotalBooking: 0,
-              discount: combinedDiscount,
-              vatMode: settings.vatMode,
-              vatRate: settings.vatRate,
-              vatAmount: vat.vatAmount,
-              total: finalTotal,
-              serviceCharge, totalCost: +totalCost.toFixed(2),
-              pointsEarned, pointsRedeemed, pointsRedeemValue,
-              cashierId: session.user.id,
-              shiftId: activeShift?.id || null,
-              customerId, customerName, customerTaxId, customerAddress, customerPhone,
-              itemsSnapshot: snapshot as unknown as object,
-              note: (() => {
-                const base = note?.toString().slice(0, 400) || '';
-                if (!appliedCouponCode) return base || null;
-                const tag = `[COUPON:${appliedCouponCode} -${couponDiscount.toFixed(2)}]`;
-                return (base ? `${base} ${tag}` : tag).slice(0, 500);
-              })(),
-            },
-          });
-          break;
-        } catch (e) {
-          attempts++;
-          if (attempts > 5) throw e;
-        }
-      }
+      // nextInvoiceNo serializes numbering via a per-day advisory lock, so the number is
+      // unique by the time we insert — no collision-retry loop needed.
+      const invoiceNo = await nextInvoiceNo(tx);
+      const invoice = await tx.posInvoice.create({
+        data: {
+          invoiceNo,
+          type: 'POS_QUICK',
+          status: 'PAID',
+          subtotalProduct: itemsTotal,
+          subtotalBooking: 0,
+          discount: combinedDiscount,
+          vatMode: settings.vatMode,
+          vatRate: settings.vatRate,
+          vatAmount: vat.vatAmount,
+          total: finalTotal,
+          serviceCharge, totalCost: +totalCost.toFixed(2),
+          pointsEarned, pointsRedeemed, pointsRedeemValue,
+          cashierId: session.user.id,
+          shiftId: activeShift?.id || null,
+          customerId, customerName, customerTaxId, customerAddress, customerPhone,
+          itemsSnapshot: snapshot as unknown as object,
+          note: (() => {
+            const base = note?.toString().slice(0, 400) || '';
+            if (!appliedCouponCode) return base || null;
+            const tag = `[COUPON:${appliedCouponCode} -${couponDiscount.toFixed(2)}]`;
+            return (base ? `${base} ${tag}` : tag).slice(0, 500);
+          })(),
+        },
+      });
       if (hasSplits) {
         // cash+qr (or any multi-method) single bill: one payment + split row per line.
         let sum = 0;

@@ -153,13 +153,18 @@ export async function POST(req: NextRequest) {
       if (booking) {
         // Single tx: status flip + reversals must all-or-nothing.
         await prisma.$transaction(async (tx) => {
+          // Skip REJECTED as well as CANCELLED: admin reject (bookings/[id] PUT and the bulk
+          // route) already restores points + decrements coupon in-band BEFORE calling
+          // stripe.refunds.create, so the resulting charge.refunded must not reverse a second
+          // time. This guard only fires for refunds initiated outside the app (e.g. the Stripe
+          // dashboard) where status is still APPROVED/PENDING and no in-band reversal ran.
           const updated = await tx.booking.updateMany({
-            where: { id: booking.id, status: { not: 'CANCELLED' } },
+            where: { id: booking.id, status: { notIn: ['CANCELLED', 'REJECTED'] } },
             data: { status: 'CANCELLED' },
           });
           if (updated.count === 0) return;
           if (booking.couponCode) {
-            await tx.coupon.update({ where: { code: booking.couponCode }, data: { usedCount: { decrement: 1 } } });
+            await tx.coupon.updateMany({ where: { code: booking.couponCode, usedCount: { gt: 0 } }, data: { usedCount: { decrement: 1 } } });
           }
           if (booking.pointsRedeemed && booking.pointsRedeemed > 0) {
             await tx.user.update({ where: { id: booking.userId }, data: { points: { increment: booking.pointsRedeemed } } });

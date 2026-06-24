@@ -32,13 +32,17 @@ export function ProductsClient({ initialList = [] }: ProductsClientProps = {}) {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const skipFirst = useRef(initialList.length > 0);
+  const loadSeq = useRef(0);
 
   async function load() {
+    const seq = ++loadSeq.current;
     setLoading(true);
     // no-store: products endpoint is browser-cached (max-age=10); this list reloads after
     // create/edit/delete, and a cached response would show stale rows for up to 10s.
     const r = await fetch(`/api/sport/pos/products?active=0${q ? `&q=${encodeURIComponent(q)}` : ''}`, { cache: 'no-store' });
     const data = await r.json();
+    // Drop out-of-order responses so a slower earlier query can't overwrite a newer one.
+    if (seq !== loadSeq.current) return;
     setList(Array.isArray(data) ? data : []);
     setLoading(false);
   }
@@ -46,7 +50,9 @@ export function ProductsClient({ initialList = [] }: ProductsClientProps = {}) {
   useEffect(() => {
     if (skipFirst.current && q === '') { skipFirst.current = false; return; }
     skipFirst.current = false;
-    load();
+    // Debounce so we fire one request after typing settles, not one per keystroke.
+    const t = setTimeout(load, 250);
+    return () => clearTimeout(t);
   }, [q]);
 
   async function uploadImage(file: File) {

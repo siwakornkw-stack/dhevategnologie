@@ -81,12 +81,24 @@ export type VatBreakdown = {
   vatRate: number;
 };
 
+// Serialize sequential-number allocation per day-prefix with a transaction-scoped advisory
+// lock. Reading MAX(no) then INSERTing is not atomic under Read Committed: two concurrent
+// writers compute the same number, and the loser's INSERT (unique column) aborts the WHOLE
+// Postgres transaction — so the in-tx create-retry loop the callers used could never recover.
+// The lock makes the second tx wait until the first commits and its row becomes visible.
+// ponytail: global per-day lock, serializes same-day invoice/shift/refund creation; swap for a
+// dedicated counter row or a daily-reset sequence only if POS throughput ever demands it.
+async function lockSeq(tx: Tx, prefix: string) {
+  await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${prefix}))`;
+}
+
 export async function nextInvoiceNo(tx: Tx = prisma) {
   const now = new Date();
   const y = now.getFullYear();
   const m = String(now.getMonth() + 1).padStart(2, '0');
   const d = String(now.getDate()).padStart(2, '0');
   const prefix = `INV-${y}${m}${d}-`;
+  await lockSeq(tx, prefix);
   const last = await tx.posInvoice.findFirst({
     where: { invoiceNo: { startsWith: prefix } },
     orderBy: { invoiceNo: 'desc' },
@@ -149,6 +161,7 @@ export async function nextShiftNo(tx: Tx = prisma) {
   const m = String(now.getMonth() + 1).padStart(2, '0');
   const d = String(now.getDate()).padStart(2, '0');
   const prefix = `SHF-${y}${m}${d}-`;
+  await lockSeq(tx, prefix);
   const last = await tx.posShift.findFirst({
     where: { shiftNo: { startsWith: prefix } },
     orderBy: { shiftNo: 'desc' },
@@ -229,6 +242,7 @@ export async function nextRefundNo(tx: Tx = prisma) {
   const m = String(now.getMonth() + 1).padStart(2, '0');
   const d = String(now.getDate()).padStart(2, '0');
   const prefix = `RF-${y}${m}${d}-`;
+  await lockSeq(tx, prefix);
   const last = await tx.posRefund.findFirst({
     where: { refundNo: { startsWith: prefix } },
     orderBy: { refundNo: 'desc' },

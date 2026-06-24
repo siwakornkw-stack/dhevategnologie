@@ -176,7 +176,14 @@ export async function POST(req: NextRequest) {
         }
 
         if (stripeEnabled && booking.paidAt && booking.stripePaymentIntentId) {
-          tasks.push(stripe.refunds.create({ payment_intent: booking.stripePaymentIntentId }).catch(() => {}));
+          // idempotencyKey scoped to booking+intent prevents a duplicate refund on retry,
+          // matching the single-booking and recurring-cancel refund paths.
+          tasks.push(
+            stripe.refunds.create(
+              { payment_intent: booking.stripePaymentIntentId },
+              { idempotencyKey: `refund:${booking.id}:${booking.stripePaymentIntentId}` },
+            ).catch(() => {}),
+          );
         }
 
         if (booking.pointsRedeemed && booking.pointsRedeemed > 0) {
