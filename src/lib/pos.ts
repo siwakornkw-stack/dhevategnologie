@@ -89,7 +89,10 @@ export type VatBreakdown = {
 // ponytail: global per-day lock, serializes same-day invoice/shift/refund creation; swap for a
 // dedicated counter row or a daily-reset sequence only if POS throughput ever demands it.
 async function lockSeq(tx: Tx, prefix: string) {
-  await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${prefix}))`;
+  // $executeRaw (not $queryRaw): pg_advisory_xact_lock returns void, which $queryRaw cannot
+  // deserialize ("Failed to deserialize column of type 'void'"). $executeRaw runs the statement
+  // and returns only an affected-row count, so the void result is never deserialized.
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${prefix}))`;
 }
 
 export async function nextInvoiceNo(tx: Tx = prisma) {
