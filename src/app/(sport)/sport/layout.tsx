@@ -6,7 +6,7 @@ import { getTranslations } from 'next-intl/server';
 export async function generateMetadata() {
   const t = await getTranslations('sport');
   return {
-    title: { default: `88ARENA - ${t('metaTitle')}`, template: '%s | 88ARENA' },
+    title: { default: `DhevaSuite - ${t('metaTitle')}`, template: '%s | DhevaSuite' },
     description: t('metaDescription'),
   };
 }
@@ -21,7 +21,7 @@ export default async function SportLayout({ children }: { children: React.ReactN
         <SportHeader />
         <main className="flex-1">{children}</main>
         <footer className="border-t border-gray-200 dark:border-gray-800 py-6 text-center text-sm text-gray-400">
-          © {new Date().getFullYear()} 88ARENA — {t('footerText')}
+          © {new Date().getFullYear()} DhevaSuite — {t('footerText')}
         </footer>
       </div>
     </SessionProvider>

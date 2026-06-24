@@ -6,7 +6,7 @@ test.describe('smoke', () => {
     // Heading contains "สนามกีฬา" or "sports fields" depending on locale
     await expect(page.locator('h1').first()).toBeVisible();
     // At least one field card or the skeleton should appear
-    await expect(page.locator('body')).toContainText(/88ARENA|ARENA/i);
+    await expect(page.locator('body')).toContainText(/DhevaSuite/i);
   });
 
   test('signin page renders form', async ({ page }) => {

@@ -13,7 +13,7 @@ Three audiences, all Thai-first:
 
 ## Product Purpose
 
-88ARENA is a sports-facility booking and point-of-sale system. Customers reserve fields online; staff run the on-site shop and tabs through a cashier terminal; admins configure inventory, pricing, and oversee operations. Success = a slot gets booked and paid without friction, and a cashier closes a sale in as few taps as possible.
+DhevaSuite is a sports-facility booking and point-of-sale system. Customers reserve fields online; staff run the on-site shop and tabs through a cashier terminal; admins configure inventory, pricing, and oversee operations. Success = a slot gets booked and paid without friction, and a cashier closes a sale in as few taps as possible.
 
 ## Brand Personality
 

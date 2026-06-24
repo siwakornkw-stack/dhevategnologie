@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this app is
 
-Despite the `package.json` name (`ai-starter-kit-oss`) and the template-derived `README.md`, this repo is **88ARENA**, a Thai-language sports-facility booking + point-of-sale (POS) system. The original AI-starter-kit marketing site survives only under `src/app/(site)/` (landing/pricing/auth pages); the real product lives under `src/app/(sport)/`. UI copy is Thai by default.
+Despite the `package.json` name (`ai-starter-kit-oss`) and the template-derived `README.md`, this repo is **DhevaSuite** (formerly 88ARENA), a Thai-language sports-facility booking + point-of-sale (POS) system. The original AI-starter-kit marketing site survives only under `src/app/(site)/` (landing/pricing/auth pages); the real product lives under `src/app/(sport)/`. UI copy is Thai by default.
 
 ## Commands
 

@@ -16,7 +16,7 @@ export function QrCodeButton({ bookingId, fieldName, date, timeSlot }: {
     if (!dataUrl) {
       try {
         const QRCode = (await import('qrcode')).default;
-        const url = await QRCode.toDataURL(`88ARENA:${bookingId}`, { width: 220, margin: 2, color: { dark: '#1f2937', light: '#ffffff' } });
+        const url = await QRCode.toDataURL(`DhevaSuite:${bookingId}`, { width: 220, margin: 2, color: { dark: '#1f2937', light: '#ffffff' } });
         setDataUrl(url);
       } catch {
         // ignore

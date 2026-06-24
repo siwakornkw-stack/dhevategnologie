@@ -3,7 +3,7 @@ import { Resend } from 'resend';
 import { sendPushToUser } from '@/lib/web-push';
 
 const resend = new Resend(process.env.RESEND_API_KEY ?? 're_placeholder');
-const FROM = process.env.EMAIL_FROM ?? 'noreply@88arena.com';
+const FROM = process.env.EMAIL_FROM ?? 'noreply@dhevasuite.com';
 
 export async function notifyWaitingList(fieldId: string, date: Date, timeSlot: string) {
   const entries = await prisma.waitingList.findMany({
@@ -62,7 +62,7 @@ export async function notifyWaitingList(fieldId: string, date: Date, timeSlot: s
                   <a href="${bookingUrl}" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:14px 32px;border-radius:999px;text-decoration:none;font-weight:600;font-size:15px;">จองเลย</a>
                 </div>
               </div>
-              <div style="background:#f9fafb;padding:16px 32px;text-align:center;color:#9ca3af;font-size:12px;">88ARENA</div>
+              <div style="background:#f9fafb;padding:16px 32px;text-align:center;color:#9ca3af;font-size:12px;">DhevaSuite</div>
             </div>
           </body>
           </html>

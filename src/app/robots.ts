@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next';
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://88arena.vercel.app';
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://dhevasuite.vercel.app';
 
 export default function robots(): MetadataRoute.Robots {
   return {

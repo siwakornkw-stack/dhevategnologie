@@ -71,7 +71,7 @@ export function DownloadReceiptButton({ booking }: { booking: ReceiptData }) {
     <div class="header">
       <div class="header-row">
         <div>
-          <h1>🏟️ 88ARENA</h1>
+          <h1>🏟️ DhevaSuite</h1>
           <p>ใบเสร็จรับเงิน / Receipt</p>
         </div>
         <div class="ref">
@@ -106,7 +106,7 @@ export function DownloadReceiptButton({ booking }: { booking: ReceiptData }) {
       </div>
     </div>
     <div class="footer">
-      ขอบคุณที่ใช้บริการ 88ARENA — กรุณาแสดงใบเสร็จนี้เมื่อเข้าใช้สนาม<br/>
+      ขอบคุณที่ใช้บริการ DhevaSuite — กรุณาแสดงใบเสร็จนี้เมื่อเข้าใช้สนาม<br/>
       สร้างเมื่อ: ${new Date().toLocaleString('th-TH')}
     </div>
   </div>

@@ -1,7 +1,7 @@
 import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY ?? 're_placeholder');
-const FROM = process.env.EMAIL_FROM ?? 'noreply@88arena.com';
+const FROM = process.env.EMAIL_FROM ?? 'noreply@dhevasuite.com';
 
 // Base URL for links embedded in emails. Throw rather than emit `undefined/...`
 // links that would leak a valid token in a broken URL.
@@ -42,13 +42,13 @@ export async function sendVerificationEmail(to: string, token: string) {
   await sendEmail({
     from: FROM,
     to,
-    subject: 'Verify your email / ยืนยันอีเมลของคุณ - 88ARENA',
+    subject: 'Verify your email / ยืนยันอีเมลของคุณ - DhevaSuite',
     html: emailTemplate({
       titleEn: 'Verify Your Email',
       titleTh: 'ยืนยันอีเมล',
       emoji: '📧',
       bodyEn: `
-        <p>Thank you for registering with 88ARENA!</p>
+        <p>Thank you for registering with DhevaSuite!</p>
         <p>Click the button below to verify your email address.</p>
         <div style="text-align:center;margin:24px 0;">
           <a href="${url}" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:14px 32px;border-radius:999px;text-decoration:none;font-weight:600;font-size:15px;">Verify Email</a>
@@ -56,7 +56,7 @@ export async function sendVerificationEmail(to: string, token: string) {
         <p style="color:#6b7280;font-size:13px;">This link expires in 24 hours. If you did not register, please ignore this email.</p>
       `,
       bodyTh: `
-        <p>ขอบคุณที่สมัครสมาชิก 88ARENA!</p>
+        <p>ขอบคุณที่สมัครสมาชิก DhevaSuite!</p>
         <p>กรุณากดปุ่มด้านล่างเพื่อยืนยันอีเมลของคุณ</p>
         <p style="color:#6b7280;font-size:13px;">ลิงก์นี้จะหมดอายุใน 24 ชั่วโมง หากไม่ได้สมัคร กรุณาเพิกเฉย</p>
       `,
@@ -70,7 +70,7 @@ export async function sendPasswordResetEmail(to: string, token: string) {
   await sendEmail({
     from: FROM,
     to,
-    subject: 'Reset your password / รีเซ็ตรหัสผ่าน - 88ARENA',
+    subject: 'Reset your password / รีเซ็ตรหัสผ่าน - DhevaSuite',
     html: emailTemplate({
       titleEn: 'Reset Your Password',
       titleTh: 'รีเซ็ตรหัสผ่าน',
@@ -279,7 +279,7 @@ function emailTemplate({ titleEn, titleTh, emoji, bodyEn, bodyTh }: TemplateArgs
           ${bodyTh}
         </div>
         <div style="background:#f9fafb;padding:16px 32px;text-align:center;color:#9ca3af;font-size:12px;">
-          88ARENA
+          DhevaSuite
         </div>
       </div>
     </body>

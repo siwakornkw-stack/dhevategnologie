@@ -1,11 +1,11 @@
 #requires -Version 5.1
-# 88ARENA cashier setup - installs the cash-drawer agent and makes it autostart.
+# DhevaSuite cashier setup - installs the cash-drawer agent and makes it autostart.
 # Run via poscashiersetup.cmd (double-click).
 # Messages are ASCII-only so they render on any Windows console.
 
 $ErrorActionPreference = 'Stop'
 $AgentPort = 7654
-$InstallDir = Join-Path $env:LOCALAPPDATA '88arena-drawer'
+$InstallDir = Join-Path $env:LOCALAPPDATA 'dhevasuite-drawer'
 $Src = $PSScriptRoot
 
 function Section($t) { Write-Host ''; Write-Host "== $t ==" -ForegroundColor Cyan }
@@ -13,7 +13,7 @@ function Ok($t)      { Write-Host "  [OK] $t" -ForegroundColor Green }
 function Warn($t)    { Write-Host "  [!]  $t" -ForegroundColor Yellow }
 function Die($t)     { Write-Host "  [X]  $t" -ForegroundColor Red; Write-Host ''; Read-Host 'Press Enter to close'; exit 1 }
 
-Write-Host '88ARENA - cashier setup (cash drawer + agent)' -ForegroundColor White
+Write-Host 'DhevaSuite - cashier setup (cash drawer + agent)' -ForegroundColor White
 
 # --- 1. pick printer -------------------------------------------------------
 Section 'Select printer'
@@ -96,13 +96,13 @@ Ok 'Created run-agent.cmd'
 # --- 4. autostart shortcut -------------------------------------------------
 Section 'Autostart on boot'
 $startup = [Environment]::GetFolderPath('Startup')
-$lnkPath = Join-Path $startup '88arena-drawer.lnk'
+$lnkPath = Join-Path $startup 'dhevasuite-drawer.lnk'
 $ws = New-Object -ComObject WScript.Shell
 $lnk = $ws.CreateShortcut($lnkPath)
 $lnk.TargetPath = $launcher
 $lnk.WorkingDirectory = $InstallDir
 $lnk.WindowStyle = 7  # minimized
-$lnk.Description = '88ARENA cash drawer agent'
+$lnk.Description = 'DhevaSuite cash drawer agent'
 $lnk.Save()
 Ok 'Added Startup shortcut'
 

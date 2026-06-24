@@ -1,4 +1,4 @@
-const CACHE = '88arena-v1';
+const CACHE = 'dhevasuite-v1';
 const STATIC = ['/', '/sport', '/offline.html'];
 
 self.addEventListener('install', (e) => {
@@ -56,7 +56,7 @@ self.addEventListener('push', (e) => {
   if (!e.data) return;
   const data = e.data.json();
   e.waitUntil(
-    self.registration.showNotification(data.title ?? '88ARENA', {
+    self.registration.showNotification(data.title ?? 'DhevaSuite', {
       body: data.message,
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-192.png',

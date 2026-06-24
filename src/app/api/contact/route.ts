@@ -30,12 +30,12 @@ export async function POST(req: NextRequest) {
   }
 
   const { firstName, lastName, email, message } = parsed.data;
-  const adminEmail = process.env.EMAIL_FROM?.match(/<(.+)>/)?.[1] ?? process.env.EMAIL_FROM ?? 'admin@88arena.com';
+  const adminEmail = process.env.EMAIL_FROM?.match(/<(.+)>/)?.[1] ?? process.env.EMAIL_FROM ?? 'admin@dhevasuite.com';
 
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
   const { error } = await resend.emails.send({
-    from: process.env.EMAIL_FROM ?? 'noreply@88arena.com',
+    from: process.env.EMAIL_FROM ?? 'noreply@dhevasuite.com',
     to: adminEmail,
     replyTo: email,
     subject: `Contact form: ${firstName} ${lastName}`,

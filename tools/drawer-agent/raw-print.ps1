@@ -43,7 +43,7 @@ public class RawPrinterHelper {
     Int32 dwWritten = 0;
     bool bSuccess = false;
     DOCINFOA di = new DOCINFOA();
-    di.pDocName = "88ARENA Drawer Kick";
+    di.pDocName = "DhevaSuite Drawer Kick";
     di.pDataType = "RAW";
     IntPtr pUnmanagedBytes = Marshal.AllocCoTaskMem(bytes.Length);
     Marshal.Copy(bytes, 0, pUnmanagedBytes, bytes.Length);

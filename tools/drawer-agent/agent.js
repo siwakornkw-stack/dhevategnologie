@@ -1,6 +1,6 @@
 'use strict';
 
-// 88ARENA cash-drawer agent.
+// DhevaSuite cash-drawer agent.
 // Runs on the cashier PC. The POS browser POSTs /kick after a cash sale;
 // this writes the ESC/POS drawer-kick pulse straight to the Windows printer,
 // which fires the drawer wired into its RJ11 port.

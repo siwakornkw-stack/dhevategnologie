@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'admin@88arena.com';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'admin@dhevasuite.com';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'admin1234';
 
 test.describe('SEO and meta', () => {
@@ -19,7 +19,7 @@ test.describe('SEO and meta', () => {
   test('404 page renders branded content', async ({ page }) => {
     await page.goto('/this-page-does-not-exist-xyz123');
     await expect(page.locator('body')).toContainText('404');
-    await expect(page.locator('body')).toContainText('88ARENA');
+    await expect(page.locator('body')).toContainText('DhevaSuite');
   });
 });
 

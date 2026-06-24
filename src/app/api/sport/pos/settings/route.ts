@@ -18,7 +18,7 @@ export async function PATCH(req: NextRequest) {
   const body = await req.json();
   const data: Record<string, unknown> = {};
 
-  if (body.shopName !== undefined) data.shopName = String(body.shopName).trim() || '88ARENA';
+  if (body.shopName !== undefined) data.shopName = String(body.shopName).trim() || 'DhevaSuite';
   if (body.taxId !== undefined) data.taxId = body.taxId?.trim() || null;
   if (body.address !== undefined) data.address = body.address?.trim() || null;
   if (body.vatMode !== undefined) {

@@ -47,7 +47,7 @@ export default async function FieldDetailPage({ params }: PageProps) {
         <a href="/sport" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
           {t('backToHome')}
         </a>
-        <ShareButton title={`${field.name} - 88ARENA`} />
+        <ShareButton title={`${field.name} - DhevaSuite`} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">

@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(
-    `mailto:${process.env.EMAIL_FROM ?? 'admin@88arena.com'}`,
+    `mailto:${process.env.EMAIL_FROM ?? 'admin@dhevasuite.com'}`,
     process.env.VAPID_PUBLIC_KEY,
     process.env.VAPID_PRIVATE_KEY,
   );
