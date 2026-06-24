@@ -62,9 +62,11 @@ export default async function AdminCalendarPage({ searchParams }: PageProps) {
   function isoDate(d: Date) { return d.toISOString().split('T')[0]; }
 
   function bookingsForDayAndField(day: Date, fieldId: string) {
-    return bookings.filter(
-      (b) => isoDate(new Date(b.date)) === isoDate(day) && b.fieldId === fieldId,
-    );
+    return bookings
+      .filter((b) => isoDate(new Date(b.date)) === isoDate(day) && b.fieldId === fieldId)
+      // Sort by start time. timeSlot is zero-padded "HH:MM-HH:MM", so a plain string
+      // compare orders by start hour then minute.
+      .sort((a, b) => a.timeSlot.localeCompare(b.timeSlot));
   }
 
   function blockedForDayAndField(day: Date, fieldId: string) {
