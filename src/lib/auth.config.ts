@@ -31,6 +31,14 @@ export const authConfig: NextAuthConfig = {
       const posAdminPrefixes = ['/sport/pos/products', '/sport/pos/stock', '/sport/pos/settings', '/sport/pos/cashiers', '/sport/pos/report', '/sport/pos/booking-invoices'];
       const isPosAdminPath = posAdminPrefixes.some((p) => nextUrl.pathname.startsWith(p));
 
+      // Sales-site back-office (separate from the product /sport/admin). ADMIN only.
+      const isSaleAdminPath = nextUrl.pathname.startsWith('/admin');
+      if (isSaleAdminPath) {
+        if (!isLoggedIn) return Response.redirect(new URL(`/sport/auth/signin?callbackUrl=${nextUrl.pathname}`, nextUrl));
+        if (role !== 'ADMIN') return Response.redirect(new URL('/sport', nextUrl));
+        return true;
+      }
+
       if (isPosAdminPath) {
         if (!isLoggedIn) return Response.redirect(new URL(`/sport/auth/signin?callbackUrl=${nextUrl.pathname}`, nextUrl));
         if (role !== 'ADMIN') return Response.redirect(new URL('/sport/pos', nextUrl));

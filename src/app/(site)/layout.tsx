@@ -59,6 +59,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
               <div style={{ display: 'flex', gap: 22 }}>
                 <Link href="/terms" style={{ color: 'inherit', textDecoration: 'none' }}>เงื่อนไขการใช้งาน</Link>
                 <Link href="/privacy" style={{ color: 'inherit', textDecoration: 'none' }}>นโยบายความเป็นส่วนตัว</Link>
+                <Link href="/admin" style={{ color: 'inherit', textDecoration: 'none' }}>หลังบ้าน</Link>
               </div>
             </div>
           </div>

@@ -15,7 +15,7 @@ async function toggleHandled(formData: FormData) {
   const id = String(formData.get('id'));
   const handled = formData.get('handled') === 'true';
   await prisma.lead.update({ where: { id }, data: { handled: !handled } });
-  revalidatePath('/sport/admin/leads');
+  revalidatePath('/admin/leads');
 }
 
 interface PageProps {
@@ -24,17 +24,13 @@ interface PageProps {
 
 export default async function AdminLeadsPage({ searchParams }: PageProps) {
   const session = await auth();
-  if (!session || session.user.role !== 'ADMIN') redirect('/sport');
+  if (!session || session.user.role !== 'ADMIN') redirect('/sport/auth/signin?callbackUrl=/admin/leads');
 
   const { page: pageStr } = await searchParams;
   const page = Math.max(1, parseInt(pageStr ?? '1', 10));
 
   const [leads, total, pending] = await Promise.all([
-    prisma.lead.findMany({
-      orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * PAGE_SIZE,
-      take: PAGE_SIZE,
-    }),
+    prisma.lead.findMany({ orderBy: { createdAt: 'desc' }, skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE }),
     prisma.lead.count(),
     prisma.lead.count({ where: { handled: false } }),
   ]);
@@ -42,12 +38,9 @@ export default async function AdminLeadsPage({ searchParams }: PageProps) {
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
-    <div className="wrapper py-8 max-w-5xl space-y-6">
+    <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Link href="/sport/admin" className="text-sm text-gray-400 hover:text-gray-600">← Dashboard</Link>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">📨 ลีด / คำขอเดโม</h1>
-        </div>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">📨 ลีด / คำขอเดโม</h1>
         <div className="flex items-center gap-3 text-sm text-gray-400">
           <span>ใหม่ <span className="font-semibold text-indigo-600 dark:text-indigo-400 tabular-nums">{pending}</span></span>
           <span>ทั้งหมด <span className="tabular-nums">{total}</span></span>
@@ -76,22 +69,13 @@ export default async function AdminLeadsPage({ searchParams }: PageProps) {
                     <span className="block">{new Date(lead.createdAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}</span>
                   </td>
                   <td className="px-4 py-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">{lead.firstName} {lead.lastName}</td>
-                  <td className="px-4 py-3">
-                    <a href={`mailto:${lead.email}`} className="text-indigo-600 dark:text-indigo-400 hover:underline">{lead.email}</a>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-gray-300 max-w-md">
-                    <span className="line-clamp-2" title={lead.message}>{lead.message}</span>
-                  </td>
+                  <td className="px-4 py-3"><a href={`mailto:${lead.email}`} className="text-indigo-600 dark:text-indigo-400 hover:underline">{lead.email}</a></td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-300 max-w-md"><span className="line-clamp-2" title={lead.message}>{lead.message}</span></td>
                   <td className="px-4 py-3 text-center whitespace-nowrap">
                     <form action={toggleHandled}>
                       <input type="hidden" name="id" value={lead.id} />
                       <input type="hidden" name="handled" value={String(lead.handled)} />
-                      <button
-                        type="submit"
-                        className={`text-xs px-2.5 py-1 rounded-full font-semibold transition ${lead.handled
-                          ? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200'
-                          : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 hover:bg-emerald-200'}`}
-                      >
+                      <button type="submit" className={`text-xs px-2.5 py-1 rounded-full font-semibold transition ${lead.handled ? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 hover:bg-emerald-200'}`}>
                         {lead.handled ? 'ติดต่อแล้ว ✓' : 'ทำเครื่องหมายว่าติดต่อแล้ว'}
                       </button>
                     </form>
@@ -105,13 +89,9 @@ export default async function AdminLeadsPage({ searchParams }: PageProps) {
 
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">
-          {page > 1 && (
-            <Link href={`/sport/admin/leads?page=${page - 1}`} className="px-4 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">ก่อนหน้า</Link>
-          )}
+          {page > 1 && <Link href={`/admin/leads?page=${page - 1}`} className="px-4 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">ก่อนหน้า</Link>}
           <span className="text-sm text-gray-500 px-3">หน้า {page} / {totalPages}</span>
-          {page < totalPages && (
-            <Link href={`/sport/admin/leads?page=${page + 1}`} className="px-4 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">ถัดไป</Link>
-          )}
+          {page < totalPages && <Link href={`/admin/leads?page=${page + 1}`} className="px-4 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">ถัดไป</Link>}
         </div>
       )}
     </div>
