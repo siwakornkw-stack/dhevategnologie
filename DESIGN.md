@@ -1,5 +1,5 @@
 ---
-name: DhevaSuite
+name: Dhevategnologie
 description: Clean, fast booking + POS system for sports facilities — function-first product UI.
 colors:
   primary: "#7a5af8"
@@ -90,13 +90,13 @@ components:
     height: "48px"
 ---
 
-# Design System: DhevaSuite
+# Design System: Dhevategnologie
 
 ## 1. Overview
 
 **Creative North Star: "The Clean Counter"**
 
-DhevaSuite is a well-run counter at a busy sports venue: the surface is clear, every tool is within reach, and nothing sits on the counter that doesn't earn its place. Customers grab a slot and pay; cashiers ring up sales between rallies; admins set the rules. The interface serves all three by getting out of the way. It reads fast, points at the next action, and stays quiet until you need it.
+Dhevategnologie is a well-run counter at a busy sports venue: the surface is clear, every tool is within reach, and nothing sits on the counter that doesn't earn its place. Customers grab a slot and pay; cashiers ring up sales between rallies; admins set the rules. The interface serves all three by getting out of the way. It reads fast, points at the next action, and stays quiet until you need it.
 
 This is a **product** system, not a marketing surface. Function comes first: solid fills, predictable rectangles with gently softened corners (8px), and high-contrast text on calm neutrals. Color is used to direct, not to decorate — one action color carries the primary verb on any screen, and the rest of the palette stays out of the way. Depth is conveyed by contrast and tonal layering, not by piling on shadows.
 

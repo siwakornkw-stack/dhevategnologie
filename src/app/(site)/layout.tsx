@@ -23,7 +23,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
                   <span style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#1E5BD6,#163F94)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M12 2L3 6.5v11L12 22l9-4.5v-11L12 2z" stroke="#fff" strokeWidth="1.7" strokeLinejoin="round" /></svg>
                   </span>
-                  <span style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>Dheva<span style={{ color: '#79A6F5' }}>Suite</span></span>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>Dheva<span style={{ color: '#79A6F5' }}>tegnologie</span></span>
                 </div>
                 <p style={{ fontSize: 14.5, lineHeight: 1.65, margin: '0 0 18px', maxWidth: 300 }}>ระบบจัดการสนามกีฬาครบวงจรโดย Dheva Technologie ช่วยให้สนามและอารีน่ารับจองออนไลน์และขายหน้าร้านได้ในระบบเดียว</p>
                 <div style={{ fontSize: 13, color: '#7689AC' }}>บริษัท เทวะ เทคโนโลจี จำกัด</div>

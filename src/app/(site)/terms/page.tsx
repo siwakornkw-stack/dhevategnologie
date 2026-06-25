@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service - DhevaSuite',
+  title: 'Terms of Service - Dhevategnologie',
 };
 
 export default function TermsPage() {
@@ -18,7 +18,7 @@ export default function TermsPage() {
             <div>
               <h2 className="mb-3 text-2xl font-semibold text-gray-800 dark:text-white/90">1. การยอมรับข้อกำหนด</h2>
               <p>
-                โดยการเข้าใช้งานหรือสมัครสมาชิกกับ DhevaSuite ถือว่าคุณยอมรับข้อกำหนดและเงื่อนไขการให้บริการฉบับนี้ทั้งหมด
+                โดยการเข้าใช้งานหรือสมัครสมาชิกกับ Dhevategnologie ถือว่าคุณยอมรับข้อกำหนดและเงื่อนไขการให้บริการฉบับนี้ทั้งหมด
                 หากคุณไม่ยอมรับข้อกำหนดเหล่านี้ กรุณาหยุดใช้บริการ
               </p>
             </div>
@@ -39,7 +39,7 @@ export default function TermsPage() {
                 <li>ราคาที่แสดงเป็นราคารวม VAT แล้ว</li>
                 <li>การชำระเงินผ่าน Stripe มีความปลอดภัยและเข้ารหัสทุกการทำธุรกรรม</li>
                 <li>การคืนเงินจะพิจารณาเป็นรายกรณี กรุณาติดต่อทีมงาน</li>
-                <li>DhevaSuite ขอสงวนสิทธิ์ในการปฏิเสธการคืนเงินในกรณีที่ลูกค้าไม่มาใช้บริการตามเวลาที่จอง</li>
+                <li>Dhevategnologie ขอสงวนสิทธิ์ในการปฏิเสธการคืนเงินในกรณีที่ลูกค้าไม่มาใช้บริการตามเวลาที่จอง</li>
               </ul>
             </div>
 
@@ -57,7 +57,7 @@ export default function TermsPage() {
             <div>
               <h2 className="mb-3 text-2xl font-semibold text-gray-800 dark:text-white/90">5. โปรแกรมสะสมแต้ม</h2>
               <p>
-                แต้มสะสมเป็นสิทธิประโยชน์เพิ่มเติม DhevaSuite ขอสงวนสิทธิ์ในการเปลี่ยนแปลง ระงับ หรือยกเลิกโปรแกรมสะสมแต้มได้
+                แต้มสะสมเป็นสิทธิประโยชน์เพิ่มเติม Dhevategnologie ขอสงวนสิทธิ์ในการเปลี่ยนแปลง ระงับ หรือยกเลิกโปรแกรมสะสมแต้มได้
                 โดยไม่ต้องแจ้งให้ทราบล่วงหน้า แต้มไม่สามารถแลกเป็นเงินสดได้
               </p>
             </div>
@@ -65,7 +65,7 @@ export default function TermsPage() {
             <div>
               <h2 className="mb-3 text-2xl font-semibold text-gray-800 dark:text-white/90">6. ความรับผิดชอบ</h2>
               <p>
-                DhevaSuite ไม่รับผิดชอบต่อการบาดเจ็บหรืออุบัติเหตุที่เกิดขึ้นระหว่างการใช้สนาม
+                Dhevategnologie ไม่รับผิดชอบต่อการบาดเจ็บหรืออุบัติเหตุที่เกิดขึ้นระหว่างการใช้สนาม
                 ผู้ใช้บริการต้องรับผิดชอบต่อความปลอดภัยของตนเองและผู้ที่มาด้วย
               </p>
             </div>
@@ -73,7 +73,7 @@ export default function TermsPage() {
             <div>
               <h2 className="mb-3 text-2xl font-semibold text-gray-800 dark:text-white/90">7. การเปลี่ยนแปลงข้อกำหนด</h2>
               <p>
-                DhevaSuite ขอสงวนสิทธิ์ในการแก้ไขข้อกำหนดและเงื่อนไขได้ทุกเมื่อ
+                Dhevategnologie ขอสงวนสิทธิ์ในการแก้ไขข้อกำหนดและเงื่อนไขได้ทุกเมื่อ
                 การใช้บริการต่อเนื่องหลังจากการเปลี่ยนแปลงถือว่าคุณยอมรับข้อกำหนดใหม่
               </p>
             </div>

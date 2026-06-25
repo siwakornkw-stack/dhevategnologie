@@ -24,7 +24,7 @@ export function SportHeader() {
         {/* Logo */}
         <Link href="/sport" className="flex items-center gap-2 font-bold text-lg text-gray-900 dark:text-white">
           <span className="text-2xl">🏟️</span>
-          <span className="hidden sm:block">DhevaSuite</span>
+          <span className="hidden sm:block">Dhevategnologie</span>
         </Link>
 
         {/* Desktop Nav */}

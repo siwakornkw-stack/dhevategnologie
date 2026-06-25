@@ -32,11 +32,11 @@ export async function POST(req: NextRequest) {
   // Best-effort notification email; never block the lead on email delivery.
   const key = process.env.RESEND_API_KEY;
   if (key && !key.startsWith('re_your') && !key.startsWith('re_placeholder')) {
-    const adminEmail = process.env.EMAIL_FROM?.match(/<(.+)>/)?.[1] ?? process.env.EMAIL_FROM ?? 'admin@dhevasuite.com';
+    const adminEmail = process.env.EMAIL_FROM?.match(/<(.+)>/)?.[1] ?? process.env.EMAIL_FROM ?? 'admin@dhevategnologie.com';
     const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     try {
       await new Resend(key).emails.send({
-        from: process.env.EMAIL_FROM ?? 'noreply@dhevasuite.com',
+        from: process.env.EMAIL_FROM ?? 'noreply@dhevategnologie.com',
         to: adminEmail,
         replyTo: email,
         subject: `Contact form: ${firstName} ${lastName}`,

@@ -29,7 +29,7 @@ export default function ContactPage() {
       <div style={{ position: 'absolute', top: -120, left: -120, width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle,rgba(79,141,247,0.16),transparent 70%)' }} />
       <div style={{ maxWidth: 760, margin: '0 auto', position: 'relative' }}>
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
-          <h1 style={{ fontSize: 38, fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 14px' }}>ติดต่อฝ่ายขาย DhevaSuite</h1>
+          <h1 style={{ fontSize: 38, fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 14px' }}>ติดต่อฝ่ายขาย Dhevategnologie</h1>
           <p style={{ fontSize: 17, color: '#56657F', lineHeight: 1.6, maxWidth: 520, margin: '0 auto' }}>อยากได้ระบบจองและขายหน้าร้านสำหรับสนามของคุณ? กรอกข้อมูลเพื่อขอใบเสนอราคาและนัดดูเดโม ทีมงานจะติดต่อกลับภายใน 24 ชั่วโมง</p>
           <Link href={DEMO_URL} style={{ display: 'inline-block', marginTop: 16, fontSize: 15, fontWeight: 600, color: '#1E5BD6', textDecoration: 'none' }}>อยากลองเองก่อน? ดูเดโมจริง →</Link>
         </div>
@@ -41,7 +41,7 @@ export default function ContactPage() {
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7" stroke="#22A06B" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </div>
               <h3 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 10px' }}>ส่งข้อมูลเรียบร้อย!</h3>
-              <p style={{ fontSize: 15, color: '#56657F', lineHeight: 1.6, margin: 0 }}>ขอบคุณที่สนใจ DhevaSuite ทีมงานจะติดต่อกลับภายใน 24 ชั่วโมง</p>
+              <p style={{ fontSize: 15, color: '#56657F', lineHeight: 1.6, margin: 0 }}>ขอบคุณที่สนใจ Dhevategnologie ทีมงานจะติดต่อกลับภายใน 24 ชั่วโมง</p>
             </div>
           ) : (
             <form onSubmit={onSubmit}>

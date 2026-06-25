@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { auth } from '@/lib/auth';
 import { LogoutButton } from '@/components/site/logout-button';
 
-export const metadata = { title: 'หลังบ้าน DhevaSuite' };
+export const metadata = { title: 'หลังบ้าน Dhevategnologie' };
 
 export default async function SiteAdminLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -18,7 +18,7 @@ export default async function SiteAdminLayout({ children }: { children: React.Re
             <div className="flex items-center gap-6">
               <Link href="/admin/leads" className="flex items-center gap-2 font-bold text-gray-900 dark:text-white">
                 <span className="text-xl">🏟️</span>
-                <span>Dheva<span className="text-indigo-600 dark:text-indigo-400">Suite</span></span>
+                <span>Dheva<span className="text-indigo-600 dark:text-indigo-400">tegnologie</span></span>
                 <span className="text-xs font-medium text-gray-400 ml-1">หลังบ้าน (เว็บขาย)</span>
               </Link>
               <nav className="hidden sm:flex items-center gap-5 text-sm font-medium text-gray-600 dark:text-gray-400">

@@ -19,17 +19,17 @@ async function main() {
 
   const adminPassword = await bcrypt.hash('admin1234', 12);
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@dhevasuite.com' },
+    where: { email: 'admin@dhevategnologie.com' },
     update: {},
-    create: { name: 'Admin DhevaSuite', email: 'admin@dhevasuite.com', password: adminPassword, role: 'ADMIN' },
+    create: { name: 'Admin Dhevategnologie', email: 'admin@dhevategnologie.com', password: adminPassword, role: 'ADMIN' },
   });
   console.log('✅ Admin:', admin.email);
 
   const userPassword = await bcrypt.hash('user1234', 12);
   const user = await prisma.user.upsert({
-    where: { email: 'user@dhevasuite.com' },
+    where: { email: 'user@dhevategnologie.com' },
     update: {},
-    create: { name: 'สมชาย ใจดี', email: 'user@dhevasuite.com', password: userPassword, role: 'USER' },
+    create: { name: 'สมชาย ใจดี', email: 'user@dhevategnologie.com', password: userPassword, role: 'USER' },
   });
   console.log('✅ User:', user.email);
 
@@ -54,8 +54,8 @@ async function main() {
   console.log(`✅ Created ${fields.length} fields`);
 
   console.log('\n🎉 Seed complete!');
-  console.log('📧 Admin: admin@dhevasuite.com / admin1234');
-  console.log('📧 User:  user@dhevasuite.com  / user1234');
+  console.log('📧 Admin: admin@dhevategnologie.com / admin1234');
+  console.log('📧 User:  user@dhevategnologie.com  / user1234');
 }
 
 main()

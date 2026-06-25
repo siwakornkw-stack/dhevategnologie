@@ -616,7 +616,7 @@ model PosRefund {
 
 model PosSettings {
   id                 String   @id @default("default")
-  shopName           String   @default("DhevaSuite")
+  shopName           String   @default("Dhevategnologie")
   taxId              String?
   address            String?
   vatMode            VatMode  @default(INCLUDED)

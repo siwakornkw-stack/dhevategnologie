@@ -287,7 +287,7 @@ export default async function AdminHelpPage() {
       </div>
 
       <div className="bg-gradient-to-br from-indigo-500/10 to-indigo-400/10 border border-indigo-200 dark:border-indigo-900/50 rounded-2xl p-5">
-        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">คู่มือผู้ดูแลระบบ DhevaSuite</h2>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-1">คู่มือผู้ดูแลระบบ Dhevategnologie</h2>
         <p className="text-sm text-gray-600 dark:text-gray-400">
           สรุปวิธีใช้งานทุกหน้าในระบบแอดมิน เลือกหัวข้อด้านล่างเพื่อดูรายละเอียด
         </p>

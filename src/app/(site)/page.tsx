@@ -38,10 +38,10 @@ const FEATURES = [
 ];
 
 const TABS = [
-  { key: 'dash', label: 'แดชบอร์ด', url: 'app.dhevasuite.com/dashboard' },
-  { key: 'pos', label: 'หน้าขาย POS', url: 'app.dhevasuite.com/pos' },
-  { key: 'report', label: 'รายงาน', url: 'app.dhevasuite.com/reports' },
-  { key: 'stock', label: 'คลังสินค้า', url: 'app.dhevasuite.com/inventory' },
+  { key: 'dash', label: 'แดชบอร์ด', url: 'app.dhevategnologie.com/dashboard' },
+  { key: 'pos', label: 'หน้าขาย POS', url: 'app.dhevategnologie.com/pos' },
+  { key: 'report', label: 'รายงาน', url: 'app.dhevategnologie.com/reports' },
+  { key: 'stock', label: 'คลังสินค้า', url: 'app.dhevategnologie.com/inventory' },
 ];
 
 const STATS = [
@@ -58,13 +58,13 @@ const PLANS = [
 ];
 
 const TESTIMONIALS = [
-  { quote: 'เปลี่ยนมาใช้ DhevaSuite แล้วลูกค้าจองเองออนไลน์ได้ ไม่ต้องนั่งรับโทรศัพท์ทั้งวัน ยอดจองเพิ่มขึ้นเพราะเปิดรับนอกเวลาทำการได้', name: 'คุณวิภาดา ส.', role: 'เจ้าของสนามฟุตบอล 4 คอร์ต', initial: 'ว', avatarBg: '#1E5BD6' },
+  { quote: 'เปลี่ยนมาใช้ Dhevategnologie แล้วลูกค้าจองเองออนไลน์ได้ ไม่ต้องนั่งรับโทรศัพท์ทั้งวัน ยอดจองเพิ่มขึ้นเพราะเปิดรับนอกเวลาทำการได้', name: 'คุณวิภาดา ส.', role: 'เจ้าของสนามฟุตบอล 4 คอร์ต', initial: 'ว', avatarBg: '#1E5BD6' },
   { quote: 'POS กับระบบกะเงินสดช่วยให้ปิดรอบแคชเชียร์แม่นยำ ของในสต็อกไม่หาย ดูยอดขายทุกสาขาได้จากมือถือ', name: 'คุณธนกฤต พ.', role: 'ผู้จัดการอารีน่าแบดมินตัน', initial: 'ธ', avatarBg: '#22A06B' },
   { quote: 'ระบบสมาชิกและแต้มสะสมทำให้ลูกค้าเก่ากลับมาเล่นซ้ำ คุ้มค่ามากสำหรับสนามขนาดกลาง ทีมซัพพอร์ตคนไทยตอบไว', name: 'คุณนภัสสร ก.', role: 'เจ้าของคอร์ตเทนนิส', initial: 'น', avatarBg: '#7C4DD8' },
 ];
 
 const FAQS = [
-  { q: 'DhevaSuite เหมาะกับสนามแบบไหนบ้าง?', a: 'เหมาะกับสนามฟุตบอล แบดมินตัน เทนนิส บาส รวมถึงอารีน่าและคอมเพล็กซ์กีฬาที่มีหลายคอร์ต ระบบปรับขนาดได้ตั้งแต่สนามเดียวจนถึงเครือหลายสาขา' },
+  { q: 'Dhevategnologie เหมาะกับสนามแบบไหนบ้าง?', a: 'เหมาะกับสนามฟุตบอล แบดมินตัน เทนนิส บาส รวมถึงอารีน่าและคอมเพล็กซ์กีฬาที่มีหลายคอร์ต ระบบปรับขนาดได้ตั้งแต่สนามเดียวจนถึงเครือหลายสาขา' },
   { q: 'ต้องติดตั้งโปรแกรมหรือซื้ออุปกรณ์เพิ่มไหม?', a: 'ไม่จำเป็น ระบบทำงานบนคลาวด์ ใช้ผ่านเว็บเบราว์เซอร์ แท็บเล็ต หรือมือถือได้ทันที รองรับเครื่องพิมพ์ใบเสร็จและลิ้นชักเก็บเงินทั่วไปที่มีอยู่แล้ว' },
   { q: 'ข้อมูลของสนามปลอดภัยแค่ไหน?', a: 'เราเข้ารหัสข้อมูลและสำรองข้อมูลอัตโนมัติ ระบบมีความเสถียรสูง รองรับการยืนยันตัวตน 2 ขั้นตอน (2FA) และการแบ่งสิทธิ์ผู้ใช้ตามบทบาท ข้อมูลไม่ถูกแชร์ให้บุคคลที่สาม' },
   { q: 'ทดลองดูระบบก่อนได้ไหม?', a: 'ได้ กดปุ่ม "ดูเดโมจริง" เพื่อเข้าใช้ระบบจริงได้ทันที หรือขอบัญชีทดลองหลังบ้าน (แอดมิน/POS) จากทีมขายเพื่อดูครบทุกฟีเจอร์' },
@@ -235,7 +235,7 @@ export default function HomePage() {
               ระบบจัดการสนามกีฬาครบวงจร ใช้งานง่ายในที่เดียว
             </div>
             <h1 className="h1big" style={{ fontSize: 50, lineHeight: 1.12, fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 20px' }}>เปิดสนามให้ลูกค้าจองออนไลน์<br />และขายหน้าร้าน <span style={{ color: '#1E5BD6' }}>ในระบบเดียว</span></h1>
-            <p style={{ fontSize: 18, lineHeight: 1.65, color: '#51607C', margin: '0 0 32px', maxWidth: 480 }}>DhevaSuite รวมระบบจองออนไลน์ POS ขายหน้าร้าน จัดการสต็อก สมาชิก และรายงาน ไว้ในระบบเดียว สำหรับสนามกีฬาและอารีน่าทุกขนาด</p>
+            <p style={{ fontSize: 18, lineHeight: 1.65, color: '#51607C', margin: '0 0 32px', maxWidth: 480 }}>Dhevategnologie รวมระบบจองออนไลน์ POS ขายหน้าร้าน จัดการสต็อก สมาชิก และรายงาน ไว้ในระบบเดียว สำหรับสนามกีฬาและอารีน่าทุกขนาด</p>
             <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 30 }}>
               <a href={DEMO_URL} style={{ fontSize: 16, fontWeight: 600, color: '#fff', textDecoration: 'none', background: 'linear-gradient(135deg,#1E5BD6,#163F94)', padding: '15px 30px', borderRadius: 12, boxShadow: '0 10px 26px rgba(30,91,214,0.32)' }}>ดูเดโมจริง →</a>
               <a href="#screens" style={{ fontSize: 16, fontWeight: 600, color: '#1E5BD6', textDecoration: 'none', background: '#fff', border: '1.5px solid #CCD9EF', padding: '15px 28px', borderRadius: 12, display: 'inline-flex', alignItems: 'center', gap: 9 }}>
@@ -264,7 +264,7 @@ export default function HomePage() {
             <div style={{ borderRadius: 16, background: '#fff', boxShadow: '0 30px 70px rgba(20,50,110,0.2)', overflow: 'hidden', border: '1px solid #ECF1F8' }}>
               <div style={{ height: 38, background: '#F5F8FC', display: 'flex', alignItems: 'center', gap: 7, padding: '0 15px', borderBottom: '1px solid #ECF1F8' }}>
                 {['#FF6058', '#FFBD2E', '#28C940'].map((c) => <span key={c} style={{ width: 11, height: 11, borderRadius: '50%', background: c }} />)}
-                <span style={{ marginLeft: 'auto', fontSize: 11, color: '#9AA6BC' }}>app.dhevasuite.com</span>
+                <span style={{ marginLeft: 'auto', fontSize: 11, color: '#9AA6BC' }}>app.dhevategnologie.com</span>
               </div>
               <div style={{ display: 'flex', height: 340 }}>
                 <div style={{ width: 64, background: '#0F2A5E', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 18, gap: 18 }}>
@@ -341,7 +341,7 @@ export default function HomePage() {
           <div style={{ textAlign: 'center', maxWidth: 600, margin: '0 auto 40px' }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: '#79A6F5', letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 12 }}>หน้าจอโปรแกรม</div>
             <h2 style={{ fontSize: 36, fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 14px', lineHeight: 1.2, color: '#fff' }}>ออกแบบมาให้ใช้งานง่าย สวยทุกหน้าจอ</h2>
-            <p style={{ fontSize: 16, color: '#A9BBDC', lineHeight: 1.6, margin: 0 }}>เลือกดูตัวอย่างหน้าจอจริงของ DhevaSuite</p>
+            <p style={{ fontSize: 16, color: '#A9BBDC', lineHeight: 1.6, margin: 0 }}>เลือกดูตัวอย่างหน้าจอจริงของ Dhevategnologie</p>
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 34 }}>
             {TABS.map((t, i) => (
@@ -415,7 +415,7 @@ export default function HomePage() {
       <section style={{ padding: '88px 28px', maxWidth: 1180, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', maxWidth: 600, margin: '0 auto 50px' }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: '#1E5BD6', letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 12 }}>เสียงจากลูกค้า</div>
-          <h2 style={{ fontSize: 38, fontWeight: 700, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.2 }}>สนามที่เติบโตไปกับ DhevaSuite</h2>
+          <h2 style={{ fontSize: 38, fontWeight: 700, letterSpacing: '-0.02em', margin: 0, lineHeight: 1.2 }}>สนามที่เติบโตไปกับ Dhevategnologie</h2>
         </div>
         <div className="grid3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 24 }}>
           {TESTIMONIALS.map((t) => (
@@ -467,7 +467,7 @@ export default function HomePage() {
             <h2 style={{ fontSize: 40, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.18, margin: '0 0 18px', color: '#fff' }}>พร้อมเปลี่ยนสนามให้เป็นระบบดิจิทัล?</h2>
             <p style={{ fontSize: 17, lineHeight: 1.65, color: '#B6C6E6', margin: '0 0 30px' }}>กรอกข้อมูลเพื่อขอใบเสนอราคาและนัดดูเดโม ทีมงานจะติดต่อกลับเพื่อช่วยวางระบบให้สนามของคุณภายในวันเดียว</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {[['02-123-4567', <svg key="p" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3-8.6A2 2 0 014.1 2h3a2 2 0 012 1.7c.1.9.3 1.8.6 2.6a2 2 0 01-.5 2.1L8.1 9.5a16 16 0 006 6l1.1-1.1a2 2 0 012.1-.5c.8.3 1.7.5 2.6.6a2 2 0 011.7 2z" stroke="#79A6F5" strokeWidth="1.6" strokeLinejoin="round" /></svg>], ['sales@dhevasuite.com', <svg key="e" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 4h16v16H4z" stroke="#79A6F5" strokeWidth="1.6" /><path d="M4 6l8 6 8-6" stroke="#79A6F5" strokeWidth="1.6" strokeLinejoin="round" /></svg>], ['กรุงเทพมหานคร ประเทศไทย', <svg key="m" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 1116 0z" stroke="#79A6F5" strokeWidth="1.6" /><circle cx="12" cy="10" r="3" stroke="#79A6F5" strokeWidth="1.6" /></svg>]].map(([txt, ic], i) => (
+              {[['02-123-4567', <svg key="p" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3-8.6A2 2 0 014.1 2h3a2 2 0 012 1.7c.1.9.3 1.8.6 2.6a2 2 0 01-.5 2.1L8.1 9.5a16 16 0 006 6l1.1-1.1a2 2 0 012.1-.5c.8.3 1.7.5 2.6.6a2 2 0 011.7 2z" stroke="#79A6F5" strokeWidth="1.6" strokeLinejoin="round" /></svg>], ['sales@dhevategnologie.com', <svg key="e" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 4h16v16H4z" stroke="#79A6F5" strokeWidth="1.6" /><path d="M4 6l8 6 8-6" stroke="#79A6F5" strokeWidth="1.6" strokeLinejoin="round" /></svg>], ['กรุงเทพมหานคร ประเทศไทย', <svg key="m" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 1116 0z" stroke="#79A6F5" strokeWidth="1.6" /><circle cx="12" cy="10" r="3" stroke="#79A6F5" strokeWidth="1.6" /></svg>]].map(([txt, ic], i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 13, color: '#D4DFF2', fontSize: 15.5 }}>{ic}{txt}</div>
               ))}
             </div>
@@ -479,7 +479,7 @@ export default function HomePage() {
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7" stroke="#22A06B" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 </div>
                 <h3 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 10px' }}>ส่งข้อมูลเรียบร้อย!</h3>
-                <p style={{ fontSize: 15, color: '#56657F', lineHeight: 1.6, margin: 0 }}>ขอบคุณที่สนใจ DhevaSuite ทีมงานจะติดต่อกลับภายใน 24 ชั่วโมง</p>
+                <p style={{ fontSize: 15, color: '#56657F', lineHeight: 1.6, margin: 0 }}>ขอบคุณที่สนใจ Dhevategnologie ทีมงานจะติดต่อกลับภายใน 24 ชั่วโมง</p>
               </div>
             ) : (
               <form onSubmit={onSubmit}>

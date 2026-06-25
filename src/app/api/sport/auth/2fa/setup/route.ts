@@ -38,7 +38,7 @@ export async function GET() {
     });
   }
 
-  const otpauth = generateURI({ label: user.email!, issuer: 'DhevaSuite', secret });
+  const otpauth = generateURI({ label: user.email!, issuer: 'Dhevategnologie', secret });
   const qrDataUrl = await QRCode.toDataURL(otpauth);
 
   return NextResponse.json({ enabled: false, secret, qrDataUrl });

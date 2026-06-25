@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'นโยบายความเป็นส่วนตัว - DhevaSuite',
+  title: 'นโยบายความเป็นส่วนตัว - Dhevategnologie',
 };
 
 export default function PrivacyPage() {
@@ -14,7 +14,7 @@ export default function PrivacyPage() {
             นโยบายความเป็นส่วนตัว
           </h1>
           <p className="text-gray-500 dark:text-gray-400 font-medium mb-12">
-            DhevaSuite โดย บริษัท เทวะ เทคโนโลจี จำกัด (Dheva Technologie)
+            Dhevategnologie โดย บริษัท เทวะ เทคโนโลจี จำกัด (Dheva Technologie)
           </p>
 
           <div className="mb-8">

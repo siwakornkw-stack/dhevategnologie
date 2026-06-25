@@ -1,6 +1,6 @@
 @echo off
 cd /d "%~dp0"
-rem ===== DhevaSuite cash-drawer agent =====
+rem ===== Dhevategnologie cash-drawer agent =====
 rem Set this to the EXACT printer name shown in Windows "Printers & scanners".
 set DRAWER_PRINTER=XP-Q80I
 rem Optional: lock to your POS origin, e.g. https://dhevasuite.vercel.app  (default * = any)

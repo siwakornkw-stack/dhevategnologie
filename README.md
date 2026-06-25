@@ -1,6 +1,6 @@
-# DhevaSuite
+# Dhevategnologie
 
-DhevaSuite is a Thai-language sports-facility **booking** and **point-of-sale (POS)** system, built with Next.js 15 (App Router) and PostgreSQL. UI copy is Thai by default (with English and Burmese message catalogs).
+Dhevategnologie is a Thai-language sports-facility **booking** and **point-of-sale (POS)** system, built with Next.js 15 (App Router) and PostgreSQL. UI copy is Thai by default (with English and Burmese message catalogs).
 
 > This repo was bootstrapped from an AI SaaS starter template. The original marketing site survives only under `src/app/(site)/`; the real product lives under `src/app/(sport)/`. The `package.json` name (`ai-starter-kit-oss`) is a leftover from that template.
 

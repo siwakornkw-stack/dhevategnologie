@@ -18,7 +18,7 @@ export default function NotFoundPage() {
           href="/sport"
           className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-primary-600 to-violet-600 text-white font-semibold hover:opacity-90 transition"
         >
-          กลับหน้าหลัก DhevaSuite
+          กลับหน้าหลัก Dhevategnologie
         </Link>
       </div>
     </div>

@@ -113,7 +113,7 @@ export default function ReportsPage() {
 <html lang="th">
 <head>
   <meta charset="UTF-8"/>
-  <title>DhevaSuite Report ${from} - ${to}</title>
+  <title>Dhevategnologie Report ${from} - ${to}</title>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family:'Sarabun','Tahoma',sans-serif; padding:24px; color:#1e1e1e; font-size:12px; }
@@ -136,7 +136,7 @@ export default function ReportsPage() {
   </style>
 </head>
 <body>
-  <h1>DhevaSuite - รีพอร์ต</h1>
+  <h1>Dhevategnologie - รีพอร์ต</h1>
   <p class="meta">ช่วงเวลา: ${from} ถึง ${to} &nbsp;|&nbsp; สร้างเมื่อ: ${new Date().toLocaleString('th-TH')}</p>
 
   <div class="summary">

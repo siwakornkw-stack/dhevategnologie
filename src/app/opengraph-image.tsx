@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
-export const alt = 'DhevaSuite - ระบบจองสนามกีฬาออนไลน์';
+export const alt = 'Dhevategnologie - ระบบจองสนามกีฬาออนไลน์';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -22,7 +22,7 @@ export default function OgImage() {
       >
         <div style={{ fontSize: 80, marginBottom: 16 }}>🏟️</div>
         <div style={{ fontSize: 72, fontWeight: 800, color: '#fff', letterSpacing: -2 }}>
-          DhevaSuite
+          Dhevategnologie
         </div>
         <div style={{ fontSize: 32, color: 'rgba(255,255,255,0.85)', marginTop: 12 }}>
           ระบบจองสนามกีฬาออนไลน์ • Phuket

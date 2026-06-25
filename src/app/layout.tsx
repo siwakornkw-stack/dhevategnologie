@@ -19,15 +19,15 @@ const onest = Onest({
 
 export const metadata: Metadata = {
   title: {
-    default: 'DhevaSuite - จองสนามกีฬา',
-    template: '%s | DhevaSuite',
+    default: 'Dhevategnologie - จองสนามกีฬา',
+    template: '%s | Dhevategnologie',
   },
   description: 'ระบบจองสนามกีฬาออนไลน์ ง่าย สะดวก รวดเร็ว',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'DhevaSuite',
+    title: 'Dhevategnologie',
   },
   formatDetection: { telephone: false },
 };
@@ -51,7 +51,7 @@ export default async function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="DhevaSuite" />
+        <meta name="apple-mobile-web-app-title" content="Dhevategnologie" />
       </head>
       <body
         className={`bg-gray-50 dark:bg-dark-secondary min-h-screen flex flex-col ${onest.className}`}

@@ -9,7 +9,7 @@ export function SiteHeader() {
           <span style={{ width: 38, height: 38, borderRadius: 10, background: 'linear-gradient(135deg,#1E5BD6,#163F94)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 16px rgba(30,91,214,0.32)' }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2L3 6.5v11L12 22l9-4.5v-11L12 2z" stroke="#fff" strokeWidth="1.7" strokeLinejoin="round" /><path d="M12 7l4.5 2.2v4.6L12 16l-4.5-2.2V9.2L12 7z" fill="#fff" fillOpacity="0.9" /></svg>
           </span>
-          <span style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-0.01em' }}>Dheva<span style={{ color: '#1E5BD6' }}>Suite</span></span>
+          <span style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-0.01em' }}>Dheva<span style={{ color: '#1E5BD6' }}>tegnologie</span></span>
         </Link>
         <nav className="site-nav" style={{ display: 'flex', alignItems: 'center', gap: 30, fontSize: 15, fontWeight: 500, color: '#41506B' }}>
           <a href="/#features" style={{ color: 'inherit', textDecoration: 'none' }}>ฟีเจอร์</a>

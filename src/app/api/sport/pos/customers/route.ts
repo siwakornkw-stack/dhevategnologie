@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'email format ไม่ถูกต้อง' }, { status: 400 });
   }
 
-  const email = emailIn || `walkin+${phone}-${Date.now()}@dhevasuite.local`;
+  const email = emailIn || `walkin+${phone}-${Date.now()}@dhevategnologie.local`;
   try {
     const result = await prisma.$transaction(
       async (tx) => {
