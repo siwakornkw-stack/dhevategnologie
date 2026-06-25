@@ -3,33 +3,23 @@ import { DEMO_URL } from '@/lib/site';
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-50 border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-dark-secondary/80 backdrop-blur-md">
-      <div className="wrapper h-16 flex items-center justify-between gap-4">
-        <Link href="/" className="flex items-center gap-2 font-bold text-lg text-gray-900 dark:text-white">
-          <span className="text-2xl">🏟️</span>
-          <span>Dheva<span className="text-indigo-600 dark:text-indigo-400">Suite</span></span>
+    <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(255,255,255,0.86)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderBottom: '1px solid #E8EDF5' }}>
+      <div style={{ maxWidth: 1180, margin: '0 auto', padding: '0 28px', height: 72, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24 }}>
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 11, textDecoration: 'none', color: '#0C1B36' }}>
+          <span style={{ width: 38, height: 38, borderRadius: 10, background: 'linear-gradient(135deg,#1E5BD6,#163F94)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 16px rgba(30,91,214,0.32)' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2L3 6.5v11L12 22l9-4.5v-11L12 2z" stroke="#fff" strokeWidth="1.7" strokeLinejoin="round" /><path d="M12 7l4.5 2.2v4.6L12 16l-4.5-2.2V9.2L12 7z" fill="#fff" fillOpacity="0.9" /></svg>
+          </span>
+          <span style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-0.01em' }}>Dheva<span style={{ color: '#1E5BD6' }}>Suite</span></span>
         </Link>
-
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600 dark:text-gray-400">
-          <Link href="/#features" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition">ฟีเจอร์</Link>
-          <Link href="/#how" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition">เริ่มใช้งาน</Link>
-          <Link href="/#pricing" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition">แพ็กเกจ</Link>
-          <Link href="/contact" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition">ติดต่อฝ่ายขาย</Link>
+        <nav className="site-nav" style={{ display: 'flex', alignItems: 'center', gap: 30, fontSize: 15, fontWeight: 500, color: '#41506B' }}>
+          <a href="/#features" style={{ color: 'inherit', textDecoration: 'none' }}>ฟีเจอร์</a>
+          <a href="/#screens" style={{ color: 'inherit', textDecoration: 'none' }}>หน้าจอโปรแกรม</a>
+          <a href="/#pricing" style={{ color: 'inherit', textDecoration: 'none' }}>ราคา</a>
+          <a href="/#faq" style={{ color: 'inherit', textDecoration: 'none' }}>คำถามที่พบบ่อย</a>
         </nav>
-
-        <div className="flex items-center gap-2">
-          <Link
-            href="/sport/auth/signin"
-            className="hidden sm:inline-flex text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-indigo-600 px-3 py-2"
-          >
-            เข้าสู่ระบบ
-          </Link>
-          <Link
-            href={DEMO_URL}
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-indigo-500 hover:bg-indigo-600 px-4 py-2 rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-          >
-            ดูเดโม →
-          </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <Link href="/sport/auth/signin" style={{ fontSize: 15, fontWeight: 600, color: '#1E5BD6', textDecoration: 'none' }}>เข้าสู่ระบบ</Link>
+          <Link href={DEMO_URL} style={{ fontSize: 15, fontWeight: 600, color: '#fff', textDecoration: 'none', background: 'linear-gradient(135deg,#1E5BD6,#163F94)', padding: '11px 22px', borderRadius: 10, boxShadow: '0 6px 18px rgba(30,91,214,0.3)' }}>ดูเดโม</Link>
         </div>
       </div>
     </header>

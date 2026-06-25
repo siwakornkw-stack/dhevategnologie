@@ -1,100 +1,73 @@
 'use client';
 
-import { Input } from '@/components/ui/inputs';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/inputs/textarea';
 import { useState } from 'react';
-import { toast } from 'sonner';
 import Link from 'next/link';
 import { DEMO_URL } from '@/lib/site';
 
+const inputStyle: React.CSSProperties = { width: '100%', padding: '13px 15px', border: '1.5px solid #DCE4F0', borderRadius: 10, fontFamily: 'inherit', fontSize: 15, color: '#0C1B36', outline: 'none' };
+const labelStyle: React.CSSProperties = { display: 'block', fontSize: 13.5, fontWeight: 600, color: '#41506B', marginBottom: 7 };
+
 export default function ContactPage() {
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', message: '' });
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const form = e.currentTarget;
-    const data = {
-      firstName: (form.elements.namedItem('firstName') as HTMLInputElement).value,
-      lastName: (form.elements.namedItem('lastName') as HTMLInputElement).value,
-      email: (form.elements.namedItem('email') as HTMLInputElement).value,
-      message: (form.elements.namedItem('message') as HTMLTextAreaElement).value,
-    };
-
-    setIsLoading(true);
+    setLoading(true);
     try {
-      const res = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        toast.error(json.error ?? 'เกิดข้อผิดพลาด กรุณาลองใหม่');
-        return;
-      }
-      toast.success('ส่งข้อมูลเรียบร้อย! ทีมงานจะติดต่อกลับโดยเร็ว');
-      form.reset();
-    } catch {
-      toast.error('การเชื่อมต่อมีปัญหา กรุณาลองใหม่');
+      const res = await fetch('/api/contact', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      if (res.ok) setSubmitted(true);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   }
 
   return (
-    <section className="relative overflow-hidden py-24">
-      <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-primary-400/20 blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-violet-400/20 blur-3xl pointer-events-none" />
-      <div className="wrapper relative">
-        <div className="max-w-[760px] mx-auto">
-          <div className="text-center mb-10">
-            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-3">
-              ติดต่อฝ่ายขาย DhevaSuite
-            </h1>
-            <p className="text-gray-500 dark:text-gray-400 max-w-xl mx-auto">
-              อยากได้ระบบจองและขายหน้าร้านสำหรับสนามของคุณ? กรอกข้อมูลเพื่อขอใบเสนอราคาและนัดดูเดโม
-              ทีมงานจะติดต่อกลับภายใน 24 ชั่วโมง
-            </p>
-            <Link
-              href={DEMO_URL}
-              className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
-            >
-              อยากลองเองก่อน? ดูเดโมจริง →
-            </Link>
-          </div>
+    <section style={{ position: 'relative', overflow: 'hidden', padding: '80px 28px' }}>
+      <style>{`.form-input:focus{border-color:#1E5BD6}`}</style>
+      <div style={{ position: 'absolute', top: -120, left: -120, width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle,rgba(79,141,247,0.16),transparent 70%)' }} />
+      <div style={{ maxWidth: 760, margin: '0 auto', position: 'relative' }}>
+        <div style={{ textAlign: 'center', marginBottom: 40 }}>
+          <h1 style={{ fontSize: 38, fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 14px' }}>ติดต่อฝ่ายขาย DhevaSuite</h1>
+          <p style={{ fontSize: 17, color: '#56657F', lineHeight: 1.6, maxWidth: 520, margin: '0 auto' }}>อยากได้ระบบจองและขายหน้าร้านสำหรับสนามของคุณ? กรอกข้อมูลเพื่อขอใบเสนอราคาและนัดดูเดโม ทีมงานจะติดต่อกลับภายใน 24 ชั่วโมง</p>
+          <Link href={DEMO_URL} style={{ display: 'inline-block', marginTop: 16, fontSize: 15, fontWeight: 600, color: '#1E5BD6', textDecoration: 'none' }}>อยากลองเองก่อน? ดูเดโมจริง →</Link>
+        </div>
 
-          <div className="border rounded-3xl p-8 sm:p-12 bg-white border-gray-100 dark:bg-dark-primary dark:border-gray-800 shadow-theme-sm">
-            <form onSubmit={handleSubmit}>
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <Label htmlFor="firstName">ชื่อ</Label>
-                  <Input id="firstName" name="firstName" type="text" placeholder="สมชาย" required />
+        <div style={{ background: '#fff', border: '1px solid #E7EDF6', borderRadius: 18, padding: 36, boxShadow: '0 18px 50px rgba(20,50,110,0.08)' }}>
+          {submitted ? (
+            <div style={{ textAlign: 'center', padding: '24px 8px' }}>
+              <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#E7F7EF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 18px' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7" stroke="#22A06B" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </div>
+              <h3 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 10px' }}>ส่งข้อมูลเรียบร้อย!</h3>
+              <p style={{ fontSize: 15, color: '#56657F', lineHeight: 1.6, margin: 0 }}>ขอบคุณที่สนใจ DhevaSuite ทีมงานจะติดต่อกลับภายใน 24 ชั่วโมง</p>
+            </div>
+          ) : (
+            <form onSubmit={onSubmit}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <div>
+                    <label style={labelStyle}>ชื่อ</label>
+                    <input className="form-input" required value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} placeholder="สมชาย" style={inputStyle} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>นามสกุล</label>
+                    <input className="form-input" required value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} placeholder="ใจดี" style={inputStyle} />
+                  </div>
                 </div>
                 <div>
-                  <Label htmlFor="lastName">นามสกุล</Label>
-                  <Input id="lastName" name="lastName" type="text" placeholder="ใจดี" required />
+                  <label style={labelStyle}>อีเมล</label>
+                  <input className="form-input" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="you@email.com" style={inputStyle} />
                 </div>
-                <div className="col-span-full">
-                  <Label htmlFor="email">อีเมล</Label>
-                  <Input id="email" name="email" type="email" placeholder="you@email.com" required />
+                <div>
+                  <label style={labelStyle}>รายละเอียด (ชื่อสนาม จำนวนคอร์ต เบอร์ติดต่อ)</label>
+                  <textarea className="form-input" required rows={6} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder="เล่าให้เราฟังเกี่ยวกับสนามของคุณ และสิ่งที่อยากได้จากระบบ" style={{ ...inputStyle, resize: 'vertical' }} />
                 </div>
-                <div className="col-span-full">
-                  <Label htmlFor="message">รายละเอียด (ชื่อสนาม จำนวนคอร์ต เบอร์ติดต่อ ฯลฯ)</Label>
-                  <Textarea id="message" name="message" rows={6} placeholder="เล่าให้เราฟังเกี่ยวกับสนามของคุณ และสิ่งที่อยากได้จากระบบ" required />
-                </div>
-                <div className="col-span-full">
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="bg-indigo-500 hover:bg-indigo-600 text-white transition h-12 py-3 px-6 w-full font-medium text-sm rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {isLoading ? 'กำลังส่ง...' : 'ขอใบเสนอราคา / นัดดูเดโม'}
-                  </button>
-                </div>
+                <button type="submit" disabled={loading} style={{ width: '100%', background: 'linear-gradient(135deg,#1E5BD6,#163F94)', color: '#fff', border: 'none', padding: 15, borderRadius: 11, fontFamily: 'inherit', fontSize: 16, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', boxShadow: '0 10px 24px rgba(30,91,214,0.3)', opacity: loading ? 0.6 : 1 }}>{loading ? 'กำลังส่ง...' : 'ขอใบเสนอราคา / นัดดูเดโม'}</button>
               </div>
             </form>
-          </div>
+          )}
         </div>
       </div>
     </section>
