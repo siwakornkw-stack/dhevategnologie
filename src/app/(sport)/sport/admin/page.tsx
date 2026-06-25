@@ -82,6 +82,12 @@ export default async function AdminDashboardPage() {
             {t('tabs.coupons')}
           </Link>
           <Link
+            href="/sport/admin/leads"
+            className="flex-shrink-0 px-3 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+          >
+            📨 ลีด/คำขอเดโม
+          </Link>
+          <Link
             href="/sport/admin/reports"
             className="flex-shrink-0 px-3 py-2 rounded-full border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
           >

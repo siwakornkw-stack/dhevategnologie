@@ -658,3 +658,16 @@ model ProcessedStripeEvent {
 
   @@index([processedAt])
 }
+
+// Sales-site contact / demo-request leads (submitted via the (site) contact form).
+model Lead {
+  id        String   @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String
+  message   String
+  handled   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
